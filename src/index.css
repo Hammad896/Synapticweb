@@ -79,8 +79,11 @@
 
   html {
     scroll-behavior: smooth;
-    /* The fixed nav is 56px; anchor targets must clear it. */
-    scroll-padding-top: 7rem;
+    /* Deliberately small. Every section already carries its own generous top
+       padding, which the fixed 56px nav simply overlaps — that padding IS the
+       clearance. Adding a 7rem scroll-padding on top of it double-counted, and
+       an anchored section landed with ~270px of dead space above its eyebrow. */
+    scroll-padding-top: 1rem;
     -webkit-text-size-adjust: 100%;
   }
 
@@ -148,10 +151,20 @@
       radial-gradient(60% 50% at 50% 0%, hsl(var(--accent) / 0.10), transparent 70%);
   }
 
-  /* The Synapse Gradient — the exact ramp under "LAB" in the logo. This is the
-     signature; it is never a background wash and never sits behind body text. */
+  /* The Synapse Gradient — the exact ramp under "LAB" in the logo, cyan and all.
+     Use it ONLY for thin, textless elements: hairline rules, the active-nav
+     underline, the scroll-progress bar. Nothing is ever read on top of it. */
   .gradient-synapse {
     background-image: linear-gradient(90deg, #001463 0%, #0067AE 55%, #00C2FF 100%);
+  }
+
+  /* The TEXT-SAFE fill, for any surface that carries white copy on hover.
+     The full ramp cannot be used here: white on the cyan terminus (#00C2FF) is
+     ~1.9:1 and fails WCAG outright, so the right-hand side of a filled card was
+     effectively unreadable. Stopping at the core blue keeps white type at ~5.3:1
+     (AA) across the entire surface, and still reads unmistakably as the brand. */
+  .gradient-fill {
+    background-image: linear-gradient(120deg, #001463 0%, #00509A 60%, #0067AE 100%);
   }
 
   .gradient-text {

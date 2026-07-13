@@ -31,7 +31,7 @@ const CapabilityRow = ({
         CSS cannot interpolate between gradients. */}
     <div
       aria-hidden="true"
-      className="gradient-synapse absolute inset-0 -z-10 origin-left scale-x-0 transition-transform duration-500 ease-apple group-hover:scale-x-100"
+      className="gradient-fill absolute inset-0 -z-10 origin-left scale-x-0 transition-transform duration-500 ease-apple group-hover:scale-x-100"
     />
 
     <article className="grid items-baseline gap-x-8 gap-y-4 px-4 py-9 transition-[padding] duration-500 ease-apple group-hover:px-8 lg:grid-cols-12 lg:py-10">
@@ -69,7 +69,7 @@ const CapabilityRow = ({
 );
 
 const Capabilities = () => (
-  <section id="capabilities" className="px-6 py-32 md:py-40">
+  <section id="capabilities" className="px-6 py-24 md:py-32">
     <div className="mx-auto max-w-7xl">
       <Reveal as="header" className="max-w-3xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">

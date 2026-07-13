@@ -3,6 +3,7 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 import WhatsAppButton from "./WhatsAppButton";
 import ScrollProgress from "./ScrollProgress";
+import LabAssist from "./LabAssist";
 
 const Layout = ({ children }: { children: ReactNode }) => (
   <div id="top" className="grain flex min-h-screen flex-col bg-background">
@@ -25,7 +26,11 @@ const Layout = ({ children }: { children: ReactNode }) => (
     </main>
 
     <Footer />
+
+    {/* Floating stack, bottom-right: Lab Assist owns bottom-6, WhatsApp sits
+        above it at bottom-24, and the chat panel opens clear of both. */}
     <WhatsAppButton />
+    <LabAssist />
   </div>
 );
 

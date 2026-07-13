@@ -4,11 +4,16 @@ import { Menu, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import Logo from "./Logo";
 import { COMPANY, NAV_LINKS } from "@/data/site";
+import { useActiveSection } from "@/hooks/use-active-section";
 import { cn } from "@/lib/utils";
+
+/** Derived once — the hook memoises on identity, so this must not be inline. */
+const SECTION_IDS = NAV_LINKS.map((link) => link.href.slice(1));
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const activeId = useActiveSection(SECTION_IDS);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -43,19 +48,36 @@ const Navbar = () => {
             aria-label={`${COMPANY.name} — back to top`}
             className="transition-opacity duration-300 ease-apple hover:opacity-70"
           >
-            <Logo className="h-6 md:h-7" />
+            <Logo className="h-7 md:h-8" />
           </a>
 
           <div className="hidden items-center gap-8 md:flex">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-xs text-muted-foreground transition-colors duration-300 ease-apple hover:text-accent"
-              >
-                {link.label}
-              </a>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const isActive = activeId === link.href.slice(1);
+
+              return (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  aria-current={isActive ? "true" : undefined}
+                  className={cn(
+                    "relative text-xs transition-colors duration-300 ease-apple hover:text-accent",
+                    isActive ? "text-foreground" : "text-muted-foreground",
+                  )}
+                >
+                  {link.label}
+                  {/* The reader always knows where they are. A 1px gradient rule
+                      rather than a color swap — quieter, and it reuses the brand. */}
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "gradient-synapse absolute -bottom-1.5 left-0 h-px w-full origin-left transition-transform duration-500 ease-apple",
+                      isActive ? "scale-x-100" : "scale-x-0",
+                    )}
+                  />
+                </a>
+              );
+            })}
 
             <ThemeToggle />
 

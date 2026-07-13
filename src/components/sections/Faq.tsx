@@ -14,7 +14,7 @@ const Faq = () => {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section id="faq" className="px-6 py-32 md:py-40">
+    <section id="faq" className="px-6 py-24 md:py-32">
       <div className="mx-auto grid max-w-7xl gap-16 lg:grid-cols-[0.8fr_1.2fr] lg:gap-24">
         <Reveal as="header">
           <p className="text-xs uppercase tracking-[0.2em] text-accent">

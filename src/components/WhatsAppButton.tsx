@@ -16,7 +16,8 @@ const WhatsAppButton = () => (
     target="_blank"
     rel="noopener noreferrer"
     aria-label={`Chat with ${COMPANY.name} on WhatsApp`}
-    className="group fixed bottom-6 right-6 z-50 flex items-center rounded-full border border-border bg-card/80 p-4 text-foreground shadow-lg backdrop-blur-md transition-all duration-500 ease-apple hover:scale-[1.02] hover:border-accent hover:text-accent"
+    // Stacked above the Lab Assist launcher, which owns bottom-6.
+    className="group fixed bottom-24 right-6 z-50 flex items-center rounded-full border border-border bg-card/80 p-4 text-foreground shadow-lg backdrop-blur-md transition-all duration-500 ease-apple hover:scale-[1.02] hover:border-accent hover:text-accent"
   >
     <svg
       viewBox="0 0 24 24"

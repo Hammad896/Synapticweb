@@ -21,7 +21,7 @@ const EngagementCard = ({
   >
     <div
       aria-hidden="true"
-      className="gradient-synapse absolute inset-0 -z-10 origin-bottom scale-y-0 transition-transform duration-500 ease-apple group-hover:scale-y-100"
+      className="gradient-fill absolute inset-0 -z-10 origin-bottom scale-y-0 transition-transform duration-500 ease-apple group-hover:scale-y-100"
     />
 
     <span className="type-display block text-5xl tabular-nums text-accent transition-colors duration-500 ease-apple group-hover:text-white">
@@ -60,7 +60,7 @@ const EngagementCard = ({
 );
 
 const Engagements = () => (
-  <section id="engagements" className="px-6 py-32 md:py-40">
+  <section id="engagements" className="px-6 py-24 md:py-32">
     <div className="mx-auto max-w-7xl">
       <Reveal as="header" className="max-w-3xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">

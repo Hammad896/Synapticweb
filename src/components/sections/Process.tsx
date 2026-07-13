@@ -53,7 +53,7 @@ const ProcessRow = ({ step, index }: { step: ProcessStep; index: number }) => (
 );
 
 const Process = () => (
-  <section id="process" className="px-6 py-32 md:py-40">
+  <section id="process" className="px-6 py-24 md:py-32">
     <div className="mx-auto max-w-7xl">
       <Reveal as="header" className="max-w-3xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">

@@ -48,7 +48,7 @@ const TierCard = ({ tier, index }: { tier: TechTier; index: number }) => (
 );
 
 const Technologies = () => (
-  <section id="technologies" className="py-32 md:py-40">
+  <section id="technologies" className="py-24 md:py-32">
     <div className="mx-auto max-w-7xl px-6">
       <Reveal as="header" className="max-w-3xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">

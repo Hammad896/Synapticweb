@@ -10,7 +10,7 @@ const PartnerCard = ({ partner, index }: { partner: Partner; index: number }) =>
     {/* Same signature fill as the capability cards, so the page reads as one system. */}
     <div
       aria-hidden="true"
-      className="gradient-synapse absolute inset-0 -z-10 origin-bottom scale-y-0 transition-transform duration-500 ease-apple group-hover:scale-y-100"
+      className="gradient-fill absolute inset-0 -z-10 origin-bottom scale-y-0 transition-transform duration-500 ease-apple group-hover:scale-y-100"
     />
 
     <header className="flex items-baseline justify-between gap-6">
@@ -33,7 +33,7 @@ const PartnerCard = ({ partner, index }: { partner: Partner; index: number }) =>
 );
 
 const Partners = () => (
-  <section id="partners" className="px-6 py-32 md:py-40">
+  <section id="partners" className="px-6 py-24 md:py-32">
     <div className="mx-auto max-w-7xl">
       <Reveal as="header" className="max-w-4xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
