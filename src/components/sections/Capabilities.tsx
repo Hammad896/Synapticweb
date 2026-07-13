@@ -1,0 +1,95 @@
+import { ArrowUpRight } from "lucide-react";
+import Reveal from "@/components/Reveal";
+import { CAPABILITIES, CAPABILITIES_INTRO, type Capability } from "@/data/site";
+
+/**
+ * An aligned row list, not a bento.
+ *
+ * The previous grid used spans of 4,2,2,2,4 on a 6-column track, which packs as
+ * 4+2 / 2+2 / 4 — leaving two ragged holes — and each card carried a fixed 4rem
+ * spacer that pushed it to ~400px tall. The result was a section you scrolled
+ * through rather than read.
+ *
+ * Rows fix both at once: every index, title, description, and detail column
+ * lands on the same vertical axis down the whole list, and the section is a
+ * third of the height. Alignment is the style here — the grid IS the design.
+ */
+const CapabilityRow = ({
+  capability,
+  index,
+}: {
+  capability: Capability;
+  index: number;
+}) => (
+  <Reveal
+    as="li"
+    index={index}
+    className="group relative isolate border-b border-border first:border-t"
+  >
+    {/* The fill sweeps horizontally on a row (origin-left), where the card
+        version swept vertically. A separate layer, not a background transition —
+        CSS cannot interpolate between gradients. */}
+    <div
+      aria-hidden="true"
+      className="gradient-synapse absolute inset-0 -z-10 origin-left scale-x-0 transition-transform duration-500 ease-apple group-hover:scale-x-100"
+    />
+
+    <article className="grid items-baseline gap-x-8 gap-y-4 px-4 py-9 transition-[padding] duration-500 ease-apple group-hover:px-8 lg:grid-cols-12 lg:py-10">
+      <span className="text-sm tabular-nums text-accent transition-colors duration-500 ease-apple group-hover:text-white lg:col-span-1">
+        {capability.index}
+      </span>
+
+      <h3 className="type-display text-2xl text-foreground transition-colors duration-500 ease-apple group-hover:text-white lg:col-span-4 lg:text-3xl">
+        {capability.title}
+      </h3>
+
+      <p className="text-sm leading-relaxed text-muted-foreground transition-colors duration-500 ease-apple group-hover:text-white/80 lg:col-span-4">
+        {capability.description}
+      </p>
+
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 lg:col-span-2 lg:flex-col lg:gap-y-2">
+        {capability.detail.map((item) => (
+          <li
+            key={item}
+            className="text-xs text-muted-foreground transition-colors duration-500 ease-apple group-hover:text-white/70"
+          >
+            {item}
+          </li>
+        ))}
+      </ul>
+
+      <ArrowUpRight
+        size={20}
+        strokeWidth={1.5}
+        aria-hidden="true"
+        className="hidden text-muted-foreground opacity-0 transition-all duration-500 ease-apple group-hover:translate-x-1 group-hover:text-white group-hover:opacity-100 lg:col-span-1 lg:block lg:justify-self-end"
+      />
+    </article>
+  </Reveal>
+);
+
+const Capabilities = () => (
+  <section id="capabilities" className="px-6 py-32 md:py-40">
+    <div className="mx-auto max-w-7xl">
+      <Reveal as="header" className="max-w-3xl">
+        <p className="text-xs uppercase tracking-[0.2em] text-accent">
+          {CAPABILITIES_INTRO.eyebrow}
+        </p>
+        <h2 className="type-display mt-6 text-4xl text-foreground md:text-6xl">
+          {CAPABILITIES_INTRO.headline}
+        </h2>
+        <p className="measure mt-6 text-lg leading-relaxed text-muted-foreground">
+          {CAPABILITIES_INTRO.description}
+        </p>
+      </Reveal>
+
+      <ul className="mt-16">
+        {CAPABILITIES.map((capability, i) => (
+          <CapabilityRow key={capability.id} capability={capability} index={i} />
+        ))}
+      </ul>
+    </div>
+  </section>
+);
+
+export default Capabilities;

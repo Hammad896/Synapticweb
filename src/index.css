@@ -1,0 +1,202 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ── DARK (default) — Redstone's near-black, not pure #000 ──────────────── */
+  :root {
+    --background: 0 0% 1%;          /* #020202 */
+    --foreground: 0 0% 100%;        /* #FFFFFF */
+
+    --card: 240 4% 4%;              /* #0A0A0B */
+    --card-foreground: 0 0% 100%;
+
+    --muted: 240 4% 4%;
+    --muted-foreground: 240 2% 55%; /* #8A8A8E */
+
+    --border: 240 5% 11%;           /* #1C1C1F */
+    --input: 240 5% 11%;
+    --ring: 197 100% 50%;
+
+    /* Accent, sampled from synptic.png. Cyan is luminous on near-black but
+       fails on white, so the interactive accent is a token, not a constant. */
+    --accent: 197 100% 50%;         /* #00C2FF — text, links, indices */
+    --accent-solid: 204 100% 34%;   /* #0067AE — fills, always white type */
+    --accent-foreground: 0 0% 100%;
+
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 1%;
+
+    --radius: 1.25rem;
+
+    /* In dark, elevation is expressed by a LIGHTER surface — shadows are
+       invisible on near-black, so there is nothing to cast. */
+    --elevation: none;
+    --elevation-hover: none;
+  }
+
+  /* ── LIGHT — the same system, contrast inverted ─────────────────────────────
+     Not white-on-white. The canvas is a soft off-white and cards are pure white
+     FLOATING above it. Making cards darker than the page (the usual mistake)
+     reads as recessed and flat — real elevation catches light, it doesn't sink. */
+  .light {
+    --background: 240 20% 99%;      /* #FBFBFD — soft, not clinical */
+    --foreground: 0 0% 1%;          /* #020202 */
+
+    --card: 0 0% 100%;              /* #FFFFFF — lifts off the canvas */
+    --card-foreground: 0 0% 1%;
+
+    --muted: 220 20% 96%;
+    --muted-foreground: 240 2% 43%; /* #6B6B70 */
+
+    --border: 220 16% 91%;          /* #E4E6EB */
+    --input: 220 16% 91%;
+    --ring: 205 100% 31%;
+
+    --accent: 205 100% 31%;         /* #005A9E — cyan would fail AA on white */
+    --accent-solid: 204 100% 34%;   /* #0067AE — unchanged; white type on it */
+    --accent-foreground: 0 0% 100%;
+
+    --primary: 0 0% 1%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Two-layer shadow: a tight contact shadow plus a wide ambient one, both
+       tinted toward the brand navy rather than gray. Neutral-gray shadows are
+       what make light UIs look cheap. */
+    --elevation:
+      0 1px 2px hsl(220 40% 12% / 0.04),
+      0 8px 24px -12px hsl(220 40% 12% / 0.10);
+    --elevation-hover:
+      0 2px 4px hsl(220 40% 12% / 0.05),
+      0 20px 40px -16px hsl(204 100% 25% / 0.18);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* The fixed nav is 56px; anchor targets must clear it. */
+    scroll-padding-top: 7rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+    text-rendering: optimizeLegibility;
+    /* Only the canvas cross-fades on theme flip. Elements must NOT inherit this
+       or every hover picks up a 400ms lag. */
+    transition: background-color 400ms cubic-bezier(0.16, 1, 0.3, 1),
+                color 400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  ::selection {
+    @apply bg-accent text-background;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-accent ring-offset-2 ring-offset-background;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /* Optical correction for large type. Reads cramped below ~40px — opt-in. */
+  .type-display {
+    @apply font-semibold leading-[0.95] tracking-[-0.04em];
+  }
+
+  /* Editorial measure. Past ~68ch, long-form copy stops being readable. */
+  .measure {
+    @apply max-w-[68ch];
+  }
+
+  /* Elevation resolves per theme: a lighter surface in dark, a cast shadow in
+     light. Same class, same intent, correct physics in both. */
+  .surface {
+    @apply rounded-3xl border border-border bg-card;
+    box-shadow: var(--elevation);
+    transition: box-shadow 500ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .surface:hover {
+    box-shadow: var(--elevation-hover);
+  }
+
+  /* A single, very faint bloom of the brand gradient behind the hero. In light
+     mode it stops the page reading as a blank sheet; in dark it adds depth to
+     the near-black. Never strong enough to compete with type. */
+  .bloom {
+    background-image:
+      radial-gradient(60% 50% at 50% 0%, hsl(var(--accent) / 0.10), transparent 70%);
+  }
+
+  /* The Synapse Gradient — the exact ramp under "LAB" in the logo. This is the
+     signature; it is never a background wash and never sits behind body text. */
+  .gradient-synapse {
+    background-image: linear-gradient(90deg, #001463 0%, #0067AE 55%, #00C2FF 100%);
+  }
+
+  .gradient-text {
+    @apply gradient-synapse bg-clip-text text-transparent;
+  }
+
+  /* Film grain. Two jobs: it kills the banding that large gradients produce on
+     near-black displays, and it gives the flat canvas a physical, printed
+     quality. Inline SVG turbulence — no network request, no image asset. */
+  .grain::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    pointer-events: none;
+    opacity: 0.035;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .light .grain::after {
+    opacity: 0.02;
+  }
+
+  /* Section divider: one hairline that fades out at both ends. */
+  .rule {
+    @apply h-px w-full border-0 bg-gradient-to-r from-transparent via-border to-transparent;
+  }
+}
+
+/* Scrollbar — present, nearly invisible, theme-aware. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border: 3px solid hsl(var(--background));
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--accent) / 0.6);
+}

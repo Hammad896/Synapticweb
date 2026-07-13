@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>Synaptic Lab | Enterprise Software Engineering</title>
+    <meta
+      name="description"
+      content="Synaptic Lab architects and ships large-scale systems for global finance, healthcare, and commerce — enterprise ERP, FinTech infrastructure, and bespoke full-stack engineering."
+    />
+    <meta name="author" content="Synaptic Lab" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Synaptic Lab | Enterprise Software Engineering" />
+    <meta
+      property="og:description"
+      content="Engineering at the scale the enterprise actually runs at."
+    />
+    <meta property="og:image" content="/og-image.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Synaptic Lab | Enterprise Software Engineering" />
+    <meta
+      name="twitter:description"
+      content="Engineering at the scale the enterprise actually runs at."
+    />
+    <meta name="twitter:image" content="/og-image.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <meta name="color-scheme" content="dark light" />
+
+    <!-- Theme boot. Must run BEFORE first paint, or the page flashes the wrong
+         theme for one frame. Blocking and inline is the point; do not defer. -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("theme");
+          var prefersLight =
+            window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: light)").matches;
+          var theme = stored || (prefersLight ? "light" : "dark");
+          if (theme === "light") document.documentElement.classList.add("light");
+          document.documentElement.style.colorScheme = theme;
+        } catch (e) {
+          /* Storage disabled — fall through to the dark default. */
+        }
+      })();
+    </script>
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
