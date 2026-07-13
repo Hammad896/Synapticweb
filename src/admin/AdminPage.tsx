@@ -1,8 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, Pencil, Plus, Search, Trash2, TriangleAlert } from "lucide-react";
+import {
+  Download,
+  LogOut,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  TriangleAlert,
+} from "lucide-react";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useAuth } from "@/auth/auth";
+import Dashboard from "./Dashboard";
 import EmployeeForm from "./EmployeeForm";
 import { getRepository, toCsv } from "./repository";
 import type { Employee, EmployeeDraft, EmployeeStatus } from "./types";
@@ -33,6 +43,7 @@ const tenure = (iso: string) => {
 
 const AdminPage = () => {
   const repository = getRepository();
+  const { user, signOut } = useAuth();
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [query, setQuery] = useState("");
@@ -103,14 +114,30 @@ const AdminPage = () => {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {user && (
+              <span className="hidden text-xs text-muted-foreground lg:inline">
+                {user.email}
+              </span>
+            )}
+
             <ThemeToggle />
+
             <Link
               to="/"
-              className="text-xs text-muted-foreground transition-colors hover:text-foreground"
+              className="hidden text-xs text-muted-foreground transition-colors hover:text-foreground sm:inline"
             >
               View site
             </Link>
+
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="flex items-center gap-2 rounded-full border border-border px-3 py-2 text-xs text-muted-foreground transition-colors hover:border-accent hover:text-accent"
+            >
+              <LogOut size={14} aria-hidden="true" />
+              <span className="hidden sm:inline">Sign out</span>
+            </button>
           </div>
         </div>
       </header>
@@ -137,9 +164,20 @@ const AdminPage = () => {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end justify-between gap-6">
+        <h1 className="type-display text-3xl text-foreground sm:text-4xl">Dashboard</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Everything below is derived live from the employee records.
+        </p>
+
+        <div className="mt-8">
+          <Dashboard employees={employees} />
+        </div>
+
+        <div className="mt-16 flex flex-wrap items-end justify-between gap-6">
           <div>
-            <h1 className="type-display text-4xl text-foreground">Employees</h1>
+            <h2 className="type-display text-3xl text-foreground sm:text-4xl">
+              Employees
+            </h2>
             <p className="mt-3 text-sm text-muted-foreground">
               {employees.length} total · {activeCount} active ·{" "}
               {employees.length - activeCount} inactive

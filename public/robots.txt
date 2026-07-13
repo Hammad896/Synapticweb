@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /staff-login
 
 Sitemap: https://synapticlab.vercel.app/sitemap.xml

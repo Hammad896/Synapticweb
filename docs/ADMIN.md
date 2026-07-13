@@ -1,6 +1,54 @@
 # Admin Panel — Employee Records
 
-> Route: **`/admin`**. Not linked from the public site.
+> Sign in: **`/staff-login`** → dashboard at **`/admin`**.
+> Linked quietly from the footer ("Staff login").
+>
+> **Credentials (development gate):** `admin@synaptic.com` / `synaptic896`
+> Override with `VITE_ADMIN_EMAIL` / `VITE_ADMIN_PASSWORD` — but read the next section first.
+
+---
+
+## 🔓 The login is NOT authentication. Please read this.
+
+It looks like a login. It has a session, a route guard, sign-out, and a lockout after five
+failed attempts. **It is still not security**, and the difference matters because this panel
+guards salaries and emergency contacts.
+
+The credential check runs **in the browser**. That means the expected password is inside the
+JavaScript you ship. Not hashed, not hidden — *present*. Here is that fact, demonstrated:
+
+```bash
+$ npm run build
+$ grep -o "synaptic896" dist/assets/*.js
+synaptic896          # ← anyone can do this. So can DevTools, in one search.
+```
+
+**Putting it in a `.env` file does not help.** Vite inlines every `VITE_*` variable into the
+client bundle at build time. There is no way to keep a secret in front-end code. None.
+
+### What this gate honestly gives you
+- ✅ Keeps casual visitors and search engines out of `/admin`
+- ✅ A real session, route guard, and sign-out flow
+- ✅ The exact shape a real auth provider slots into — one file to swap
+
+### What it does not give you
+- ❌ Any protection of employee data from someone who tries
+- ❌ Anything you may honestly call security
+
+### The rule
+**Do not enter real salaries or emergency contacts until real auth is wired.** The panel is
+fully usable for trialling the workflow with dummy records. And when you do add a backend,
+**auth and backend must ship in the same change** — a database behind a fake gate is strictly
+worse than a browser-only toy, because it feels safe.
+
+Why this is not OAuth: OAuth means an identity provider (Google/Microsoft) verifies the user
+**on their server** and returns a signed token your backend validates. There is no server here
+to validate anything. OAuth without a backend is theatre. Getting real auth = getting a
+backend; they are the same task.
+
+---
+
+## Route: **`/admin`**. Not linked publicly except via the footer's staff link.
 >
 > ## ⚠️ Read this before entering real data
 >

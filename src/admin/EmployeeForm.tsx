@@ -1,5 +1,12 @@
 import { useState, type FormEvent } from "react";
-import { EMPTY_DRAFT, type Employee, type EmployeeDraft } from "./types";
+import {
+  CURRENCIES,
+  EMPLOYMENT_TYPES,
+  EMPTY_DRAFT,
+  WORK_MODES,
+  type Employee,
+  type EmployeeDraft,
+} from "./types";
 
 const FIELD =
   "w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground " +
@@ -8,11 +15,27 @@ const FIELD =
 const LABEL = "text-xs uppercase tracking-[0.15em] text-muted-foreground";
 
 interface Props {
-  /** Present when editing; absent when creating. */
   employee?: Employee;
   onSave: (draft: EmployeeDraft) => void;
   onCancel: () => void;
 }
+
+const Field = ({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div>
+    <label htmlFor={id} className={LABEL}>
+      {label}
+    </label>
+    <div className="mt-2">{children}</div>
+  </div>
+);
 
 const EmployeeForm = ({ employee, onSave, onCancel }: Props) => {
   const [draft, setDraft] = useState<EmployeeDraft>(employee ?? EMPTY_DRAFT);
@@ -32,164 +55,250 @@ const EmployeeForm = ({ employee, onSave, onCancel }: Props) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-8">
-      <fieldset className="flex flex-col gap-5">
-        <legend className="mb-3 text-sm font-semibold text-foreground">Basics</legend>
+    <form onSubmit={handleSubmit} className="flex flex-col gap-9">
+      <fieldset>
+        <legend className="mb-5 text-sm font-semibold text-foreground">Identity</legend>
 
         <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label htmlFor="fullName" className={LABEL}>Full name</label>
+          <Field id="employeeId" label="Employee ID">
             <input
-              id="fullName" required value={draft.fullName}
+              id="employeeId"
+              value={draft.employeeId}
+              onChange={(e) => set("employeeId", e.target.value)}
+              placeholder="SL-014"
+              className={FIELD}
+            />
+          </Field>
+
+          <Field id="fullName" label="Full name">
+            <input
+              id="fullName"
+              required
+              value={draft.fullName}
               onChange={(e) => set("fullName", e.target.value)}
-              placeholder="Abdul Wahab" className={`${FIELD} mt-2`}
+              placeholder="Abdul Wahab"
+              className={FIELD}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="role" className={LABEL}>Role</label>
+          <Field id="email" label="Email">
             <input
-              id="role" required value={draft.role}
+              id="email"
+              type="email"
+              value={draft.email}
+              onChange={(e) => set("email", e.target.value)}
+              placeholder="name@synapticlab.com"
+              className={FIELD}
+            />
+          </Field>
+
+          <Field id="phone" label="Phone">
+            <input
+              id="phone"
+              value={draft.phone}
+              onChange={(e) => set("phone", e.target.value)}
+              placeholder="+92 300 0000000"
+              className={FIELD}
+            />
+          </Field>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend className="mb-5 text-sm font-semibold text-foreground">Role</legend>
+
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <Field id="role" label="Job title">
+            <input
+              id="role"
+              required
+              value={draft.role}
               onChange={(e) => set("role", e.target.value)}
-              placeholder="Software Engineer" className={`${FIELD} mt-2`}
+              placeholder="Software Engineer"
+              className={FIELD}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="department" className={LABEL}>Department</label>
+          <Field id="department" label="Department">
             <input
-              id="department" value={draft.department}
+              id="department"
+              value={draft.department}
               onChange={(e) => set("department", e.target.value)}
-              placeholder="Engineering" className={`${FIELD} mt-2`}
+              placeholder="Engineering"
+              className={FIELD}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="status" className={LABEL}>Status</label>
+          <Field id="manager" label="Reports to">
+            <input
+              id="manager"
+              value={draft.manager}
+              onChange={(e) => set("manager", e.target.value)}
+              placeholder="Muhammad Umer"
+              className={FIELD}
+            />
+          </Field>
+
+          <Field id="employmentType" label="Employment type">
             <select
-              id="status" value={draft.status}
+              id="employmentType"
+              value={draft.employmentType}
+              onChange={(e) =>
+                set("employmentType", e.target.value as EmployeeDraft["employmentType"])
+              }
+              className={FIELD}
+            >
+              {EMPLOYMENT_TYPES.map((type) => (
+                <option key={type} value={type} className="capitalize">
+                  {type}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field id="workMode" label="Work mode">
+            <select
+              id="workMode"
+              value={draft.workMode}
+              onChange={(e) => set("workMode", e.target.value as EmployeeDraft["workMode"])}
+              className={FIELD}
+            >
+              {WORK_MODES.map((mode) => (
+                <option key={mode} value={mode} className="capitalize">
+                  {mode}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field id="status" label="Status">
+            <select
+              id="status"
+              value={draft.status}
               onChange={(e) => set("status", e.target.value as EmployeeDraft["status"])}
-              className={`${FIELD} mt-2`}
+              className={FIELD}
             >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
-          </div>
-
-          <div>
-            <label htmlFor="email" className={LABEL}>Email</label>
-            <input
-              id="email" type="email" value={draft.email}
-              onChange={(e) => set("email", e.target.value)}
-              placeholder="name@synapticlab.com" className={`${FIELD} mt-2`}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="phone" className={LABEL}>Phone</label>
-            <input
-              id="phone" value={draft.phone}
-              onChange={(e) => set("phone", e.target.value)}
-              placeholder="+92 300 0000000" className={`${FIELD} mt-2`}
-            />
-          </div>
+          </Field>
         </div>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-5">
-        <legend className="mb-3 text-sm font-semibold text-foreground">
-          Employment
+      <fieldset>
+        <legend className="mb-5 text-sm font-semibold text-foreground">
+          Employment & compensation
         </legend>
 
-        <div className="grid gap-5 sm:grid-cols-3">
-          <div>
-            <label htmlFor="joinedAt" className={LABEL}>Joined on</label>
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <Field id="joinedAt" label="Joined on">
             <input
-              id="joinedAt" type="date" required value={draft.joinedAt}
+              id="joinedAt"
+              type="date"
+              required
+              value={draft.joinedAt}
               onChange={(e) => set("joinedAt", e.target.value)}
-              className={`${FIELD} mt-2`}
+              className={FIELD}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="salaryAmount" className={LABEL}>Salary (monthly)</label>
+          <Field id="exitDate" label="Exit date (if any)">
             <input
-              id="salaryAmount" type="number" min="0" step="1"
+              id="exitDate"
+              type="date"
+              value={draft.exitDate}
+              onChange={(e) => set("exitDate", e.target.value)}
+              className={FIELD}
+            />
+          </Field>
+
+          <Field id="salaryAmount" label="Salary (monthly)">
+            <input
+              id="salaryAmount"
+              type="number"
+              min="0"
+              step="1"
               value={draft.salaryAmount}
               onChange={(e) => set("salaryAmount", Number(e.target.value))}
-              className={`${FIELD} mt-2`}
+              className={FIELD}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="salaryCurrency" className={LABEL}>Currency</label>
+          <Field id="salaryCurrency" label="Currency">
             <select
-              id="salaryCurrency" value={draft.salaryCurrency}
+              id="salaryCurrency"
+              value={draft.salaryCurrency}
               onChange={(e) => set("salaryCurrency", e.target.value)}
-              className={`${FIELD} mt-2`}
+              className={FIELD}
             >
-              {["PKR", "USD", "EUR", "NOK", "GBP"].map((c) => (
-                <option key={c} value={c}>{c}</option>
+              {CURRENCIES.map((currency) => (
+                <option key={currency} value={currency}>
+                  {currency}
+                </option>
               ))}
             </select>
-          </div>
+          </Field>
         </div>
       </fieldset>
 
-      <fieldset className="flex flex-col gap-5">
-        <legend className="mb-3 text-sm font-semibold text-foreground">
+      <fieldset>
+        <legend className="mb-5 text-sm font-semibold text-foreground">
           Emergency contact
         </legend>
 
         <div className="grid gap-5 sm:grid-cols-3">
-          <div>
-            <label htmlFor="ecName" className={LABEL}>Name</label>
+          <Field id="ecName" label="Name">
             <input
-              id="ecName" value={draft.emergencyContact.name}
+              id="ecName"
+              value={draft.emergencyContact.name}
               onChange={(e) => setContact("name", e.target.value)}
-              className={`${FIELD} mt-2`}
+              className={FIELD}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="ecRelationship" className={LABEL}>Relationship</label>
+          <Field id="ecRelationship" label="Relationship">
             <input
-              id="ecRelationship" value={draft.emergencyContact.relationship}
+              id="ecRelationship"
+              value={draft.emergencyContact.relationship}
               onChange={(e) => setContact("relationship", e.target.value)}
-              placeholder="Brother" className={`${FIELD} mt-2`}
+              placeholder="Brother"
+              className={FIELD}
             />
-          </div>
+          </Field>
 
-          <div>
-            <label htmlFor="ecPhone" className={LABEL}>Phone</label>
+          <Field id="ecPhone" label="Phone">
             <input
-              id="ecPhone" value={draft.emergencyContact.phone}
+              id="ecPhone"
+              value={draft.emergencyContact.phone}
               onChange={(e) => setContact("phone", e.target.value)}
-              placeholder="+92 300 0000000" className={`${FIELD} mt-2`}
+              placeholder="+92 300 0000000"
+              className={FIELD}
             />
-          </div>
+          </Field>
         </div>
       </fieldset>
 
-      <div>
-        <label htmlFor="notes" className={LABEL}>Notes</label>
+      <Field id="notes" label="Notes">
         <textarea
-          id="notes" rows={3} value={draft.notes}
+          id="notes"
+          rows={3}
+          value={draft.notes}
           onChange={(e) => set("notes", e.target.value)}
-          className={`${FIELD} mt-2 resize-none`}
+          className={`${FIELD} resize-none`}
         />
-      </div>
+      </Field>
 
-      <div className="flex gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
         <button
           type="submit"
-          className="rounded-full bg-accent-solid px-6 py-2.5 text-sm font-medium text-accent-foreground transition-all duration-300 hover:opacity-90"
+          className="rounded-full bg-accent-solid px-6 py-3 text-sm font-medium text-accent-foreground transition-all duration-300 hover:opacity-90"
         >
           {employee ? "Save changes" : "Add employee"}
         </button>
         <button
-          type="button" onClick={onCancel}
-          className="rounded-full border border-border px-6 py-2.5 text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground"
+          type="button"
+          onClick={onCancel}
+          className="rounded-full border border-border px-6 py-3 text-sm text-muted-foreground transition-colors duration-300 hover:text-foreground"
         >
           Cancel
         </button>

@@ -78,15 +78,18 @@ export const getRepository = (): EmployeeRepository => {
 /** CSV export — the escape hatch, so the data is never trapped in a browser. */
 export const toCsv = (employees: Employee[]): string => {
   const headers = [
-    "Full name", "Role", "Department", "Email", "Phone", "Status", "Joined",
-    "Salary", "Currency", "Emergency contact", "Relationship", "Emergency phone", "Notes",
+    "Employee ID", "Full name", "Role", "Department", "Reports to", "Email", "Phone",
+    "Status", "Employment type", "Work mode", "Joined", "Exit date",
+    "Salary", "Currency",
+    "Emergency contact", "Relationship", "Emergency phone", "Notes",
   ];
 
   const escape = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
 
   const rows = employees.map((e) =>
     [
-      e.fullName, e.role, e.department, e.email, e.phone, e.status, e.joinedAt,
+      e.employeeId, e.fullName, e.role, e.department, e.manager, e.email, e.phone,
+      e.status, e.employmentType, e.workMode, e.joinedAt, e.exitDate,
       e.salaryAmount, e.salaryCurrency,
       e.emergencyContact.name, e.emergencyContact.relationship, e.emergencyContact.phone,
       e.notes,
