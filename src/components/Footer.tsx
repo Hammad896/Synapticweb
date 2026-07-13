@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+import { Lock } from "lucide-react";
 import Logo from "./Logo";
 import { COMPANY, NAV_LINKS, WHATSAPP_MESSAGE } from "@/data/site";
 
@@ -60,16 +62,29 @@ const Footer = () => (
         </div>
       </div>
 
-      <div className="mt-24 flex flex-col gap-2 border-t border-border pt-8 md:flex-row md:items-center md:justify-between">
+      <div className="mt-24 flex flex-col gap-4 border-t border-border pt-8 md:flex-row md:items-center md:justify-between">
         <p className="text-xs text-muted-foreground">
           © {new Date().getFullYear()} {COMPANY.name}. All rights reserved.
         </p>
-        <a
-          href="#top"
-          className="text-xs text-muted-foreground transition-colors duration-300 ease-apple hover:text-accent"
-        >
-          Back to top
-        </a>
+
+        <div className="flex items-center gap-6">
+          {/* Staff entry point. Deliberately quiet — it is a utility door, not a
+              call to action, and it must never compete with the contact CTA. */}
+          <Link
+            to="/admin"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors duration-300 ease-apple hover:text-accent"
+          >
+            <Lock size={12} strokeWidth={1.75} aria-hidden="true" />
+            Staff login
+          </Link>
+
+          <a
+            href="#top"
+            className="text-xs text-muted-foreground transition-colors duration-300 ease-apple hover:text-accent"
+          >
+            Back to top
+          </a>
+        </div>
       </div>
     </div>
   </footer>
