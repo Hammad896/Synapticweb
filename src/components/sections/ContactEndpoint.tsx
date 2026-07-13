@@ -35,15 +35,15 @@ const ContactEndpoint = () => {
 
   return (
     <section id="contact" className="px-6 py-24 md:py-32">
-      <div className="mx-auto grid max-w-7xl gap-20 lg:grid-cols-2 lg:gap-24">
+      <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-2 lg:gap-24">
         <Reveal as="header">
           <p className="text-xs uppercase tracking-[0.2em] text-accent">
             {CONTACT.eyebrow}
           </p>
-          <h2 className="type-display mt-6 text-4xl text-foreground md:text-6xl">
+          <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-6xl">
             {CONTACT.headline}
           </h2>
-          <p className="measure mt-6 text-lg leading-relaxed text-muted-foreground">
+          <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
             {CONTACT.description}
           </p>
 

@@ -95,6 +95,28 @@
        or every hover picks up a 400ms lag. */
     transition: background-color 400ms cubic-bezier(0.16, 1, 0.3, 1),
                 color 400ms cubic-bezier(0.16, 1, 0.3, 1);
+
+    /* A single stray wide element causes a horizontal wobble on phones that is
+       maddening to trace. `clip` (not `hidden`) contains it WITHOUT creating a
+       scroll container — which would silently break `position: sticky`. */
+    overflow-x: clip;
+  }
+
+  /* Kill the grey flash on tap. Every interactive element here has its own
+     considered active state; the browser's default fights it. */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* iOS SILENTLY ZOOMS THE PAGE when a focused input's font is under 16px, and
+     it never zooms back out. It is the single most common "this site feels
+     broken on mobile" bug. 16px is not a style choice here — it is the fix. */
+  @media (max-width: 767px) {
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
   }
 
   ::selection {
@@ -129,6 +151,35 @@
   /* Editorial measure. Past ~68ch, long-form copy stops being readable. */
   .measure {
     @apply max-w-[68ch];
+  }
+
+  /* The standard card. Padding steps DOWN on phones: 40px of inset on a 390px
+     screen spends a fifth of the width on nothing, and forces copy into narrow
+     ragged columns. */
+  .card-pad {
+    @apply p-6 sm:p-8 md:p-12;
+  }
+
+  /* A tap target that always clears the 44px minimum on touch, while staying
+     visually compact on desktop where a cursor is precise. The button itself can
+     look small; the *hit area* must not be. */
+  .tap {
+    @apply flex h-11 w-11 items-center justify-center md:h-9 md:w-9;
+  }
+
+  /* Full-viewport overlays. `100vh` on mobile is the height of the viewport
+     WITHOUT the browser's address bar, so a 100vh sheet is taller than the space
+     you can actually see and its bottom is cut off. `100dvh` tracks the real,
+     dynamic height. */
+  .screen-h {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  /* Clears the iPhone home indicator, which otherwise sits on top of anything
+     pinned to the bottom edge. */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
   /* Elevation resolves per theme: a lighter surface in dark, a cast shadow in

@@ -5,7 +5,7 @@ const PartnerCard = ({ partner, index }: { partner: Partner; index: number }) =>
   <Reveal
     as="article"
     index={index}
-    className="group surface relative isolate overflow-hidden p-10 transition-transform duration-500 ease-apple hover:scale-[1.02] md:p-14"
+    className="group surface card-pad relative isolate overflow-hidden transition-transform duration-500 ease-apple hover:scale-[1.02]"
   >
     {/* Same signature fill as the capability cards, so the page reads as one system. */}
     <div
@@ -39,15 +39,15 @@ const Partners = () => (
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
           {PARTNERS_INTRO.eyebrow}
         </p>
-        <h2 className="type-display mt-6 text-4xl text-foreground md:text-6xl">
+        <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-6xl">
           {PARTNERS_INTRO.headline}
         </h2>
-        <p className="measure mt-6 text-lg leading-relaxed text-muted-foreground">
+        <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
           {PARTNERS_INTRO.description}
         </p>
       </Reveal>
 
-      <div className="mt-20 grid gap-6 md:grid-cols-2">
+      <div className="mt-12 grid gap-5 sm:mt-16 sm:gap-6 lg:mt-20 md:grid-cols-2">
         {PARTNERS.map((partner, i) => (
           <PartnerCard key={partner.name} partner={partner} index={i} />
         ))}

@@ -21,7 +21,7 @@ const ThemeToggle = ({ className }: ThemeToggleProps) => {
       onClick={toggleTheme}
       aria-label={`Switch to ${nextTheme} theme`}
       className={cn(
-        "flex h-8 w-8 items-center justify-center rounded-full",
+        "tap rounded-full",
         "text-muted-foreground transition-all duration-300 ease-apple",
         "hover:scale-[1.02] hover:text-foreground",
         className,

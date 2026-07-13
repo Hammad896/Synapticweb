@@ -15,12 +15,12 @@ const Faq = () => {
 
   return (
     <section id="faq" className="px-6 py-24 md:py-32">
-      <div className="mx-auto grid max-w-7xl gap-16 lg:grid-cols-[0.8fr_1.2fr] lg:gap-24">
+      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-24">
         <Reveal as="header">
           <p className="text-xs uppercase tracking-[0.2em] text-accent">
             {FAQ_INTRO.eyebrow}
           </p>
-          <h2 className="type-display mt-6 text-4xl text-foreground md:text-5xl">
+          <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-5xl">
             {FAQ_INTRO.headline}
           </h2>
         </Reveal>
@@ -41,9 +41,9 @@ const Faq = () => {
                       aria-expanded={isOpen}
                       aria-controls={panelId}
                       onClick={() => setOpenIndex(isOpen ? null : i)}
-                      className="flex w-full items-start justify-between gap-8 py-7 text-left transition-colors duration-300 ease-apple hover:text-accent"
+                      className="flex w-full items-start justify-between gap-5 py-6 text-left transition-colors duration-300 ease-apple hover:text-accent sm:gap-8 sm:py-7"
                     >
-                      <span className="text-lg font-medium tracking-[-0.01em] text-foreground transition-colors duration-300 ease-apple hover:text-accent md:text-xl">
+                      <span className="text-base font-medium tracking-[-0.01em] text-foreground transition-colors duration-300 ease-apple hover:text-accent sm:text-lg md:text-xl">
                         {faq.question}
                       </span>
                       <Plus
@@ -70,7 +70,7 @@ const Faq = () => {
                         transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                         className="overflow-hidden"
                       >
-                        <p className="measure pb-8 pr-12 text-base leading-relaxed text-muted-foreground">
+                        <p className="measure pb-7 pr-2 text-sm leading-relaxed text-muted-foreground sm:pb-8 sm:pr-12 sm:text-base">
                           {faq.answer}
                         </p>
                       </motion.div>

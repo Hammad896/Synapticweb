@@ -115,7 +115,7 @@ const AdminPage = () => {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 py-12">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
         {/* This warning is not decoration. Until a real backend is wired, these
             records live only in this browser and are protected by nothing. */}
         <div className="mb-10 flex gap-4 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-5">
@@ -172,7 +172,7 @@ const AdminPage = () => {
         </div>
 
         {isEditorOpen ? (
-          <section className="surface mt-10 p-8">
+          <section className="surface card-pad mt-10">
             <h2 className="type-display mb-8 text-2xl text-foreground">
               {editing ? `Edit — ${editing.fullName}` : "New employee"}
             </h2>
@@ -240,7 +240,13 @@ const AdminPage = () => {
                 </p>
               </div>
             ) : (
+              // A data table cannot honestly become a phone layout — squeezing 8
+              // columns into 390px produces something unreadable. So it stays a
+              // table and scrolls horizontally, with a visible hint that it does.
               <div className="surface mt-8 overflow-x-auto">
+                <p className="border-b border-border px-5 py-3 text-xs text-muted-foreground lg:hidden">
+                  Swipe the table sideways to see salary and emergency contact →
+                </p>
                 <table className="w-full min-w-[56rem] border-collapse text-left">
                   <thead>
                     <tr className="border-b border-border">
@@ -334,7 +340,7 @@ const AdminPage = () => {
                               type="button"
                               onClick={() => setEditing(employee)}
                               aria-label={`Edit ${employee.fullName}`}
-                              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-accent"
+                              className="tap rounded-full text-muted-foreground transition-colors hover:text-accent"
                             >
                               <Pencil size={15} aria-hidden="true" />
                             </button>
@@ -343,7 +349,7 @@ const AdminPage = () => {
                               type="button"
                               onClick={() => setConfirmingDelete(employee.id)}
                               aria-label={`Delete ${employee.fullName}`}
-                              className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-red-500"
+                              className="tap rounded-full text-muted-foreground transition-colors hover:text-red-500"
                             >
                               <Trash2 size={15} aria-hidden="true" />
                             </button>

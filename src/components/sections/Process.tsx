@@ -11,23 +11,23 @@ const ProcessRow = ({ step, index }: { step: ProcessStep; index: number }) => (
   <Reveal
     as="li"
     index={index}
-    className="group grid gap-x-10 gap-y-6 border-b border-border py-12 lg:grid-cols-12"
+    className="group grid gap-x-10 gap-y-5 border-b border-border py-9 sm:gap-y-6 sm:py-12 lg:grid-cols-12"
   >
     <div className="lg:col-span-3">
-      <div className="flex items-baseline gap-4">
-        <span className="type-display text-4xl tabular-nums text-accent">
+      <div className="flex items-baseline gap-3 sm:gap-4">
+        <span className="type-display text-3xl tabular-nums text-accent sm:text-4xl">
           {step.index}
         </span>
-        <h3 className="text-xl font-semibold tracking-[-0.02em] text-foreground">
+        <h3 className="text-lg font-semibold tracking-[-0.02em] text-foreground sm:text-xl">
           {step.title}
         </h3>
       </div>
-      <p className="mt-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+      <p className="mt-2.5 text-xs uppercase tracking-[0.15em] text-muted-foreground sm:mt-3 sm:tracking-[0.2em]">
         {step.duration}
       </p>
     </div>
 
-    <p className="text-base leading-relaxed text-muted-foreground lg:col-span-4">
+    <p className="text-sm leading-relaxed text-muted-foreground sm:text-base lg:col-span-4">
       {step.description}
     </p>
 
@@ -43,8 +43,8 @@ const ProcessRow = ({ step, index }: { step: ProcessStep; index: number }) => (
       ))}
     </ul>
 
-    {/* The artefact. This is the answer to "what do I actually get?" — so it is
-        the one element in the row that gets a surface of its own. */}
+    {/* The artefact — the answer to "what do I actually get?" — so it is the one
+        element in the row with a surface of its own. */}
     <div className="surface p-5 lg:col-span-2">
       <p className="text-xs uppercase tracking-[0.2em] text-accent">You get</p>
       <p className="mt-3 text-sm leading-relaxed text-foreground">{step.deliverable}</p>
@@ -59,15 +59,15 @@ const Process = () => (
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
           {PROCESS_INTRO.eyebrow}
         </p>
-        <h2 className="type-display mt-6 text-4xl text-foreground md:text-6xl">
+        <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-6xl">
           {PROCESS_INTRO.headline}
         </h2>
-        <p className="measure mt-6 text-lg leading-relaxed text-muted-foreground">
+        <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
           {PROCESS_INTRO.description}
         </p>
       </Reveal>
 
-      <ol className="mt-16 border-t border-border">
+      <ol className="mt-10 border-t border-border sm:mt-16">
         {PROCESS.map((step, i) => (
           <ProcessRow key={step.index} step={step} index={i} />
         ))}

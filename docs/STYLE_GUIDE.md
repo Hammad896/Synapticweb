@@ -139,6 +139,29 @@ grid lg:grid-cols-12 items-baseline
 
 ---
 
+## 4b. Mobile — non-negotiable rules
+
+Most traffic to this site will be a phone. These are not polish items; each one is a bug
+that makes the site *feel broken*, and each was actually present before the mobile pass.
+
+| Rule | Why |
+| ---- | --- |
+| **Inputs are ≥16px on mobile** (enforced globally in `index.css`) | Under 16px, **iOS silently zooms the page on focus and never zooms back out.** The single most common "this site is broken on mobile" bug. Not a style choice. |
+| **Tap targets ≥44px** — use `.tap` | `h-8 w-8` (32px) is a cursor target, not a thumb target. `.tap` is 44px on touch and shrinks to 36px at `md`, so the *hit area* grows without the icon looking bloated. |
+| **Full-screen overlays use `.screen-h` (`100dvh`), never `100vh`** | On mobile `100vh` excludes the address bar, so a `100vh` sheet is *taller than the visible screen* and its bottom (usually the CTA or the chat input) is cut off. |
+| **Bottom-pinned elements clear the home indicator** | `env(safe-area-inset-bottom)` — see the floating buttons. Otherwise iOS draws its bar straight over them. |
+| **`overflow-x: clip` on `body`** | One stray wide element causes a horizontal wobble that is miserable to trace. `clip`, **not** `hidden` — `hidden` creates a scroll container and silently breaks `position: sticky`. |
+| **Card padding steps down** — use `.card-pad` (`p-6 sm:p-8 md:p-12`) | 40px of inset on a 390px screen spends a fifth of the width on nothing and forces copy into ragged columns. |
+| **Headings scale with `clamp()`**, e.g. `text-[clamp(1.85rem,7vw,2.5rem)]` | A fixed `text-4xl` heading either overflows a phone or looks timid on a desktop. |
+| **Primary CTA is full-width on phones** (`w-full sm:w-auto`) | A centred pill in an ocean of dead space is the classic desktop-first tell — and it's the one control a thumb must never miss. |
+| **When a desktop grid collapses, check the orphans** | The capability rows put the index numeral on its own line at mobile width, orphaned above its title. Fixed with `lg:contents` so index+title stay inline below `lg`. |
+| **A data table stays a table** | The admin grid does not pretend to reflow into cards; it scrolls horizontally with a visible "swipe" hint. Eight columns squeezed into 390px is unreadable. |
+
+**Test at 390×844 (iPhone 12/13/14) and 360px (small Android) before every push**, in both
+themes, and tap through it — don't just resize the window and look.
+
+---
+
 ## 5. Motion
 
 Motion confirms causality. It never entertains for its own sake.

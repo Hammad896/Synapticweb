@@ -89,7 +89,9 @@ const Navbar = () => {
             </a>
           </div>
 
-          <div className="flex items-center gap-1 md:hidden">
+          {/* -mr-2 pulls the enlarged 44px hit area back to the visual edge, so
+              the touch target grows without the icon looking inset. */}
+          <div className="-mr-2 flex items-center md:hidden">
             <ThemeToggle />
             <button
               type="button"
@@ -97,12 +99,12 @@ const Navbar = () => {
               aria-label={isOpen ? "Close menu" : "Open menu"}
               aria-expanded={isOpen}
               aria-controls="mobile-menu"
-              className="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-opacity duration-300 ease-apple hover:opacity-70"
+              className="tap rounded-full text-foreground transition-opacity duration-300 ease-apple hover:opacity-70"
             >
               {isOpen ? (
-                <X size={18} strokeWidth={1.75} aria-hidden="true" />
+                <X size={20} strokeWidth={1.75} aria-hidden="true" />
               ) : (
-                <Menu size={18} strokeWidth={1.75} aria-hidden="true" />
+                <Menu size={20} strokeWidth={1.75} aria-hidden="true" />
               )}
             </button>
           </div>
@@ -117,10 +119,12 @@ const Navbar = () => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-40 bg-background/95 backdrop-blur-xl md:hidden"
+            className="screen-h fixed inset-0 z-40 overflow-y-auto bg-background/95 backdrop-blur-xl md:hidden"
           >
-            <div className="flex h-full flex-col justify-center px-6 pb-16">
-              <ul className="flex flex-col gap-1">
+            {/* pt-20 clears the nav; the sheet scrolls if the list ever outgrows
+                a short phone in landscape rather than clipping its own CTA. */}
+            <div className="safe-bottom flex min-h-full flex-col justify-center px-6 pb-10 pt-20">
+              <ul className="flex flex-col">
                 {NAV_LINKS.map((link, i) => (
                   <motion.li
                     key={link.href}
@@ -135,7 +139,8 @@ const Navbar = () => {
                     <a
                       href={link.href}
                       onClick={() => setIsOpen(false)}
-                      className="type-display block py-3 text-4xl text-foreground transition-colors duration-300 ease-apple hover:text-accent"
+                      // py-4 gives every row a 60px+ target — thumbs are not cursors.
+                      className="type-display block py-4 text-[clamp(1.75rem,8vw,2.5rem)] text-foreground transition-colors duration-300 ease-apple hover:text-accent"
                     >
                       {link.label}
                     </a>
@@ -146,7 +151,7 @@ const Navbar = () => {
               <a
                 href="#contact"
                 onClick={() => setIsOpen(false)}
-                className="mt-12 w-full rounded-full bg-accent-solid py-4 text-center text-sm font-medium text-accent-foreground transition-opacity duration-300 ease-apple hover:opacity-90"
+                className="mt-10 w-full rounded-full bg-accent-solid py-4 text-center text-base font-medium text-accent-foreground transition-opacity duration-300 ease-apple hover:opacity-90"
               >
                 Let's talk
               </a>

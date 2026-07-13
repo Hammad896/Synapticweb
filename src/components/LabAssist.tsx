@@ -113,7 +113,11 @@ const LabAssist = () => {
             transition={{ duration: 0.4, ease: EASE }}
             // Sits above BOTH floating buttons (chat at bottom-6, WhatsApp at
             // bottom-24), so nothing ever overlaps.
-            className="surface fixed bottom-40 right-6 z-50 flex h-[min(32rem,calc(100vh-13rem))] w-[min(23rem,calc(100vw-3rem))] flex-col overflow-hidden"
+            //
+            // `dvh` not `vh`: on mobile, 100vh excludes the address bar, so a
+            // vh-sized panel is taller than the visible viewport and its input
+            // row gets cut off exactly when the keyboard opens.
+            className="surface fixed bottom-40 right-4 z-50 flex h-[min(32rem,calc(100dvh-13rem))] w-[min(23rem,calc(100vw-2rem))] flex-col overflow-hidden sm:right-6"
           >
             <header className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
               <div className="flex items-center gap-3">
@@ -135,7 +139,7 @@ const LabAssist = () => {
                 type="button"
                 onClick={() => setIsOpen(false)}
                 aria-label="Close Lab Assist"
-                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors duration-300 ease-apple hover:text-foreground"
+                className="tap -mr-2 rounded-full text-muted-foreground transition-colors duration-300 ease-apple hover:text-foreground"
               >
                 <X size={16} strokeWidth={1.75} aria-hidden="true" />
               </button>
@@ -233,7 +237,7 @@ const LabAssist = () => {
         onClick={() => setIsOpen((open) => !open)}
         aria-label={isOpen ? "Close Lab Assist" : "Open Lab Assist — chat with us"}
         aria-expanded={isOpen}
-        className="group fixed bottom-6 right-6 z-50 flex items-center rounded-full border border-border bg-card/80 p-4 text-foreground shadow-lg backdrop-blur-md transition-all duration-500 ease-apple hover:scale-[1.02] hover:border-accent hover:text-accent"
+        className="group fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-4 z-50 flex items-center rounded-full border border-border bg-card/80 p-4 text-foreground shadow-lg backdrop-blur-md transition-all duration-500 ease-apple hover:scale-[1.02] hover:border-accent hover:text-accent sm:right-6"
       >
         {isOpen ? (
           <X size={20} strokeWidth={1.75} aria-hidden="true" className="shrink-0" />

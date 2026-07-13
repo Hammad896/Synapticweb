@@ -34,14 +34,19 @@ const CapabilityRow = ({
       className="gradient-fill absolute inset-0 -z-10 origin-left scale-x-0 transition-transform duration-500 ease-apple group-hover:scale-x-100"
     />
 
-    <article className="grid items-baseline gap-x-8 gap-y-4 px-4 py-9 transition-[padding] duration-500 ease-apple group-hover:px-8 lg:grid-cols-12 lg:py-10">
-      <span className="text-sm tabular-nums text-accent transition-colors duration-500 ease-apple group-hover:text-white lg:col-span-1">
-        {capability.index}
-      </span>
+    <article className="grid items-baseline gap-x-8 gap-y-3 px-1 py-7 transition-[padding] duration-500 ease-apple group-hover:px-3 sm:px-4 sm:py-9 sm:group-hover:px-8 lg:grid-cols-12 lg:gap-y-4 lg:py-10">
+      {/* Below lg the index rides INLINE with the title. Left on its own row it
+          reads as an orphaned number floating above the heading — the classic
+          artefact of a desktop grid collapsing into a single column. */}
+      <div className="flex items-baseline gap-4 lg:contents">
+        <span className="shrink-0 text-sm tabular-nums text-accent transition-colors duration-500 ease-apple group-hover:text-white lg:col-span-1">
+          {capability.index}
+        </span>
 
-      <h3 className="type-display text-2xl text-foreground transition-colors duration-500 ease-apple group-hover:text-white lg:col-span-4 lg:text-3xl">
-        {capability.title}
-      </h3>
+        <h3 className="type-display text-xl text-foreground transition-colors duration-500 ease-apple group-hover:text-white sm:text-2xl lg:col-span-4 lg:text-3xl">
+          {capability.title}
+        </h3>
+      </div>
 
       <p className="text-sm leading-relaxed text-muted-foreground transition-colors duration-500 ease-apple group-hover:text-white/80 lg:col-span-4">
         {capability.description}
@@ -75,15 +80,15 @@ const Capabilities = () => (
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
           {CAPABILITIES_INTRO.eyebrow}
         </p>
-        <h2 className="type-display mt-6 text-4xl text-foreground md:text-6xl">
+        <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-6xl">
           {CAPABILITIES_INTRO.headline}
         </h2>
-        <p className="measure mt-6 text-lg leading-relaxed text-muted-foreground">
+        <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
           {CAPABILITIES_INTRO.description}
         </p>
       </Reveal>
 
-      <ul className="mt-16">
+      <ul className="mt-10 sm:mt-16">
         {CAPABILITIES.map((capability, i) => (
           <CapabilityRow key={capability.id} capability={capability} index={i} />
         ))}

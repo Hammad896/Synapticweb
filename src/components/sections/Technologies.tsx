@@ -8,7 +8,7 @@ const TierCard = ({ tier, index }: { tier: TechTier; index: number }) => (
   <Reveal
     as="article"
     index={index}
-    className="surface flex flex-col p-8 transition-all duration-500 ease-apple hover:border-accent/40"
+    className="surface flex flex-col p-6 sm:p-8 transition-all duration-500 ease-apple hover:border-accent/40"
   >
     <header className="flex items-baseline justify-between gap-4">
       <h3 className="text-xl font-semibold tracking-[-0.02em] text-foreground">
@@ -54,15 +54,15 @@ const Technologies = () => (
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
           {TECH_INTRO.eyebrow}
         </p>
-        <h2 className="type-display mt-6 text-4xl text-foreground md:text-6xl">
+        <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-6xl">
           {TECH_INTRO.headline}
         </h2>
-        <p className="measure mt-6 text-lg leading-relaxed text-muted-foreground">
+        <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
           {TECH_INTRO.description}
         </p>
       </Reveal>
 
-      <div className="mt-16 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-12 grid gap-5 sm:mt-16 sm:gap-6 md:grid-cols-2 xl:grid-cols-4">
         {TECH_TIERS.map((tier, i) => (
           <TierCard key={tier.tier} tier={tier} index={i} />
         ))}
@@ -72,13 +72,13 @@ const Technologies = () => (
     {/* Full-bleed ticker. The track is duplicated and the animation translates
         exactly -50%, so the loop seam is invisible. The second copy is hidden
         from assistive tech so the list is not announced twice. */}
-    <div className="group relative mt-24 overflow-hidden border-y border-border py-6 [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
-      <div className="flex w-max animate-marquee gap-12 group-hover:[animation-play-state:paused] motion-reduce:animate-none">
+    <div className="group relative mt-16 overflow-hidden border-y border-border py-5 sm:mt-24 sm:py-6 [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
+      <div className="flex w-max animate-marquee gap-8 sm:gap-12 group-hover:[animation-play-state:paused] motion-reduce:animate-none">
         {[0, 1].map((track) => (
           <ul
             key={track}
             aria-hidden={track === 1 || undefined}
-            className="flex shrink-0 items-center gap-12"
+            className="flex shrink-0 items-center gap-8 sm:gap-12"
           >
             {ALL_TECH.map((tech) => (
               <li
