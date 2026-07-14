@@ -18,6 +18,7 @@ import RegisterTab from "./tabs/RegisterTab";
 import CareersTab from "./tabs/CareersTab";
 import WebsiteTab from "./tabs/WebsiteTab";
 import AuditTab from "./tabs/AuditTab";
+import ContentTab from "./tabs/ContentTab";
 import type { Employee } from "./types";
 
 const WARNING_DISMISSED = "synapticlab.admin.warningDismissed";
@@ -235,6 +236,10 @@ const AdminPage = () => {
                 onSaveCapability={data.saveCapability}
                 onDeleteCapability={data.deleteCapability}
               />
+            )}
+
+            {tab === "content" && (
+              <ContentTab content={data.content} onSave={data.saveContent} />
             )}
 
             {tab === "audit" && <AuditTab audit={data.audit} />}

@@ -202,6 +202,29 @@ alter table announcements
   add constraint announcements_title_len check (char_length(title) between 4 and 90)
   not valid;
 
+-- ── Site content (the cPanel) ──────────────────────────────────────────────
+-- One row. Holds the hero, stats, company details, section intros, engagements,
+-- process, tech tiers and FAQ as JSON. Seeded from the code defaults on first
+-- run, after which the DATABASE is the only source of truth — including when a
+-- collection is deliberately EMPTY. The old "fall back to the built-ins when
+-- empty" behaviour meant a partner could never actually be removed.
+create table if not exists site_content (
+  id         text primary key default 'main',
+  data       jsonb not null default '{}'::jsonb,
+  seeded     boolean default false,
+  updated_at timestamptz default now()
+);
+
+alter table site_content enable row level security;
+
+drop policy if exists "public reads site content" on site_content;
+create policy "public reads site content" on site_content
+  for select to anon, authenticated using (true);
+
+drop policy if exists "admins write site content" on site_content;
+create policy "admins write site content" on site_content
+  for all to authenticated using (is_admin()) with check (is_admin());
+
 -- ── Job applications ───────────────────────────────────────────────────────
 -- Submitted by strangers from the public careers page. This is the ONLY table
 -- an anonymous visitor may write to, and they may not read a single row back —

@@ -15,6 +15,7 @@ import {
   type SitePartnerDraft,
 } from "./repository";
 import { monthsSince } from "./format";
+import { DEFAULT_CONTENT, type SiteContent } from "@/data/content";
 import type { Employee, EmployeeDraft } from "./types";
 
 /**
@@ -40,12 +41,18 @@ export const useHrData = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [partners, setPartners] = useState<SitePartner[]>([]);
   const [capabilities, setCapabilities] = useState<SiteCapability[]>([]);
+  const [content, setContent] = useState<SiteContent>(DEFAULT_CONTENT);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      const [e, d, a, l, j, apps, prt, cap] = await Promise.all([
+      /* Seed on first load. Without this the panel showed empty lists while the
+         website still displayed the built-in partners and capabilities — the
+         admin was lying about what was live. Idempotent: a no-op once seeded. */
+      await repository.seedDefaults();
+
+      const [e, d, a, l, j, apps, prt, cap, cnt] = await Promise.all([
         repository.listEmployees(),
         repository.listDocuments(),
         repository.listAnnouncements(),
@@ -54,6 +61,7 @@ export const useHrData = () => {
         repository.listApplications(),
         repository.listPartners(),
         repository.listCapabilities(),
+        repository.getContent(),
       ]);
 
       setEmployees(e);
@@ -64,6 +72,7 @@ export const useHrData = () => {
       setApplications(apps);
       setPartners(prt);
       setCapabilities(cap);
+      setContent(cnt);
       setError(null);
     } catch (caught) {
       setError(
@@ -217,6 +226,15 @@ export const useHrData = () => {
 
   /* ── Website content ───────────────────────────────────────────────────── */
 
+  const saveContent = useCallback(
+    async (next: SiteContent) => {
+      await repository.saveContent(next);
+      await repository.audit(actor, "content.update", "site content");
+      await refresh();
+    },
+    [repository, actor, refresh],
+  );
+
   const createAnnouncement = useCallback(
     async (draft: Omit<Announcement, "id" | "createdAt">) => {
       await repository.createAnnouncement(draft);
@@ -329,6 +347,7 @@ export const useHrData = () => {
     applications,
     partners,
     capabilities,
+    content,
     metrics,
     error,
     isLoading,
@@ -350,6 +369,7 @@ export const useHrData = () => {
     deletePartner,
     saveCapability,
     deleteCapability,
+    saveContent,
   };
 };
 

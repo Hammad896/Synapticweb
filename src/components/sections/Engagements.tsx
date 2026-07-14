@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import Reveal from "@/components/Reveal";
-import { ENGAGEMENTS, ENGAGEMENTS_INTRO, type Engagement } from "@/data/site";
+import { useSiteContent } from "@/hooks/use-site-content";
+import type { Engagement } from "@/data/site";
 
 /**
  * The commercial heart of the page: it answers "what am I actually buying?"
@@ -59,18 +60,23 @@ const EngagementCard = ({
   </Reveal>
 );
 
-const Engagements = () => (
+const Engagements = () => {
+  const { content } = useSiteContent();
+  const intro = content.intros.engagements;
+  const ENGAGEMENTS = content.engagements;
+
+  return (
   <section id="engagements" className="px-6 py-24 md:py-32">
     <div className="mx-auto max-w-7xl">
       <Reveal as="header" className="max-w-3xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
-          {ENGAGEMENTS_INTRO.eyebrow}
+          {intro.eyebrow}
         </p>
         <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-6xl">
-          {ENGAGEMENTS_INTRO.headline}
+          {intro.headline}
         </h2>
         <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
-          {ENGAGEMENTS_INTRO.description}
+          {intro.description}
         </p>
       </Reveal>
 
@@ -82,5 +88,6 @@ const Engagements = () => (
     </div>
   </section>
 );
+};
 
 export default Engagements;

@@ -212,7 +212,7 @@ export const TEAM: TeamMemberProfile[] = [
     initials: "HS",
     level: 0,
     summary:
-      "Founder and CEO. Runs the firm end to end — project delivery, client architecture, people, and growth. Specialist in large-scale project management, enterprise IT solutions, and technical architecture for the global finance sector. Every engagement ultimately answers to him.",
+      "Founder and CEO. Runs delivery, client architecture, people and growth.",
     domains: [
       "Large-scale project management",
       "Enterprise IT industry solutions",
@@ -226,7 +226,7 @@ export const TEAM: TeamMemberProfile[] = [
     initials: "MU",
     level: 1,
     summary:
-      "Owns everything the code runs on: servers, deployment pipelines, and production infrastructure. Specialist in DevOps management, large-scale Hospital Management Systems, and high-security FinTech infrastructure.",
+      "Owns servers, deployment pipelines and production infrastructure.",
     domains: [
       "Servers & cloud infrastructure",
       "Deployment & CI/CD pipelines",
@@ -240,7 +240,7 @@ export const TEAM: TeamMemberProfile[] = [
     initials: "F",
     level: 1,
     summary:
-      "Leads the engineering team and owns delivery on the platform work. Senior Laravel developer, architecting and shipping the large back-end systems our clients run their businesses on.",
+      "Leads the engineering team. Senior Laravel developer on our platform work.",
     domains: [
       "Engineering leadership",
       "Senior Laravel development",
@@ -254,7 +254,7 @@ export const TEAM: TeamMemberProfile[] = [
     initials: "U",
     level: 2,
     summary:
-      "Senior Laravel developer. Builds and maintains the platform systems — ERP, commerce, and booking infrastructure — to production standard.",
+      "Senior Laravel developer. Builds and maintains the platform systems.",
     domains: [
       "Laravel development",
       "Platform & API engineering",
@@ -267,7 +267,7 @@ export const TEAM: TeamMemberProfile[] = [
     initials: "AW",
     level: 2,
     summary:
-      "The firm's applied-AI lead and its most versatile builder. Drives our deep research into AI systems and delivers across the MERN stack — web, mobile, and everything between.",
+      "Applied-AI lead. Delivers across the MERN stack — web and mobile.",
     domains: [
       "Applied AI & deep research",
       "MERN stack engineering",

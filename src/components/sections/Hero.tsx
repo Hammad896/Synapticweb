@@ -1,34 +1,20 @@
-import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
-import { getRepository } from "@/admin/repository";
+import { useSiteContent } from "@/hooks/use-site-content";
 import CountUp from "@/components/CountUp";
 import LiveStatus from "@/components/LiveStatus";
-import { HERO, PARTNERS, STATS } from "@/data/site";
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 const Hero = () => {
   const prefersReducedMotion = useReducedMotion();
 
-  /* The trust strip named the partners from a hardcoded list while /partners
-     read the database — so removing a partner in the admin left their name
-     sitting on the home page. Same source now. */
-  const [livePartners, setLivePartners] = useState<Array<{ name: string }> | null>(null);
-
-  useEffect(() => {
-    void getRepository()
-      .listPartners()
-      .then((rows) => {
-        const active = rows.filter((r) => r.isActive);
-        if (active.length > 0) setLivePartners(active.map((r) => ({ name: r.name })));
-      })
-      .catch(() => {
-        /* fall back to the built-ins */
-      });
-  }, []);
-
-  const partners = livePartners ?? PARTNERS;
+  /* Hero copy, stats and the partner strip all come from the same managed
+     source as the rest of the site. The strip used to read a hardcoded list, so
+     a partner deleted in the admin still appeared on the home page. */
+  const { content, partners } = useSiteContent();
+  const HERO = content.hero;
+  const STATS = content.stats;
 
   // Time-based, not scroll-based: the hero is already in view on load, so
   // `whileInView` would fire instantly and read as a glitch.
@@ -42,6 +28,7 @@ const Hero = () => {
         };
 
   const words = HERO.headline.split(" ");
+
 
   return (
     <section className="relative overflow-hidden px-6 pb-20 pt-24 md:pb-24 md:pt-28">

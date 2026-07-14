@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   LayoutGrid,
   Megaphone,
+  PenLine,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -22,6 +23,7 @@ export type Tab =
   | "reports"
   | "careers"
   | "announcements"
+  | "content"
   | "audit";
 
 export const TABS: Array<{ id: Tab; label: string; icon: typeof Users }> = [
@@ -32,12 +34,13 @@ export const TABS: Array<{ id: Tab; label: string; icon: typeof Users }> = [
   { id: "reports", label: "Reports", icon: TrendingUp },
   { id: "careers", label: "Careers", icon: Briefcase },
   { id: "announcements", label: "Website", icon: Megaphone },
+  { id: "content", label: "Content", icon: PenLine },
   { id: "audit", label: "Audit log", icon: History },
 ];
 
 /** The four that earn a permanent slot on a phone. The rest live behind "More". */
 const PRIMARY_TABS: Tab[] = ["overview", "employees", "letters", "documents"];
-const MORE_TABS: Tab[] = ["reports", "careers", "announcements", "audit"];
+const MORE_TABS: Tab[] = ["reports", "careers", "announcements", "content", "audit"];
 
 interface Props {
   tab: Tab;

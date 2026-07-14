@@ -1,13 +1,18 @@
 import { Link } from "react-router-dom";
 import { Lock } from "lucide-react";
 import Logo from "./Logo";
-import { COMPANY, NAV_LINKS, WHATSAPP_MESSAGE } from "@/data/site";
+import { NAV_LINKS, WHATSAPP_MESSAGE } from "@/data/site";
+import { useSiteContent } from "@/hooks/use-site-content";
 
-const whatsappHref = `https://wa.me/${COMPANY.whatsappNumber}?text=${encodeURIComponent(
-  WHATSAPP_MESSAGE,
-)}`;
+const Footer = () => {
+  const { content } = useSiteContent();
+  const COMPANY = content.company;
 
-const Footer = () => (
+  const whatsappHref = `https://wa.me/${COMPANY.whatsappNumber}?text=${encodeURIComponent(
+    WHATSAPP_MESSAGE,
+  )}`;
+
+  return (
   <footer className="px-6 pb-12 pt-24">
     <div className="mx-auto max-w-7xl">
       <div className="rule" />
@@ -88,6 +93,7 @@ const Footer = () => (
       </div>
     </div>
   </footer>
-);
+  );
+};
 
 export default Footer;

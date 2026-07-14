@@ -1,4 +1,6 @@
 import { supabase } from "@/lib/supabase";
+import { DEFAULT_CONTENT, mergeContent, type SiteContent } from "@/data/content";
+import { CAPABILITIES, PARTNERS } from "@/data/site";
 import type { Employee, EmployeeDraft } from "./types";
 
 /* ── Domain types that live alongside employees ───────────────────────────── */
@@ -132,6 +134,14 @@ export interface HrRepository {
   listDocuments(): Promise<IssuedDocument[]>;
   saveDocument(doc: Omit<IssuedDocument, "id" | "createdAt">): Promise<IssuedDocument>;
   updateDocument(id: string, patch: Partial<IssuedDocument>): Promise<void>;
+
+  /** The single source of truth for every editable string on the site. */
+  getContent(): Promise<SiteContent>;
+  saveContent(content: SiteContent): Promise<void>;
+  /** True once the defaults have been copied in. */
+  isSeeded(): Promise<boolean>;
+  /** Copies the code defaults into the database. Idempotent. */
+  seedDefaults(): Promise<void>;
 
   listPartners(): Promise<SitePartner[]>;
   savePartner(draft: SitePartnerDraft, id?: string): Promise<void>;
@@ -369,6 +379,66 @@ class SupabaseRepository implements HrRepository {
       })
       .eq("id", id);
     if (error) throw error;
+  }
+
+  async getContent(): Promise<SiteContent> {
+    const { data } = await this.db
+      .from("site_content")
+      .select("data")
+      .eq("id", "main")
+      .maybeSingle();
+    return mergeContent((data?.data as Partial<SiteContent>) ?? null);
+  }
+
+  async saveContent(content: SiteContent): Promise<void> {
+    const { error } = await this.db
+      .from("site_content")
+      .upsert({ id: "main", data: content, seeded: true, updated_at: new Date().toISOString() });
+    if (error) throw error;
+  }
+
+  async isSeeded(): Promise<boolean> {
+    const { data } = await this.db
+      .from("site_content")
+      .select("seeded")
+      .eq("id", "main")
+      .maybeSingle();
+    return Boolean(data?.seeded);
+  }
+
+  async seedDefaults(): Promise<void> {
+    if (await this.isSeeded()) return;
+
+    await this.saveContent(DEFAULT_CONTENT);
+
+    // Copy the built-in partners and capabilities in as real, editable rows, so
+    // the panel shows what the site shows instead of an empty state that lies.
+    const { data: existingPartners } = await this.db.from("partners").select("id");
+    if (!existingPartners?.length) {
+      await this.db.from("partners").insert(
+        PARTNERS.map((p, i) => ({
+          name: p.name,
+          country: p.country,
+          relationship: p.relationship,
+          description: p.description,
+          is_active: true,
+          sort_order: i * 10,
+        })),
+      );
+    }
+
+    const { data: existingCaps } = await this.db.from("capabilities").select("id");
+    if (!existingCaps?.length) {
+      await this.db.from("capabilities").insert(
+        CAPABILITIES.map((c, i) => ({
+          title: c.title,
+          description: c.description,
+          detail: c.detail,
+          is_active: true,
+          sort_order: i * 10,
+        })),
+      );
+    }
   }
 
   async listPartners(): Promise<SitePartner[]> {
@@ -620,6 +690,8 @@ class SupabaseRepository implements HrRepository {
 /* ── Local adapter (fallback so a fresh clone still runs) ─────────────────── */
 
 const KEY = {
+  content: "synapticlab.hr.content",
+  seeded: "synapticlab.hr.seeded",
   partners: "synapticlab.hr.partners",
   capabilities: "synapticlab.hr.capabilities",
   jobs: "synapticlab.hr.jobs",
@@ -708,6 +780,56 @@ class LocalRepository implements HrRepository {
         d.id === id ? { ...d, ...patch } : d,
       ),
     );
+  }
+
+  async getContent(): Promise<SiteContent> {
+    try {
+      const raw = localStorage.getItem(KEY.content);
+      return mergeContent(raw ? (JSON.parse(raw) as Partial<SiteContent>) : null);
+    } catch {
+      return DEFAULT_CONTENT;
+    }
+  }
+
+  async saveContent(content: SiteContent) {
+    localStorage.setItem(KEY.content, JSON.stringify(content));
+    localStorage.setItem(KEY.seeded, "1");
+  }
+
+  async isSeeded() {
+    return localStorage.getItem(KEY.seeded) === "1";
+  }
+
+  async seedDefaults() {
+    if (await this.isSeeded()) return;
+
+    await this.saveContent(DEFAULT_CONTENT);
+
+    if (read<SitePartner>(KEY.partners).length === 0) {
+      write(
+        KEY.partners,
+        PARTNERS.map((p, i) => ({
+          ...p,
+          id: crypto.randomUUID(),
+          isActive: true,
+          sortOrder: i * 10,
+        })),
+      );
+    }
+
+    if (read<SiteCapability>(KEY.capabilities).length === 0) {
+      write(
+        KEY.capabilities,
+        CAPABILITIES.map((c, i) => ({
+          id: crypto.randomUUID(),
+          title: c.title,
+          description: c.description,
+          detail: c.detail,
+          isActive: true,
+          sortOrder: i * 10,
+        })),
+      );
+    }
   }
 
   async listPartners() {

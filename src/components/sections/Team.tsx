@@ -1,121 +1,102 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Reveal from "@/components/Reveal";
-import { getRepository } from "@/admin/repository";
 import { Section, SectionHeader } from "@/components/kit";
-import { TEAM, TEAM_INTRO, type TeamMemberProfile } from "@/data/site";
-import { cn } from "@/lib/utils";
+import { getRepository } from "@/admin/repository";
+import { useSiteContent } from "@/hooks/use-site-content";
+import { TEAM, type TeamMemberProfile } from "@/data/site";
 
 /**
- * The org chart.
+ * The team, as an org structure — not a sales page.
  *
- * Deliberately hierarchical rather than a flat grid of equal cards: the CEO's
- * card spans the full width at the top, the two managers sit beneath, and the
- * senior engineers below them. The layout IS the reporting line — a visitor
- * understands who answers to whom without reading a word of it.
+ * The previous version gave every person a huge card with a long bio and a
+ * bulleted list of "domains of authority". It read like a pitch deck. A team
+ * page's job is to show who works here and who answers to whom — the people, not
+ * the positioning.
  *
- * Names and roles only. Salary, CNIC, phone and emergency contacts live in the
- * database behind row-level security and are never compiled into this bundle.
+ * So: one compact card each, grouped by tier, with the reporting line stated
+ * plainly rather than dramatised. The CEO sits at the top because that is the
+ * structure, not because he needs a bigger box.
  */
 const MemberCard = ({
   member,
   index,
-  featured = false,
+  photo,
 }: {
   member: TeamMemberProfile;
   index: number;
-  featured?: boolean;
+  photo?: string;
 }) => (
   <Reveal
     as="article"
     index={index}
-    className={cn(
-      "group surface card-pad relative isolate overflow-hidden",
-      "transition-transform duration-500 ease-apple hover:scale-[1.02]",
-      featured && "lg:col-span-2",
-    )}
+    className="group surface flex items-start gap-4 p-5 transition-colors duration-500 ease-apple hover:border-accent/40"
   >
-    <span
-      aria-hidden="true"
-      className="gradient-fill absolute inset-0 -z-10 origin-bottom scale-y-0 transition-transform duration-500 ease-apple group-hover:scale-y-100"
-    />
+    {photo ? (
+      <img
+        src={photo}
+        alt=""
+        className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-border"
+      />
+    ) : (
+      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border text-xs font-medium text-accent">
+        {member.initials}
+      </div>
+    )}
 
-    <div
-      className={cn(
-        "flex items-center justify-center rounded-full border border-border font-medium text-accent transition-colors duration-500 group-hover:border-white/40 group-hover:text-white",
-        featured ? "h-20 w-20 text-lg" : "h-14 w-14 text-sm",
-      )}
-    >
-      {member.initials}
-    </div>
-
-    <header className={featured ? "mt-8" : "mt-6"}>
-      <h3
-        className={cn(
-          "type-display text-foreground transition-colors duration-500 group-hover:text-white",
-          featured ? "text-3xl md:text-5xl" : "text-2xl",
-        )}
-      >
+    <div className="min-w-0">
+      <h3 className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">
         {member.name}
       </h3>
-      <p className="mt-3 text-xs uppercase tracking-[0.2em] text-accent transition-colors duration-500 group-hover:text-white/80">
-        {member.role}
-      </p>
-    </header>
+      <p className="mt-0.5 text-xs text-accent">{member.role}</p>
 
-    <p
-      className={cn(
-        "measure mt-6 leading-relaxed text-muted-foreground transition-colors duration-500 group-hover:text-white/80",
-        featured ? "text-base md:text-lg" : "text-sm",
+      {member.summary && (
+        <p className="mt-2.5 text-xs leading-relaxed text-muted-foreground">
+          {member.summary}
+        </p>
       )}
-    >
-      {member.summary}
-    </p>
-
-    <ul className="mt-8 border-t border-border pt-2 transition-colors duration-500 group-hover:border-white/20">
-      {member.domains.map((domain) => (
-        <li
-          key={domain}
-          className="border-b border-border py-3 text-sm text-foreground transition-colors duration-500 last:border-b-0 group-hover:border-white/15 group-hover:text-white/90"
-        >
-          {domain}
-        </li>
-      ))}
-    </ul>
+    </div>
   </Reveal>
 );
 
-/** A vertical rule in the brand gradient — the reporting line, drawn. */
-const Connector = () => (
-  <div className="flex justify-center py-6" aria-hidden="true">
-    <span className="gradient-synapse h-10 w-px opacity-60" />
+/** A quiet tier label with a hairline. Structure, not decoration. */
+const Tier = ({ label, children }: { label: string; children: ReactNode }) => (
+  <div className="mt-10 first:mt-0">
+    <div className="flex items-center gap-4">
+      <span className="shrink-0 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
+        {label}
+      </span>
+      <span aria-hidden="true" className="h-px flex-1 bg-border" />
+    </div>
+
+    <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
   </div>
 );
 
 const Team = () => {
-  /* Published employees are the source of truth. The static org chart is the
-     fallback so /team is never empty before anyone has been published — the
-     admin and the website were previously reading DIFFERENT sources, which is
-     exactly why they disagreed. */
+  const { content } = useSiteContent();
+  const intro = content.intros.team;
+
   const [live, setLive] = useState<TeamMemberProfile[] | null>(null);
+  const [photos, setPhotos] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    void getRepository()
+    const repository = getRepository();
+
+    void repository
       .listEmployees()
-      .then((rows) => {
+      .then(async (rows) => {
         const published = rows.filter((e) => e.showOnWebsite && e.status === "active");
         if (published.length === 0) return;
 
         setLive(
           published.map((e) => {
-            /* The hierarchy is derived from the `manager` field, not stored
-               twice: nobody above them = CEO; reporting to the CEO = manager;
-               everyone else = engineer. */
+            /* Hierarchy is DERIVED from the manager field, never stored twice:
+               nobody above them = CEO; reporting to the CEO = manager; the rest
+               are engineers. */
             const hasManager = e.manager.trim() !== "";
             const reportsToCeo =
               hasManager &&
-              published.some(
-                (m) => m.fullName === e.manager && m.manager.trim() === "",
-              );
+              published.some((m) => m.fullName === e.manager && m.manager.trim() === "");
 
             return {
               name: e.fullName,
@@ -124,7 +105,7 @@ const Team = () => {
                 .split(" ")
                 .filter(Boolean)
                 .slice(0, 2)
-                .map((part) => part[0])
+                .map((p) => p[0])
                 .join("")
                 .toUpperCase(),
               level: (!hasManager ? 0 : reportsToCeo ? 1 : 2) as 0 | 1 | 2,
@@ -133,56 +114,63 @@ const Team = () => {
             };
           }),
         );
+
+        // Photos live in a private bucket; each needs a signed URL.
+        const signed: Record<string, string> = {};
+        for (const e of published) {
+          if (!e.photoPath) continue;
+          const url = await repository.photoUrl(e.photoPath);
+          if (url) signed[e.fullName] = url;
+        }
+        setPhotos(signed);
       })
       .catch(() => {
-        /* fall back to the static chart */
+        /* fall back to the built-in chart */
       });
   }, []);
 
   const roster = live ?? TEAM;
-  const ceo = roster.find((m) => m.level === 0);
+  const ceo = roster.filter((m) => m.level === 0);
   const managers = roster.filter((m) => m.level === 1);
   const engineers = roster.filter((m) => m.level === 2);
+
+  if (roster.length === 0) return null;
 
   return (
     <Section id="team">
       <SectionHeader
-        eyebrow={TEAM_INTRO.eyebrow}
-        title={TEAM_INTRO.headline}
-        description={TEAM_INTRO.description}
+        eyebrow={intro.eyebrow}
+        title={intro.headline}
+        description={intro.description}
       />
 
       <div className="mt-12 sm:mt-16">
-        {ceo && (
-          <div className="grid lg:grid-cols-2">
-            <MemberCard member={ceo} index={0} featured />
-          </div>
+        {ceo.length > 0 && (
+          <Tier label="Leadership">
+            {ceo.map((m, i) => (
+              <MemberCard key={m.name} member={m} index={i} photo={photos[m.name]} />
+            ))}
+          </Tier>
         )}
 
         {managers.length > 0 && (
-          <>
-            <Connector />
-            <div className="grid gap-5 sm:gap-6 md:grid-cols-2">
-              {managers.map((member, i) => (
-                <MemberCard key={member.name} member={member} index={i + 1} />
-              ))}
-            </div>
-          </>
+          <Tier label="Management">
+            {managers.map((m, i) => (
+              <MemberCard key={m.name} member={m} index={i + 1} photo={photos[m.name]} />
+            ))}
+          </Tier>
         )}
 
         {engineers.length > 0 && (
-          <>
-            <Connector />
-            <div className="grid gap-5 sm:gap-6 md:grid-cols-2">
-              {engineers.map((member, i) => (
-                <MemberCard key={member.name} member={member} index={i + 3} />
-              ))}
-            </div>
-          </>
+          <Tier label="Engineering">
+            {engineers.map((m, i) => (
+              <MemberCard key={m.name} member={m} index={i + 2} photo={photos[m.name]} />
+            ))}
+          </Tier>
         )}
       </div>
 
-      <p className="mt-12 text-sm text-muted-foreground">
+      <p className="mt-10 text-sm text-muted-foreground">
         Everyone reports to the CEO. There is no layer between you and the people writing
         your code.
       </p>

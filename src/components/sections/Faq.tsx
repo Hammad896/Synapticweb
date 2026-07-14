@@ -2,7 +2,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Plus } from "lucide-react";
 import Reveal from "@/components/Reveal";
-import { FAQS, FAQ_INTRO } from "@/data/site";
+import { useSiteContent } from "@/hooks/use-site-content";
 import { cn } from "@/lib/utils";
 
 /**
@@ -11,6 +11,10 @@ import { cn } from "@/lib/utils";
  * "×" instead of swapping icons, so the transition is a single transform.
  */
 const Faq = () => {
+  const { content } = useSiteContent();
+  const intro = content.intros.faq;
+  const FAQS = content.faqs;
+
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
@@ -18,10 +22,10 @@ const Faq = () => {
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-24">
         <Reveal as="header">
           <p className="text-xs uppercase tracking-[0.2em] text-accent">
-            {FAQ_INTRO.eyebrow}
+            {intro.eyebrow}
           </p>
           <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-5xl">
-            {FAQ_INTRO.headline}
+            {intro.headline}
           </h2>
         </Reveal>
 

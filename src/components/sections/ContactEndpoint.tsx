@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import Reveal from "@/components/Reveal";
-import { COMPANY, CONTACT, WHATSAPP_MESSAGE } from "@/data/site";
+import { CONTACT, WHATSAPP_MESSAGE } from "@/data/site";
+import { useSiteContent } from "@/hooks/use-site-content";
 
 const FIELD_CLASS =
   "w-full border-0 border-b border-border bg-transparent py-4 text-lg text-foreground " +
@@ -9,16 +10,19 @@ const FIELD_CLASS =
 
 const LABEL_CLASS = "text-xs uppercase tracking-[0.2em] text-muted-foreground";
 
-const whatsappHref = `https://wa.me/${COMPANY.whatsappNumber}?text=${encodeURIComponent(
-  WHATSAPP_MESSAGE,
-)}`;
-
 /**
  * There is no backend, so the form composes a real mail draft rather than
  * pretending to POST and faking a success toast. Honest, and it works today —
  * when an API exists, only `handleSubmit` changes.
  */
 const ContactEndpoint = () => {
+  const { content } = useSiteContent();
+  const COMPANY = content.company;
+
+  const whatsappHref = `https://wa.me/${COMPANY.whatsappNumber}?text=${encodeURIComponent(
+    WHATSAPP_MESSAGE,
+  )}`;
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [brief, setBrief] = useState("");

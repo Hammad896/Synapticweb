@@ -1,8 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
-import { useEffect, useState } from "react";
 import Reveal from "@/components/Reveal";
-import { getRepository } from "@/admin/repository";
-import { CAPABILITIES, CAPABILITIES_INTRO, type Capability } from "@/data/site";
+import { useSiteContent } from "@/hooks/use-site-content";
+import type { Capability } from "@/data/site";
 
 /**
  * An aligned row list, not a bento.
@@ -76,44 +75,23 @@ const CapabilityRow = ({
 );
 
 const Capabilities = () => {
-  const [live, setLive] = useState<Capability[] | null>(null);
+  const { content, capabilities } = useSiteContent();
+  const intro = content.intros.capabilities;
 
-  useEffect(() => {
-    void getRepository()
-      .listCapabilities()
-      .then((rows) => {
-        const active = rows.filter((r) => r.isActive);
-        if (active.length > 0) {
-          setLive(
-            active.map((r, i) => ({
-              id: r.id,
-              index: String(i + 1).padStart(2, "0"),
-              title: r.title,
-              description: r.description,
-              detail: r.detail,
-            })),
-          );
-        }
-      })
-      .catch(() => {
-        /* fall back to the built-ins */
-      });
-  }, []);
-
-  const capabilities = live ?? CAPABILITIES;
+  if (capabilities.length === 0) return null;
 
   return (
   <section id="capabilities" className="px-6 py-24 md:py-32">
     <div className="mx-auto max-w-7xl">
       <Reveal as="header" className="max-w-3xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
-          {CAPABILITIES_INTRO.eyebrow}
+          {intro.eyebrow}
         </p>
         <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-6xl">
-          {CAPABILITIES_INTRO.headline}
+          {intro.headline}
         </h2>
         <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
-          {CAPABILITIES_INTRO.description}
+          {intro.description}
         </p>
       </Reveal>
 

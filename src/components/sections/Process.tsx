@@ -1,5 +1,6 @@
 import Reveal from "@/components/Reveal";
-import { PROCESS, PROCESS_INTRO, type ProcessStep } from "@/data/site";
+import { useSiteContent } from "@/hooks/use-site-content";
+import type { ProcessStep } from "@/data/site";
 
 /**
  * Rows, not four thin cards. Each phase now carries a duration, what actually
@@ -52,18 +53,23 @@ const ProcessRow = ({ step, index }: { step: ProcessStep; index: number }) => (
   </Reveal>
 );
 
-const Process = () => (
+const Process = () => {
+  const { content } = useSiteContent();
+  const intro = content.intros.process;
+  const PROCESS = content.process;
+
+  return (
   <section id="process" className="px-6 py-24 md:py-32">
     <div className="mx-auto max-w-7xl">
       <Reveal as="header" className="max-w-3xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
-          {PROCESS_INTRO.eyebrow}
+          {intro.eyebrow}
         </p>
         <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-6xl">
-          {PROCESS_INTRO.headline}
+          {intro.headline}
         </h2>
         <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
-          {PROCESS_INTRO.description}
+          {intro.description}
         </p>
       </Reveal>
 
@@ -75,5 +81,6 @@ const Process = () => (
     </div>
   </section>
 );
+};
 
 export default Process;

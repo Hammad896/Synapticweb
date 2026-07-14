@@ -1,13 +1,15 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { MessageSquare, Send, X } from "lucide-react";
 import {
-  FALLBACK,
-  GREETING,
   QUICK_REPLIES,
+  buildFallback,
+  buildGreeting,
+  buildIntents,
   findAnswer,
 } from "@/data/assistant";
-import { COMPANY } from "@/data/site";
+import { useSiteContent } from "@/hooks/use-site-content";
+import { getRepository, type Job } from "@/admin/repository";
 import { cn } from "@/lib/utils";
 
 interface Message {
@@ -32,12 +34,36 @@ const EASE = [0.16, 1, 0.3, 1] as const;
  * in the bundle for anyone to lift.)
  */
 const LabAssist = () => {
+  const { content, partners, capabilities } = useSiteContent();
+
+  /* Open roles, so "are you hiring?" gets a real answer with the actual
+     vacancies rather than a generic brush-off. */
+  const [jobs, setJobs] = useState<Job[]>([]);
+  useEffect(() => {
+    void getRepository()
+      .listJobs()
+      .then(setJobs)
+      .catch(() => setJobs([]));
+  }, []);
+
+  const intents = useMemo(
+    () => buildIntents(content, partners, capabilities, jobs),
+    [content, partners, capabilities, jobs],
+  );
+
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 0, from: "bot", text: GREETING, chips: QUICK_REPLIES },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
+
+  // The greeting waits for the live content, so it uses the real company name.
+  useEffect(() => {
+    setMessages((current) =>
+      current.length === 0
+        ? [{ id: 0, from: "bot", text: buildGreeting(content), chips: QUICK_REPLIES }]
+        : current,
+    );
+  }, [content]);
 
   const listRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -65,7 +91,7 @@ const LabAssist = () => {
   }, []);
 
   const respond = (question: string) => {
-    const intent = findAnswer(question);
+    const intent = findAnswer(question, intents);
 
     // A brief pause: an instant answer reads as a canned lookup rather than a reply.
     setIsTyping(true);
@@ -76,7 +102,7 @@ const LabAssist = () => {
         {
           id: nextId.current++,
           from: "bot",
-          text: intent ? intent.answer : FALLBACK,
+          text: intent ? intent.answer : buildFallback(content),
           chips: intent?.followUps,
         },
       ]);
@@ -130,7 +156,7 @@ const LabAssist = () => {
                     Lab Assist
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Answers from {COMPANY.name}
+                    Answers from {content.company.name}
                   </p>
                 </div>
               </div>

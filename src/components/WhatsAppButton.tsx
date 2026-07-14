@@ -1,8 +1,5 @@
-import { COMPANY, WHATSAPP_MESSAGE } from "@/data/site";
-
-const href = `https://wa.me/${COMPANY.whatsappNumber}?text=${encodeURIComponent(
-  WHATSAPP_MESSAGE,
-)}`;
+import { WHATSAPP_MESSAGE } from "@/data/site";
+import { useSiteContent } from "@/hooks/use-site-content";
 
 /**
  * Deliberately NOT the stock green bubble with a pulsing ping. That belongs to a
@@ -10,7 +7,15 @@ const href = `https://wa.me/${COMPANY.whatsappNumber}?text=${encodeURIComponent(
  * near-black page. This wears the site's own language — charcoal surface,
  * hairline border, brand accent on hover — and expands to reveal its label.
  */
-const WhatsAppButton = () => (
+const WhatsAppButton = () => {
+  const { content } = useSiteContent();
+  const COMPANY = content.company;
+
+  const href = `https://wa.me/${COMPANY.whatsappNumber}?text=${encodeURIComponent(
+    WHATSAPP_MESSAGE,
+  )}`;
+
+  return (
   <a
     href={href}
     target="_blank"
@@ -36,6 +41,7 @@ const WhatsAppButton = () => (
       Chat with us
     </span>
   </a>
-);
+  );
+};
 
 export default WhatsAppButton;
