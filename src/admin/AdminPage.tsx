@@ -19,6 +19,7 @@ import {
   Pencil,
   Plus,
   Search,
+  SlidersHorizontal,
   Trash2,
   TrendingUp,
   TriangleAlert,
@@ -34,6 +35,7 @@ import { buildAlerts, joinerAnnouncement } from "@/hr/automations";
 import IdCard from "@/hr/IdCard";
 import EmployeeForm from "./EmployeeForm";
 import JobForm from "./JobForm";
+import LetterheadSetup from "./LetterheadSetup";
 import LetterComposer from "./LetterComposer";
 import Reports from "./Reports";
 import { ActionSheet, Drawer, SheetAction } from "./Sheet";
@@ -116,6 +118,7 @@ const AdminPage = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
   const [isCreatingJob, setIsCreatingJob] = useState(false);
+  const [calibrating, setCalibrating] = useState(false);
 
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
@@ -887,15 +890,28 @@ const AdminPage = () => {
             )}
 
             {/* ── Letters ─────────────────────────────────────────────────── */}
-            {tab === "letters" && (
+            {tab === "letters" && calibrating && (
+              <LetterheadSetup onDone={() => setCalibrating(false)} />
+            )}
+
+            {tab === "letters" && !calibrating && (
               <>
-                <h1 className="type-display text-2xl text-foreground sm:text-4xl">
-                  Draft a letter
-                </h1>
-                <p className="measure mt-2 text-sm leading-relaxed text-muted-foreground">
-                  Letters render onto the real letterhead. A draft has the signature and stamp
-                  covered; only issuing applies them and records it in the register.
-                </p>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div>
+                    <h1 className="type-display text-2xl text-foreground sm:text-4xl">
+                      Draft a letter
+                    </h1>
+                    <p className="measure mt-2 text-sm leading-relaxed text-muted-foreground">
+                      Letters render onto the real letterhead. A draft has the signature and
+                      stamp covered; only issuing applies them and records it in the register.
+                    </p>
+                  </div>
+
+                  <Button variant="secondary" onClick={() => setCalibrating(true)}>
+                    <SlidersHorizontal size={15} aria-hidden="true" />
+                    Letterhead setup
+                  </Button>
+                </div>
 
                 <div className="mt-8">
                   {employees.length === 0 ? (
