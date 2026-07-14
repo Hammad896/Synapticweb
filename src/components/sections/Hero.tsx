@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
+import { getRepository } from "@/admin/repository";
 import CountUp from "@/components/CountUp";
 import LiveStatus from "@/components/LiveStatus";
 import { HERO, PARTNERS, STATS } from "@/data/site";
@@ -8,6 +10,25 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 
 const Hero = () => {
   const prefersReducedMotion = useReducedMotion();
+
+  /* The trust strip named the partners from a hardcoded list while /partners
+     read the database — so removing a partner in the admin left their name
+     sitting on the home page. Same source now. */
+  const [livePartners, setLivePartners] = useState<Array<{ name: string }> | null>(null);
+
+  useEffect(() => {
+    void getRepository()
+      .listPartners()
+      .then((rows) => {
+        const active = rows.filter((r) => r.isActive);
+        if (active.length > 0) setLivePartners(active.map((r) => ({ name: r.name })));
+      })
+      .catch(() => {
+        /* fall back to the built-ins */
+      });
+  }, []);
+
+  const partners = livePartners ?? PARTNERS;
 
   // Time-based, not scroll-based: the hero is already in view on load, so
   // `whileInView` would fire instantly and read as a glitch.
@@ -29,7 +50,7 @@ const Hero = () => {
           headline, and film grain to kill banding on the near-black. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)] [background-image:linear-gradient(to_right,hsl(var(--border))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--border))_1px,transparent_1px)] [background-size:72px_72px] opacity-50"
+        className="pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)] [background-image:linear-gradient(to_right,hsl(var(--grid-line))_1px,transparent_1px),linear-gradient(to_bottom,hsl(var(--grid-line))_1px,transparent_1px)] [background-size:72px_72px] opacity-70"
       />
       <div aria-hidden="true" className="bloom pointer-events-none absolute inset-0" />
 
@@ -118,7 +139,7 @@ const Hero = () => {
               {HERO.trustLabel}
             </p>
             <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 md:gap-x-10">
-              {PARTNERS.map((partner) => (
+              {partners.map((partner) => (
                 <li key={partner.name}>
                   <Link
                     to="/partners"

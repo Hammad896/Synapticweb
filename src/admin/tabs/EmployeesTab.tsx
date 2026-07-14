@@ -124,9 +124,7 @@ const EmployeesTab = ({
             </div>
 
             <div className="flex flex-wrap items-start gap-2 sm:gap-3">
-              <div className="hidden sm:block">
-                <ImportEmployees onImport={onImport} />
-              </div>
+              <ImportEmployees onImport={onImport} />
               <Button
                 variant="secondary"
                 onClick={onExportCsv}

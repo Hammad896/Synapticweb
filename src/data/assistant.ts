@@ -6,6 +6,7 @@ import {
   PARTNERS,
   PROCESS,
   STATS,
+  TEAM,
   TECH_TIERS,
 } from "./site";
 
@@ -135,7 +136,14 @@ export const INTENTS: Intent[] = [
       "team", "who are you", "founder", "founders", "ceo", "coo", "leadership",
       "people", "staff", "employees", "how many",
     ],
-    answer: `The company is run by the people who build the work:\n\n• Hammad Sohail — CEO & Director. Large-scale project management, enterprise IT, technical architecture for global finance.\n• Muhammad Umer — Chief Operating Officer. Global operations, DevOps, Hospital Management Systems, high-security FinTech infrastructure.\n• Abdul Wahab — AI & Multi-Platform Engineering Lead. Applied AI and deep research; delivers across web and mobile.\n\nEvery engagement is architected and run by them — not delegated to a bench you never meet.`,
+    // Derived from TEAM, never restated. A hardcoded copy here had already gone
+    // stale: it still called Umer "Chief Operating Officer" months after he
+    // became DevOps Manager. The bot and the team page must never disagree.
+    answer: `The company is run by the people who build the work:\n\n${TEAM.map(
+      (m) => `• ${m.name} — ${m.role}.`,
+    ).join(
+      "\n",
+    )}\n\nEveryone reports to the CEO. There is no layer between you and the people writing your code.`,
     followUps: ["Who are your partners?", "Talk to a human"],
   },
   {

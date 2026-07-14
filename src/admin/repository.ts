@@ -565,14 +565,18 @@ class SupabaseRepository implements HrRepository {
   }
 
   async updateAnnouncement(id: string, patch: Partial<Announcement>): Promise<void> {
-    const { error } = await this.db
-      .from("announcements")
-      .update({
-        title: patch.title,
-        body: patch.body,
-        is_active: patch.isActive,
-      })
-      .eq("id", id);
+    /* Every editable column, not just three. Omitting `kind` and `link` meant
+       editing an announcement silently WIPED them — the classic partial-update
+       bug. Undefined keys are dropped by supabase-js, so a genuine partial
+       patch (e.g. just `isActive`) still works. */
+    const row: Record<string, unknown> = {};
+    if (patch.title !== undefined) row.title = patch.title;
+    if (patch.body !== undefined) row.body = patch.body;
+    if (patch.link !== undefined) row.link = patch.link;
+    if (patch.kind !== undefined) row.kind = patch.kind;
+    if (patch.isActive !== undefined) row.is_active = patch.isActive;
+
+    const { error } = await this.db.from("announcements").update(row).eq("id", id);
     if (error) throw error;
   }
 

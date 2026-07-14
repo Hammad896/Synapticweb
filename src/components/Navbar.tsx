@@ -46,7 +46,7 @@ const Navbar = () => {
       <nav
         aria-label="Primary"
         className={cn(
-          "fixed inset-x-0 top-0 z-50 h-14",
+          "fixed inset-x-0 top-0 z-50 h-16",
           "bg-background/70 backdrop-blur-md backdrop-saturate-150",
           "border-b transition-colors duration-500 ease-apple",
           // The bar never grows or gains a shadow — only the hairline resolves in.
@@ -59,7 +59,7 @@ const Navbar = () => {
             aria-label={`${COMPANY.name} — home`}
             className="transition-opacity duration-300 ease-apple hover:opacity-70"
           >
-            <Logo className="h-7 md:h-8" />
+            <Logo className="h-8 md:h-9" />
           </Link>
 
           <div className="hidden items-center gap-8 md:flex">
@@ -69,7 +69,7 @@ const Navbar = () => {
                 : activeId === link.href.slice(1);
 
               const className = cn(
-                "relative text-xs transition-colors duration-300 ease-apple hover:text-accent",
+                "relative text-[13px] transition-colors duration-300 ease-apple hover:text-accent",
                 isActive ? "text-foreground" : "text-muted-foreground",
               );
 
@@ -114,7 +114,7 @@ const Navbar = () => {
 
             <Link
               to="/contact"
-              className="rounded-full bg-accent-solid px-4 py-1.5 text-xs font-medium text-accent-foreground transition-all duration-300 ease-apple hover:scale-[1.02] hover:opacity-90"
+              className="rounded-full bg-accent-solid px-5 py-2 text-[13px] font-medium text-accent-foreground transition-all duration-300 ease-apple hover:scale-[1.02] hover:opacity-90"
             >
               Let's talk
             </Link>

@@ -77,7 +77,7 @@ const AnnouncementBar = () => {
           animate={{ height: "auto", opacity: 1 }}
           exit={{ height: 0, opacity: 0 }}
           transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed inset-x-0 top-14 z-40 overflow-hidden border-b border-border bg-card/80 backdrop-blur-md"
+          className="fixed inset-x-0 top-16 z-40 overflow-hidden border-b border-border bg-card/80 backdrop-blur-md"
         >
           <div className="mx-auto flex max-w-7xl items-center gap-4 px-6 py-2.5">
             <span

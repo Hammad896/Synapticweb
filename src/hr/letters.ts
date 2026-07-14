@@ -85,7 +85,7 @@ export const LETTER_TEMPLATES: LetterTemplate[] = [
         label: "Reports to",
         type: "text",
         required: false,
-        placeholder: "Muhammad Umer, COO",
+        placeholder: "Muhammad Umer, DevOps Manager",
       },
     ],
     build: (e, v) => `Dear ${nameOf(e)},

@@ -24,7 +24,7 @@ const ScrollProgress = () => {
     <motion.div
       aria-hidden="true"
       style={{ scaleX }}
-      className="gradient-synapse fixed inset-x-0 top-14 z-50 h-[2px] origin-left"
+      className="gradient-synapse fixed inset-x-0 top-16 z-50 h-[2px] origin-left"
     />
   );
 };

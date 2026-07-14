@@ -277,62 +277,6 @@ export const TEAM: TeamMemberProfile[] = [
   },
 ];
 
-export interface Executive {
-  name: string;
-  role: string;
-  initials: string;
-  summary: string;
-  domains: string[];
-}
-
-export const LEADERSHIP_INTRO = {
-  eyebrow: "Leadership & Technical Team",
-  headline: "The people who actually build it.",
-  description:
-    "Every engagement is architected and run by the people whose names are on the company — not delegated to a bench you never meet.",
-} as const;
-
-export const EXECUTIVES: Executive[] = [
-  {
-    name: "Hammad Sohail",
-    role: "CEO & Director",
-    initials: "HS",
-    summary:
-      "Specialist in managing large-scale projects, enterprise IT industry solutions, and technical architecture for the global finance sector.",
-    domains: [
-      "Large-scale project management",
-      "Enterprise IT industry solutions",
-      "Technical architecture — global finance",
-    ],
-  },
-  {
-    name: "Muhammad Umer",
-    role: "Chief Operating Officer",
-    initials: "MU",
-    summary:
-      "Specialist in global operations, DevOps management, large-scale Hospital Management Systems, and high-security FinTech infrastructure.",
-    domains: [
-      "Global operations",
-      "DevOps management",
-      "Hospital Management Systems (HMS)",
-      "High-security FinTech infrastructure",
-    ],
-  },
-  {
-    name: "Abdul Wahab",
-    role: "AI & Multi-Platform Engineering Lead",
-    initials: "AW",
-    summary:
-      "The firm's applied-AI lead and its most versatile builder — driving our deep research into AI systems and delivering across web, mobile, and everything between.",
-    domains: [
-      "Applied AI & deep research",
-      "Full-stack web engineering",
-      "Cross-platform mobile applications",
-      "End-to-end product delivery",
-    ],
-  },
-];
-
 export interface ProcessStep {
   index: string;
   title: string;
