@@ -53,7 +53,7 @@ const ProcessRow = ({ step, index }: { step: ProcessStep; index: number }) => (
   </Reveal>
 );
 
-const Process = () => {
+const Process = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => {
   const { content } = useSiteContent();
   const intro = content.intros.process;
   const PROCESS = content.process;
@@ -61,7 +61,9 @@ const Process = () => {
   return (
   <section id="process" className="px-6 py-24 md:py-32">
     <div className="mx-auto max-w-7xl">
-      <Reveal as="header" className="max-w-3xl">
+      {!hideHeader && (
+
+        <Reveal as="header" className="max-w-3xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
           {intro.eyebrow}
         </p>
@@ -71,7 +73,9 @@ const Process = () => {
         <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
           {intro.description}
         </p>
-      </Reveal>
+        </Reveal>
+
+      )}
 
       <ol className="mt-10 border-t border-border sm:mt-16">
         {PROCESS.map((step, i) => (

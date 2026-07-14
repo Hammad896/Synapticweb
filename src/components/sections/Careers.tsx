@@ -17,7 +17,13 @@ import { getRepository, type Job } from "@/admin/repository";
  * Closed roles are excluded by the RLS policy on the server, not filtered in the
  * client: a closed vacancy is never sent to the browser at all.
  */
-const Careers = ({ showEmpty = false }: { showEmpty?: boolean }) => {
+const Careers = ({
+  showEmpty = false,
+  hideHeader = false,
+}: {
+  showEmpty?: boolean;
+  hideHeader?: boolean;
+}) => {
   const [roles, setRoles] = useState<Job[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [applyingTo, setApplyingTo] = useState<Job | null>(null);
@@ -38,12 +44,14 @@ const Careers = ({ showEmpty = false }: { showEmpty?: boolean }) => {
   if (!loaded || (roles.length === 0 && !showEmpty)) return null;
 
   return (
-    <Section id="careers">
-      <SectionHeader
-        eyebrow="Careers"
-        title="We are hiring."
-        description="We are a small team that ships large systems. If you want to own real work rather than a ticket queue, we would like to hear from you."
-      />
+    <Section id="careers" className={hideHeader ? "pt-16 md:pt-20" : undefined}>
+      {!hideHeader && (
+        <SectionHeader
+          eyebrow="Careers"
+          title="We are hiring."
+          description="We are a small team that ships large systems. If you want to own real work rather than a ticket queue, we would like to hear from you."
+        />
+      )}
 
       {roles.length === 0 ? (
         <div className="mt-12">

@@ -25,11 +25,13 @@ const EngagementCard = ({
       className="gradient-fill absolute inset-0 -z-10 origin-bottom scale-y-0 transition-transform duration-500 ease-apple group-hover:scale-y-100"
     />
 
-    <span className="type-display block text-5xl tabular-nums text-accent transition-colors duration-500 ease-apple group-hover:text-white">
+    <span className="type-display block text-4xl tabular-nums text-accent transition-colors duration-500 ease-apple group-hover:text-white">
       {engagement.index}
     </span>
 
-    <header className="mt-16">
+    {/* Was mt-16: a 64px void between the numeral and the title that read as a
+        rendering bug rather than breathing room. */}
+    <header className="mt-8">
       <h3 className="type-display text-3xl text-foreground transition-colors duration-500 ease-apple group-hover:text-white md:text-4xl">
         {engagement.title}
       </h3>
@@ -60,15 +62,17 @@ const EngagementCard = ({
   </Reveal>
 );
 
-const Engagements = () => {
+const Engagements = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => {
   const { content } = useSiteContent();
   const intro = content.intros.engagements;
   const ENGAGEMENTS = content.engagements;
 
   return (
-  <section id="engagements" className="px-6 py-24 md:py-32">
+  <section id="engagements" className={hideHeader ? "px-6 pb-24 pt-16 md:pb-32 md:pt-20" : "px-6 py-24 md:py-32"}>
     <div className="mx-auto max-w-7xl">
-      <Reveal as="header" className="max-w-3xl">
+      {!hideHeader && (
+
+        <Reveal as="header" className="max-w-3xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
           {intro.eyebrow}
         </p>
@@ -78,7 +82,9 @@ const Engagements = () => {
         <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
           {intro.description}
         </p>
-      </Reveal>
+        </Reveal>
+
+      )}
 
       <div className="mt-12 grid gap-5 sm:mt-16 sm:gap-6 lg:mt-20 md:grid-cols-2">
         {ENGAGEMENTS.map((engagement, i) => (

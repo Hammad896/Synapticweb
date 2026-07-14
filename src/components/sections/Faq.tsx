@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
  * region — rather than a component library. The indicator rotates 45° into an
  * "×" instead of swapping icons, so the transition is a single transform.
  */
-const Faq = () => {
+const Faq = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => {
   const { content } = useSiteContent();
   const intro = content.intros.faq;
   const FAQS = content.faqs;
@@ -20,14 +20,18 @@ const Faq = () => {
   return (
     <section id="faq" className="px-6 py-24 md:py-32">
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-24">
-        <Reveal as="header">
+        {!hideHeader && (
+
+          <Reveal as="header">
           <p className="text-xs uppercase tracking-[0.2em] text-accent">
             {intro.eyebrow}
           </p>
           <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-5xl">
             {intro.headline}
           </h2>
-        </Reveal>
+          </Reveal>
+
+        )}
 
         <Reveal index={1}>
           <ul className="border-t border-border">

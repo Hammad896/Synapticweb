@@ -74,16 +74,18 @@ const CapabilityRow = ({
   </Reveal>
 );
 
-const Capabilities = () => {
+const Capabilities = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => {
   const { content, capabilities } = useSiteContent();
   const intro = content.intros.capabilities;
 
   if (capabilities.length === 0) return null;
 
   return (
-  <section id="capabilities" className="px-6 py-24 md:py-32">
+  <section id="capabilities" className={hideHeader ? "px-6 pb-24 pt-16 md:pb-32 md:pt-20" : "px-6 py-24 md:py-32"}>
     <div className="mx-auto max-w-7xl">
-      <Reveal as="header" className="max-w-3xl">
+      {!hideHeader && (
+
+        <Reveal as="header" className="max-w-3xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
           {intro.eyebrow}
         </p>
@@ -93,7 +95,9 @@ const Capabilities = () => {
         <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
           {intro.description}
         </p>
-      </Reveal>
+        </Reveal>
+
+      )}
 
       <ul className="mt-10 sm:mt-16">
         {capabilities.map((capability, i) => (

@@ -72,7 +72,7 @@ const Tier = ({ label, children }: { label: string; children: ReactNode }) => (
   </div>
 );
 
-const Team = () => {
+const Team = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => {
   const { content } = useSiteContent();
   const intro = content.intros.team;
 
@@ -137,14 +137,16 @@ const Team = () => {
   if (roster.length === 0) return null;
 
   return (
-    <Section id="team">
-      <SectionHeader
-        eyebrow={intro.eyebrow}
-        title={intro.headline}
-        description={intro.description}
-      />
+    <Section id="team" className={hideHeader ? "pt-16 md:pt-20" : undefined}>
+      {!hideHeader && (
+        <SectionHeader
+          eyebrow={intro.eyebrow}
+          title={intro.headline}
+          description={intro.description}
+        />
+      )}
 
-      <div className="mt-12 sm:mt-16">
+      <div className={hideHeader ? "" : "mt-12 sm:mt-16"}>
         {ceo.length > 0 && (
           <Tier label="Leadership">
             {ceo.map((m, i) => (

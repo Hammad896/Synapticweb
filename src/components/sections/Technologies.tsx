@@ -45,7 +45,7 @@ const TierCard = ({ tier, index }: { tier: TechTier; index: number }) => (
   </Reveal>
 );
 
-const Technologies = () => {
+const Technologies = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => {
   const { content } = useSiteContent();
   const intro = content.intros.technologies;
   const TECH_TIERS = content.techTiers;
@@ -55,7 +55,9 @@ const Technologies = () => {
   return (
   <section id="technologies" className="py-24 md:py-32">
     <div className="mx-auto max-w-7xl px-6">
-      <Reveal as="header" className="max-w-3xl">
+      {!hideHeader && (
+
+        <Reveal as="header" className="max-w-3xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
           {intro.eyebrow}
         </p>
@@ -65,7 +67,9 @@ const Technologies = () => {
         <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
           {intro.description}
         </p>
-      </Reveal>
+        </Reveal>
+
+      )}
 
       <div className="mt-12 grid gap-5 sm:mt-16 sm:gap-6 md:grid-cols-2 xl:grid-cols-4">
         {TECH_TIERS.map((tier, i) => (

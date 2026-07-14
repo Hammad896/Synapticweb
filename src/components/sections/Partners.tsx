@@ -33,7 +33,7 @@ const PartnerCard = ({ partner, index }: { partner: Partner; index: number }) =>
   </Reveal>
 );
 
-const Partners = () => {
+const Partners = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => {
   /* One source: whatever the admin panel says. No hardcoded fallback here —
      that is what made the panel show "No partners" while the site still
      displayed two, and made the last partner impossible to remove. */
@@ -43,9 +43,11 @@ const Partners = () => {
   if (partners.length === 0) return null;
 
   return (
-  <section id="partners" className="px-6 py-24 md:py-32">
+  <section id="partners" className={hideHeader ? "px-6 pb-24 pt-16 md:pb-32 md:pt-20" : "px-6 py-24 md:py-32"}>
     <div className="mx-auto max-w-7xl">
-      <Reveal as="header" className="max-w-4xl">
+      {!hideHeader && (
+
+        <Reveal as="header" className="max-w-4xl">
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
           {intro.eyebrow}
         </p>
@@ -55,7 +57,9 @@ const Partners = () => {
         <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
           {intro.description}
         </p>
-      </Reveal>
+        </Reveal>
+
+      )}
 
       <div className="mt-12 grid gap-5 sm:mt-16 sm:gap-6 lg:mt-20 md:grid-cols-2">
         {partners.map((partner, i) => (
