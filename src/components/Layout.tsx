@@ -4,6 +4,7 @@ import Footer from "./Footer";
 import WhatsAppButton from "./WhatsAppButton";
 import ScrollProgress from "./ScrollProgress";
 import LabAssist from "./LabAssist";
+import AnnouncementBar from "./AnnouncementBar";
 
 const Layout = ({ children }: { children: ReactNode }) => (
   <div id="top" className="grain flex min-h-screen flex-col bg-background">
@@ -18,6 +19,7 @@ const Layout = ({ children }: { children: ReactNode }) => (
     </a>
 
     <Navbar />
+    <AnnouncementBar />
     <ScrollProgress />
 
     {/* pt-14 clears the 56px fixed nav exactly — no arbitrary spacer. */}

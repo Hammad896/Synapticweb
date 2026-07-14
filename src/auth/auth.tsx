@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 
 /**
  * ⚠️ READ THIS BEFORE TRUSTING THIS FILE WITH ANYTHING.
@@ -49,7 +50,14 @@ export interface AuthAdapter {
 
 const SESSION_KEY = "synapticlab.admin.session";
 
-/** Overridable at build time, but see the warning above: this is not a secret. */
+/**
+ * DEV ONLY. `__DEV_AUTH__` is defined by vite.config.ts as false in production,
+ * so this whole adapter is dead code that the minifier strips — the password is
+ * physically absent from a production bundle rather than merely unused.
+ *
+ * A production build also FAILS unless Supabase is configured (see vite.config),
+ * so this path cannot reach a deployed site at all.
+ */
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? "admin@synaptic.com";
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD ?? "synaptic896";
 
@@ -86,8 +94,56 @@ class DevCredentialAdapter implements AuthAdapter {
   }
 }
 
-/** ★ The single line to change when real auth arrives. */
-const adapter: AuthAdapter = new DevCredentialAdapter();
+/**
+ * The real one. Supabase verifies the password on ITS server and returns a JWT;
+ * Row Level Security then means employee data is never even sent to a browser
+ * that isn't signed in. That is the difference between a gate and a lock.
+ */
+class SupabaseAuthAdapter implements AuthAdapter {
+  async signIn(email: string, password: string): Promise<AuthUser> {
+    if (!supabase) throw new Error("Supabase is not configured.");
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+
+    // Never echo the provider's raw error — it can distinguish "no such user"
+    // from "wrong password", which hands an attacker a valid-email oracle.
+    if (error || !data.user) {
+      throw new Error("Those credentials don't match an account.");
+    }
+
+    return {
+      email: data.user.email ?? email,
+      name: (data.user.user_metadata?.name as string) ?? "Administrator",
+      role: "admin",
+    };
+  }
+
+  async signOut(): Promise<void> {
+    await supabase?.auth.signOut();
+  }
+
+  /** Supabase restores asynchronously; `AuthProvider` handles that below. */
+  restore(): AuthUser | null {
+    return null;
+  }
+}
+
+/**
+ * ★ Real auth when Supabase is configured. The dev gate is only reachable in a
+ * development build — production refuses to build without Supabase.
+ */
+const adapter: AuthAdapter = isSupabaseConfigured
+  ? new SupabaseAuthAdapter()
+  : __DEV_AUTH__
+    ? new DevCredentialAdapter()
+    : (() => {
+        throw new Error(
+          "Supabase is not configured. A production build must not run without it.",
+        );
+      })();
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -102,11 +158,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isReady, setIsReady] = useState(false);
 
-  // Restore before first paint of the guarded route, so a signed-in admin never
-  // sees the login screen flash on refresh.
+  // Restore before the guarded route paints, so a signed-in admin never sees the
+  // login screen flash on refresh.
   useEffect(() => {
-    setUser(adapter.restore());
-    setIsReady(true);
+    if (!isSupabaseConfigured || !supabase) {
+      setUser(adapter.restore());
+      setIsReady(true);
+      return;
+    }
+
+    // Supabase restores from its own storage asynchronously, and also emits on
+    // token refresh and on sign-out from another tab — so we subscribe rather
+    // than reading once.
+    void supabase.auth.getSession().then(({ data }) => {
+      const session = data.session;
+      setUser(
+        session?.user
+          ? {
+              email: session.user.email ?? "",
+              name: (session.user.user_metadata?.name as string) ?? "Administrator",
+              role: "admin",
+            }
+          : null,
+      );
+      setIsReady(true);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(
+        session?.user
+          ? {
+              email: session.user.email ?? "",
+              name: (session.user.user_metadata?.name as string) ?? "Administrator",
+              role: "admin",
+            }
+          : null,
+      );
+    });
+
+    return () => listener.subscription.unsubscribe();
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {

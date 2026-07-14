@@ -245,6 +245,62 @@
   }
 }
 
+/* ── Print ─────────────────────────────────────────────────────────────────
+   Two print modes. When an ID card is on screen, ONLY the card prints — at true
+   CR80 size on a card-sized page. Otherwise (reports), the app chrome is hidden
+   and the content prints on A4 in black on white, because a near-black report
+   would empty a toner cartridge and be unreadable on paper. */
+@media print {
+  /* ID card: isolate it and print at true card size. */
+  body:has(#id-card-print) * {
+    visibility: hidden;
+  }
+
+  body:has(#id-card-print) #id-card-print,
+  body:has(#id-card-print) #id-card-print * {
+    visibility: visible;
+  }
+
+  body:has(#id-card-print) #id-card-print {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 85.6mm !important;
+    height: 54mm !important;
+    border-radius: 3mm !important;
+    box-shadow: none !important;
+    /* Force the dark card to actually print its background. */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body:has(#id-card-print) {
+    background: #ffffff;
+  }
+
+  @page {
+    margin: 8mm;
+  }
+
+  /* Reports and everything else: hide chrome, print on white. */
+  .no-print,
+  nav,
+  footer {
+    display: none !important;
+  }
+
+  .print-area {
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  .print-area * {
+    color: #000 !important;
+    background: transparent !important;
+    border-color: #ccc !important;
+  }
+}
+
 /* Scrollbar — present, nearly invisible, theme-aware. */
 ::-webkit-scrollbar {
   width: 10px;
