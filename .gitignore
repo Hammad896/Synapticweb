@@ -27,7 +27,16 @@ dist-ssr
 .claude/
 
 # Local secrets
+# Secrets. .env holds the service_role key, the DB password and the Supabase
+# access token — it must never be committed.
 .env
+.env.local
+.env.*.local
+
+# .env.production is committed ON PURPOSE and holds only public, publishable
+# values (the project URL and the anon key, both of which already ship in the
+# browser bundle). It is listed here so nobody "helpfully" ignores it later.
+!.env.production
 
 # graphify artifacts (regenerate with /graphify)
 graphify-out/
