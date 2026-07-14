@@ -1,5 +1,12 @@
 # 00 — MASTER PROMPT · Synaptic Lab
 
+> **Historical.** This is the original brief the site was built from, kept for the brand rules,
+> the verified facts, and the list of things we must never claim. Two things in it are now out
+> of date: the site is **multi-page** (see `ARCHITECTURE.md` §5), and copy is edited from the
+> **database**, not from `site.ts` (see `CONTENT.md`). The brand and honesty rules below still
+> apply in full.
+
+
 > **Single source of truth.** Steps `01`–`04` are the execution prompts; this file governs
 > all of them. If a step prompt or a component contradicts this document, **this document
 > wins.**
