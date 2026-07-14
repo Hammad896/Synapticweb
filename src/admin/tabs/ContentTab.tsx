@@ -335,6 +335,20 @@ const ContentTab = ({
           ))}
         </Group>
 
+        <Group
+          title="Team note"
+          hint="The closing line under the team roster on /team. It is the last thing a client reads there — make it worth reading."
+        >
+          <Text
+            id="team-note"
+            label="Closing line"
+            value={draft.teamNote}
+            onChange={(v) => set("teamNote", v)}
+            multiline
+            rows={3}
+          />
+        </Group>
+
         <Group title="FAQ" hint="The questions and answers on /faq.">
           {draft.faqs.map((faq, i) => (
             <div

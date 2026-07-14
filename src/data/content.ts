@@ -84,6 +84,9 @@ export interface SiteContent {
   }>;
 
   faqs: Array<{ question: string; answer: string }>;
+
+  /** The closing line under the team roster. */
+  teamNote: string;
 }
 
 export interface SectionIntro {
@@ -135,6 +138,9 @@ export const DEFAULT_CONTENT: SiteContent = {
   techTiers: TECH_TIERS.map((t) => ({ ...t, items: [...t.items] })),
 
   faqs: FAQS.map((f) => ({ ...f })),
+
+  teamNote:
+    "No account managers. No handoffs. No bench. The engineer who architects your system is the one who writes it, the one who ships it, and the one who answers when you call — and every one of them puts their name on the work.",
 };
 
 /** Merge a stored payload onto the defaults, so a field added later still loads. */
@@ -158,5 +164,6 @@ export const mergeContent = (stored: Partial<SiteContent> | null): SiteContent =
     process: stored.process ?? DEFAULT_CONTENT.process,
     techTiers: stored.techTiers ?? DEFAULT_CONTENT.techTiers,
     faqs: stored.faqs ?? DEFAULT_CONTENT.faqs,
+    teamNote: stored.teamNote ?? DEFAULT_CONTENT.teamNote,
   };
 };

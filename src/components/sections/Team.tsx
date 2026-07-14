@@ -170,10 +170,11 @@ const Team = () => {
         )}
       </div>
 
-      <p className="mt-10 text-sm text-muted-foreground">
-        Everyone reports to the CEO. There is no layer between you and the people writing
-        your code.
-      </p>
+      {content.teamNote && (
+        <p className="measure mt-12 text-base leading-relaxed text-foreground sm:text-lg">
+          {content.teamNote}
+        </p>
+      )}
     </Section>
   );
 };
