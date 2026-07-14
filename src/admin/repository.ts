@@ -46,6 +46,20 @@ export const EMPTY_JOB: JobDraft = {
 
 export const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Internship"];
 
+export interface Application {
+  id: string;
+  role: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  location: string;
+  experience: string;
+  portfolio: string;
+  coverNote: string;
+  status: "new" | "reviewing" | "shortlisted" | "rejected" | "hired";
+  createdAt: string;
+}
+
 export interface IssuedDocument {
   id: string;
   reference: string;
@@ -78,6 +92,9 @@ export interface HrRepository {
   listDocuments(): Promise<IssuedDocument[]>;
   saveDocument(doc: Omit<IssuedDocument, "id" | "createdAt">): Promise<IssuedDocument>;
   updateDocument(id: string, patch: Partial<IssuedDocument>): Promise<void>;
+
+  listApplications(): Promise<Application[]>;
+  updateApplication(id: string, status: Application["status"]): Promise<void>;
 
   listJobs(): Promise<Job[]>;
   createJob(draft: JobDraft): Promise<Job>;
@@ -302,6 +319,36 @@ class SupabaseRepository implements HrRepository {
         revoked_at: patch.revokedAt,
         revoke_reason: patch.revokeReason,
       })
+      .eq("id", id);
+    if (error) throw error;
+  }
+
+  async listApplications(): Promise<Application[]> {
+    const { data, error } = await this.db
+      .from("applications")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+
+    return (data ?? []).map((row: Row) => ({
+      id: str(row.id),
+      role: str(row.role),
+      fullName: str(row.full_name),
+      email: str(row.email),
+      phone: str(row.phone),
+      location: str(row.location),
+      experience: str(row.experience),
+      portfolio: str(row.portfolio),
+      coverNote: str(row.cover_note),
+      status: str(row.status, "new") as Application["status"],
+      createdAt: str(row.created_at),
+    }));
+  }
+
+  async updateApplication(id: string, status: Application["status"]): Promise<void> {
+    const { error } = await this.db
+      .from("applications")
+      .update({ status })
       .eq("id", id);
     if (error) throw error;
   }
@@ -538,6 +585,16 @@ class LocalRepository implements HrRepository {
         d.id === id ? { ...d, ...patch } : d,
       ),
     );
+  }
+
+  /** Applications arrive from strangers over the network. Without a backend
+   *  there is nowhere for them to land, so the local adapter has none. */
+  async listApplications() {
+    return [] as Application[];
+  }
+
+  async updateApplication() {
+    /* no-op without a backend */
   }
 
   async listJobs() {

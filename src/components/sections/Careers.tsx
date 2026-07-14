@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
+import ApplyDialog from "@/components/ApplyDialog";
 import Reveal from "@/components/Reveal";
 import { Badge, EmptyState, Section, SectionHeader } from "@/components/kit";
 import { COMPANY } from "@/data/site";
@@ -19,6 +20,7 @@ import { getRepository, type Job } from "@/admin/repository";
 const Careers = ({ showEmpty = false }: { showEmpty?: boolean }) => {
   const [roles, setRoles] = useState<Job[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [applyingTo, setApplyingTo] = useState<Job | null>(null);
 
   useEffect(() => {
     void getRepository()
@@ -64,11 +66,10 @@ const Careers = ({ showEmpty = false }: { showEmpty?: boolean }) => {
                 className="gradient-fill absolute inset-0 -z-10 origin-left scale-x-0 transition-transform duration-500 ease-apple group-hover:scale-x-100"
               />
 
-              <a
-                href={`mailto:${COMPANY.email}?subject=${encodeURIComponent(
-                  `Application — ${role.role}`,
-                )}`}
-                className="grid items-center gap-x-8 gap-y-3 px-1 py-7 transition-[padding] duration-500 ease-apple group-hover:px-3 sm:px-4 sm:group-hover:px-8 lg:grid-cols-12"
+              <button
+                type="button"
+                onClick={() => setApplyingTo(role)}
+                className="grid w-full items-center gap-x-8 gap-y-3 px-1 py-7 text-left transition-[padding] duration-500 ease-apple group-hover:px-3 sm:px-4 sm:group-hover:px-8 lg:grid-cols-12"
               >
                 <div className="lg:col-span-4">
                   <h3 className="type-display text-xl text-foreground transition-colors duration-500 group-hover:text-white sm:text-2xl">
@@ -93,17 +94,25 @@ const Careers = ({ showEmpty = false }: { showEmpty?: boolean }) => {
                   {role.pitch}
                 </p>
 
-                <ArrowUpRight
-                  size={20}
-                  strokeWidth={1.5}
-                  aria-hidden="true"
-                  className="hidden text-muted-foreground opacity-0 transition-all duration-500 ease-apple group-hover:translate-x-1 group-hover:text-white group-hover:opacity-100 lg:col-span-1 lg:block lg:justify-self-end"
-                />
-              </a>
+                <span className="flex items-center gap-2 text-sm font-medium text-accent transition-colors duration-500 group-hover:text-white lg:col-span-1 lg:justify-self-end">
+                  Apply
+                  <ArrowUpRight
+                    size={16}
+                    strokeWidth={1.75}
+                    aria-hidden="true"
+                    className="transition-transform duration-500 ease-apple group-hover:translate-x-0.5"
+                  />
+                </span>
+              </button>
             </Reveal>
           ))}
         </ul>
       )}
+
+      <ApplyDialog
+        role={applyingTo}
+        onClose={() => setApplyingTo(null)}
+      />
 
       <p className="mt-10 text-sm text-muted-foreground">
         Nothing that fits?{" "}

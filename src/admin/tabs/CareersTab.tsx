@@ -2,18 +2,27 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Badge, Button, EmptyState } from "@/components/kit";
 import JobForm from "../JobForm";
-import type { Job, JobDraft } from "../repository";
+import ApplicationsPanel from "./ApplicationsPanel";
+import type { Application, Job, JobDraft } from "../repository";
 
 const CareersTab = ({
   jobs,
+  applications,
   onSave,
   onToggle,
   onDelete,
+  onApplicationStatus,
 }: {
   jobs: Job[];
+  applications: Application[];
   onSave: (draft: JobDraft, editing: Job | null) => Promise<void>;
   onToggle: (job: Job) => Promise<void>;
   onDelete: (job: Job) => Promise<void>;
+  onApplicationStatus: (
+    id: string,
+    status: Application["status"],
+    name: string,
+  ) => Promise<void>;
 }) => {
   const [editing, setEditing] = useState<Job | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -123,6 +132,11 @@ const CareersTab = ({
           ))}
         </ul>
       )}
+
+      <ApplicationsPanel
+        applications={applications}
+        onStatus={onApplicationStatus}
+      />
     </>
   );
 };

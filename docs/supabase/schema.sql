@@ -150,6 +150,48 @@ create policy "admins manage jobs" on jobs
   for all to authenticated
   using (is_admin()) with check (is_admin());
 
+-- ── Job applications ───────────────────────────────────────────────────────
+-- Submitted by strangers from the public careers page. This is the ONLY table
+-- an anonymous visitor may write to, and they may not read a single row back —
+-- not even their own. Otherwise one applicant could read every other
+-- applicant's name, email, phone and cover letter.
+create table if not exists applications (
+  id           uuid primary key default gen_random_uuid(),
+  job_id       uuid references jobs(id) on delete set null,
+  role         text not null,                        -- denormalised: survives job deletion
+  full_name    text not null,
+  email        text not null,
+  phone        text default '',
+  location     text default '',
+  experience   text default '',
+  portfolio    text default '',                      -- CV / GitHub / LinkedIn URL
+  cover_note   text default '',
+  status       text not null default 'new'
+               check (status in ('new','reviewing','shortlisted','rejected','hired')),
+  created_at   timestamptz default now()
+);
+
+alter table applications enable row level security;
+
+-- Anyone may APPLY.
+drop policy if exists "anyone can apply" on applications;
+create policy "anyone can apply" on applications
+  for insert to anon, authenticated with check (true);
+
+-- Only admins may READ, UPDATE or DELETE. There is deliberately no select
+-- policy for anon: an applicant cannot enumerate the other applicants.
+drop policy if exists "admins read applications" on applications;
+create policy "admins read applications" on applications
+  for select to authenticated using (is_admin());
+
+drop policy if exists "admins manage applications" on applications;
+create policy "admins manage applications" on applications
+  for update to authenticated using (is_admin()) with check (is_admin());
+
+drop policy if exists "admins delete applications" on applications;
+create policy "admins delete applications" on applications
+  for delete to authenticated using (is_admin());
+
 -- ── Document register ──────────────────────────────────────────────────────
 create table if not exists documents (
   id            uuid primary key default gen_random_uuid(),

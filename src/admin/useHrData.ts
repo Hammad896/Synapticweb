@@ -6,6 +6,7 @@ import {
   type Announcement,
   type AuditEntry,
   type IssuedDocument,
+  type Application,
   type Job,
   type JobDraft,
 } from "./repository";
@@ -32,17 +33,19 @@ export const useHrData = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      const [e, d, a, l, j] = await Promise.all([
+      const [e, d, a, l, j, apps] = await Promise.all([
         repository.listEmployees(),
         repository.listDocuments(),
         repository.listAnnouncements(),
         repository.listAudit(),
         repository.listJobs(),
+        repository.listApplications(),
       ]);
 
       setEmployees(e);
@@ -50,6 +53,7 @@ export const useHrData = () => {
       setAnnouncements(a);
       setAudit(l);
       setJobs(j);
+      setApplications(apps);
       setError(null);
     } catch (caught) {
       setError(
@@ -174,6 +178,15 @@ export const useHrData = () => {
     [repository, actor, refresh],
   );
 
+  const setApplicationStatus = useCallback(
+    async (id: string, status: Application["status"], name: string) => {
+      await repository.updateApplication(id, status);
+      await repository.audit(actor, "application.status", name, { status });
+      await refresh();
+    },
+    [repository, actor, refresh],
+  );
+
   const toggleJob = useCallback(
     async (job: Job) => {
       await repository.updateJob(job.id, { isActive: !job.isActive });
@@ -243,6 +256,7 @@ export const useHrData = () => {
     announcements,
     audit,
     jobs,
+    applications,
     metrics,
     error,
     isLoading,
@@ -253,6 +267,7 @@ export const useHrData = () => {
     issueDocument,
     revokeDocument,
     saveJob,
+    setApplicationStatus,
     toggleJob,
     deleteJob,
     toggleAnnouncement,

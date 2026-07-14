@@ -212,9 +212,11 @@ const AdminPage = () => {
             {tab === "careers" && (
               <CareersTab
                 jobs={data.jobs}
+                applications={data.applications}
                 onSave={data.saveJob}
                 onToggle={data.toggleJob}
                 onDelete={data.deleteJob}
+                onApplicationStatus={data.setApplicationStatus}
               />
             )}
 
