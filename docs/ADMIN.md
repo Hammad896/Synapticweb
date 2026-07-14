@@ -3,7 +3,7 @@
 > Sign in: **`/staff-login`** → dashboard at **`/admin`**.
 > Linked quietly from the footer ("Staff login").
 >
-> **Credentials (development gate):** `admin@synaptic.com` / `synaptic896`
+> **Credentials (development gate):** whatever you set in `.env`
 > Override with `VITE_ADMIN_EMAIL` / `VITE_ADMIN_PASSWORD` — but read the next section first.
 
 ---
@@ -19,8 +19,8 @@ JavaScript you ship. Not hashed, not hidden — *present*. Here is that fact, de
 
 ```bash
 $ npm run build
-$ grep -o "synaptic896" dist/assets/*.js
-synaptic896          # ← anyone can do this. So can DevTools, in one search.
+$ grep -o "$VITE_ADMIN_PASSWORD" dist/assets/*.js
+your-password        # ← anyone can do this. So can DevTools, in one search.
 ```
 
 **Putting it in a `.env` file does not help.** Vite inlines every `VITE_*` variable into the

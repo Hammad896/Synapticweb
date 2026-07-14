@@ -58,8 +58,8 @@ const SESSION_KEY = "synapticlab.admin.session";
  * A production build also FAILS unless Supabase is configured (see vite.config),
  * so this path cannot reach a deployed site at all.
  */
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? "admin@synaptic.com";
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD ?? "synaptic896";
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL ?? "";
+const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD ?? "";
 
 class DevCredentialAdapter implements AuthAdapter {
   async signIn(email: string, password: string): Promise<AuthUser> {

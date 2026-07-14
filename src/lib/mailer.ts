@@ -1,5 +1,3 @@
-import { COMPANY } from "@/data/site";
-
 /**
  * Getting a real email into a real inbox, from a site with no backend.
  *
@@ -22,6 +20,9 @@ const ENDPOINT = "https://api.web3forms.com/submit";
 export const isMailerConfigured = Boolean(WEB3FORMS_KEY);
 
 export interface MailPayload {
+  /** The destination. Passed in from managed content, never hardcoded: changing
+   *  the company email in the admin panel must actually change where mail goes. */
+  to: string;
   subject: string;
   /** Shown as the sender name in the inbox. */
   fromName: string;
@@ -39,7 +40,7 @@ const asPlainText = (payload: MailPayload): string =>
 
 /** Composes a mailto with a properly encoded subject and body. */
 export const mailtoHref = (payload: MailPayload): string =>
-  `mailto:${COMPANY.email}?subject=${encodeURIComponent(
+  `mailto:${payload.to}?subject=${encodeURIComponent(
     payload.subject,
   )}&body=${encodeURIComponent(asPlainText(payload))}`;
 
@@ -58,6 +59,7 @@ export const sendMail = async (payload: MailPayload): Promise<SendResult> => {
 
   const body: Record<string, string> = {
     access_key: WEB3FORMS_KEY,
+    to: payload.to,
     subject: payload.subject,
     from_name: payload.fromName,
     replyto: payload.replyTo,

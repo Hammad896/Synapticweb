@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { CheckCircle2, Loader2, X } from "lucide-react";
 import { Button, Field, Label, inputClass } from "@/components/kit";
-import { COMPANY } from "@/data/site";
+import { useSiteContent } from "@/hooks/use-site-content";
 import { supabase } from "@/lib/supabase";
 import { mailtoHref, sendMail, type MailPayload } from "@/lib/mailer";
 
@@ -38,6 +38,9 @@ const EMPTY = {
  *      mailto and SAYS SO. It never claims to have sent something it didn't.
  */
 const ApplyDialog = ({ role, onClose }: Props) => {
+  const { content } = useSiteContent();
+  const COMPANY = content.company;
+
   const [form, setForm] = useState(EMPTY);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -93,6 +96,7 @@ const ApplyDialog = ({ role, onClose }: Props) => {
 
     /* 2. Email it. */
     const payload: MailPayload = {
+      to: COMPANY.email,
       subject: `Application, ${role.role}, ${form.fullName}`,
       fromName: `${form.fullName} (Careers)`,
       replyTo: form.email,

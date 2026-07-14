@@ -3,8 +3,8 @@ import { ArrowUpRight } from "lucide-react";
 import ApplyDialog from "@/components/ApplyDialog";
 import Reveal from "@/components/Reveal";
 import { Badge, EmptyState, Section, SectionHeader } from "@/components/kit";
-import { COMPANY } from "@/data/site";
 import { getRepository, type Job } from "@/admin/repository";
+import { useSiteContent } from "@/hooks/use-site-content";
 
 /**
  * Open roles, published live from the admin panel.
@@ -27,6 +27,8 @@ const Careers = ({
   const [roles, setRoles] = useState<Job[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [applyingTo, setApplyingTo] = useState<Job | null>(null);
+  const { content } = useSiteContent();
+  const COMPANY = content.company;
 
   useEffect(() => {
     void getRepository()
