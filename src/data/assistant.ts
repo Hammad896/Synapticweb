@@ -51,6 +51,12 @@ export const buildIntents = (
   const { company, faqs, process, techTiers, engagements, stats } = content;
   const openRoles = jobs.filter((j) => j.isActive);
 
+  /* Look the FAQ up by MEANING, never by index. Indexing into faqs[1] silently
+     returns the wrong answer the moment anyone reorders or inserts a question
+     in the admin panel, and the bot would confidently answer the wrong thing. */
+  const faq = (pattern: RegExp, fallback = ""): string =>
+    faqs.find((f) => pattern.test(f.question))?.answer ?? fallback;
+
   const contactBlock = `• Email: ${company.email}\n• WhatsApp: ${company.phone}`;
 
   return [
@@ -123,7 +129,7 @@ export const buildIntents = (
         "own", "owns", "ownership", "ip", "intellectual property", "code ownership",
         "lock in", "lock-in", "rights", "license", "source code",
       ],
-      answer: faqs.find((f) => /own/i.test(f.question))?.answer ?? faqs[5]?.answer ?? "",
+      answer: faq(/own/i),
       followUps: ["Talk to a human", "How much does it cost?"],
     },
 
@@ -133,10 +139,7 @@ export const buildIntents = (
         "support", "maintenance", "maintain", "after launch", "post launch", "sla",
         "monitoring", "bugs", "fix",
       ],
-      answer:
-        faqs.find((f) => /support|launch/i.test(f.question))?.answer ??
-        faqs[4]?.answer ??
-        "",
+      answer: faq(/after launch|support/i),
       followUps: ["How much does it cost?", "Talk to a human"],
     },
 

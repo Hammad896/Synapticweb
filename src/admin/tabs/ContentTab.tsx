@@ -349,6 +349,64 @@ const ContentTab = ({
           />
         </Group>
 
+        <Group
+          title="Office closures"
+          hint="The next one coming up is shown in the hero status bar, so a client can see when you are shut before they ask. Eid dates are lunar and must be added by hand once announced: a confidently wrong closure date is worse than none."
+        >
+          {draft.holidays.map((holiday, i) => (
+            <div key={i} className="grid grid-cols-[1fr_11rem_auto] items-end gap-3">
+              <Text
+                id={`hol-name-${i}`}
+                label={i === 0 ? "Holiday" : ""}
+                value={holiday.name}
+                onChange={(v) => {
+                  const holidays = [...draft.holidays];
+                  holidays[i] = { ...holiday, name: v };
+                  set("holidays", holidays);
+                }}
+              />
+              <div>
+                {i === 0 && <Label>Date</Label>}
+                <input
+                  type="date"
+                  aria-label={`Date for ${holiday.name || "holiday"}`}
+                  value={holiday.date}
+                  onChange={(e) => {
+                    const holidays = [...draft.holidays];
+                    holidays[i] = { ...holiday, date: e.target.value };
+                    set("holidays", holidays);
+                  }}
+                  className={inputClass(i === 0 ? "mt-2" : undefined)}
+                />
+              </div>
+              <Button
+                variant="ghost"
+                type="button"
+                className="px-3 py-2.5 text-xs"
+                onClick={() =>
+                  set(
+                    "holidays",
+                    draft.holidays.filter((_, index) => index !== i),
+                  )
+                }
+              >
+                Remove
+              </Button>
+            </div>
+          ))}
+
+          <Button
+            type="button"
+            variant="secondary"
+            className="self-start"
+            onClick={() =>
+              set("holidays", [...draft.holidays, { name: "", date: "" }])
+            }
+          >
+            Add closure
+          </Button>
+        </Group>
+
         <Group title="FAQ" hint="The questions and answers on /faq.">
           {draft.faqs.map((faq, i) => (
             <div

@@ -464,39 +464,59 @@ export const TECH_TIERS: TechTier[] = [
 
 export const FAQ_INTRO = {
   eyebrow: "Common Questions",
-  headline: "The things every client asks first.",
+  headline: "Straight answers, including the awkward ones.",
 } as const;
 
 export const FAQS = [
   {
     question: "How do you price an engagement?",
     answer:
-      "Fixed scope is quoted as a fixed price. Anything open-ended, such as a platform we will keep evolving with you, runs on a monthly retainer. We do not bill hourly, because it rewards the wrong thing.",
+      "Fixed scope is quoted as a fixed price. Anything open-ended, such as a platform we will keep evolving with you, runs on a monthly retainer. We do not bill hourly, because hourly rewards the wrong thing: it pays us to be slow, and it makes you audit our timesheets instead of our work.",
+  },
+  {
+    question: "How is an estimate produced, and how often is it wrong?",
+    answer:
+      "From an architecture pass, not a guess. We map the data model and the integration surface first, then estimate against it. Most estimates land within their range; the ones that do not are almost always where a third-party system turned out to behave differently than its documentation claimed. When that happens we tell you the week we discover it, not the week before delivery.",
   },
   {
     question: "How long does a build take?",
     answer:
-      "A focused platform ships in 6 to 12 weeks. A full enterprise ERP or HMS is a multi-phase engagement measured in months, delivered in working increments rather than one launch day.",
+      "A focused platform ships in 6 to 12 weeks. A full enterprise ERP or hospital system is a multi-phase engagement measured in months. Either way you are not waiting until the end to see it: there is a working environment from week one and a reviewable increment every fortnight.",
   },
   {
-    question: "How is an estimate produced?",
+    question: "Who actually writes the code?",
     answer:
-      "From an architecture pass, not a guess. We map the data model and integration surface first, then estimate against it. If the scope is not clear enough to estimate honestly, we say so.",
+      "The engineers you meet. We are a small senior team, not a body shop, so there is no bench and no swap after you sign. If we do not have the right person for your system, we say so rather than putting the wrong one on it.",
   },
   {
-    question: "What does the engagement process look like?",
+    question: "You are cheaper than a European agency. What is the catch?",
     answer:
-      "Discovery, architecture, engineering, deployment. You get a working environment early and see increments throughout. No black box, no six-week silence followed by a reveal.",
+      "The catch is geography, and that is the whole of it. Our costs are lower in Islamabad than in Oslo or London, so the same engineering costs you less. It does not buy you juniors, a rotating pool, or a call centre. If a firm is cheap because of how they staff the work rather than where they sit, you will feel it in the code, and you should walk.",
   },
   {
-    question: "Do you support the system after launch?",
+    question: "How do you work with a team in another timezone?",
     answer:
-      "Yes. Monitoring, incident response, and iteration are offered as an ongoing retainer. A system that cannot fail is not a thing you hand over and walk away from.",
+      "We hold daily overlap with European hours: that is the arrangement we run for our Norwegian partners today, not a promise we are making for the first time. You get a named engineer, not a ticket queue, and standups in your working day rather than ours.",
   },
   {
     question: "Who owns the code?",
     answer:
-      "You do, outright, on final payment, repositories, infrastructure, and documentation. There is no lock-in and no licensing arrangement holding your own platform hostage.",
+      "You do, outright, on final payment: repositories, infrastructure, documentation, everything. There is no licensing arrangement and no proprietary framework holding your own platform hostage. If you want to take it in-house or hand it to another firm, we will help you do it properly rather than make it painful.",
+  },
+  {
+    question: "What happens after launch?",
+    answer:
+      "Monitoring, incident response and iteration, offered as an ongoing retainer. When something breaks at 2am it is answered by an engineer who built the thing, not a support tier reading a script. A system that cannot fail is not something you hand over and walk away from.",
+  },
+  {
+    question: "How do you handle our data and our clients' data?",
+    answer:
+      "Under NDA from the first call if you want one. Access is least-privilege, credentials are never shared between engagements, and we will sign your DPA. Several of our clients operate in finance and healthcare, so we are used to being audited, and we would rather you audit us than trust us.",
+  },
+  {
+    question: "What if we are not happy with the work?",
+    answer:
+      "You will know long before the end, because you see a working increment every two weeks: that is precisely why we work that way. If it is going wrong, tell us and we will fix it or we will stop. Retainers can be ended with a month's notice, you keep everything built to that point, and we will hand it over cleanly. We would rather lose an engagement than have someone leave with a system they cannot maintain.",
   },
 ] as const;
 

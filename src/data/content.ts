@@ -87,6 +87,20 @@ export interface SiteContent {
 
   /** The closing line under the team roster. */
   teamNote: string;
+
+  /**
+   * Office closures. Shown in the hero status bar as the NEXT one coming up.
+   *
+   * A client deciding whether to hire you wants to know when you are shut. That
+   * is useful. "It is a public holiday somewhere in the world today" is trivia,
+   * and trivia in the hero dilutes the signals that actually sell.
+   *
+   * Only fixed-date national holidays are seeded below. Eid al-Fitr and Eid
+   * al-Adha move with the lunar calendar and are announced locally, so they are
+   * NOT guessed here: add them from the admin panel once the dates are known.
+   * A confidently wrong closure date is worse than no closure date.
+   */
+  holidays: Array<{ name: string; date: string }>;
 }
 
 export interface SectionIntro {
@@ -141,6 +155,19 @@ export const DEFAULT_CONTENT: SiteContent = {
 
   teamNote:
     "No account managers. No handoffs. No bench. The engineer who architects your system is the one who writes it, the one who ships it, and the one who answers when you call. Every one of them puts their name on the work.",
+
+  // Fixed-date Pakistani public holidays only. The Eids are lunar and must be
+  // added by hand once announced, see the note on the type above.
+  holidays: [
+    { name: "Kashmir Day", date: "2026-02-05" },
+    { name: "Pakistan Day", date: "2026-03-23" },
+    { name: "Labour Day", date: "2026-05-01" },
+    { name: "Independence Day", date: "2026-08-14" },
+    { name: "Iqbal Day", date: "2026-11-09" },
+    { name: "Quaid-e-Azam Day", date: "2026-12-25" },
+    { name: "Kashmir Day", date: "2027-02-05" },
+    { name: "Pakistan Day", date: "2027-03-23" },
+  ],
 };
 
 /** Merge a stored payload onto the defaults, so a field added later still loads. */
@@ -165,5 +192,6 @@ export const mergeContent = (stored: Partial<SiteContent> | null): SiteContent =
     techTiers: stored.techTiers ?? DEFAULT_CONTENT.techTiers,
     faqs: stored.faqs ?? DEFAULT_CONTENT.faqs,
     teamNote: stored.teamNote ?? DEFAULT_CONTENT.teamNote,
+    holidays: stored.holidays ?? DEFAULT_CONTENT.holidays,
   };
 };
