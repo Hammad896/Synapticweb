@@ -3,18 +3,20 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { ThemeProvider } from "@/hooks/use-theme";
 import { AuthProvider } from "@/auth/auth";
 import RequireAuth from "@/auth/RequireAuth";
+import ScrollToTop from "@/components/ScrollToTop";
 import Layout from "@/components/Layout";
 import Hero from "@/components/sections/Hero";
 import Engagements from "@/components/sections/Engagements";
 import Capabilities from "@/components/sections/Capabilities";
 import Partners from "@/components/sections/Partners";
 import Leadership from "@/components/sections/Leadership";
-import Team from "@/components/sections/Team";
 import Process from "@/components/sections/Process";
 import Technologies from "@/components/sections/Technologies";
 import Faq from "@/components/sections/Faq";
 import Careers from "@/components/sections/Careers";
 import ContactEndpoint from "@/components/sections/ContactEndpoint";
+import TeamPage from "@/pages/TeamPage";
+import CareersPage from "@/pages/CareersPage";
 
 /**
  * The HR module carries pdf-lib, qrcode and the whole admin surface — roughly
@@ -26,7 +28,7 @@ const AdminPage = lazy(() => import("@/admin/AdminPage"));
 const LoginPage = lazy(() => import("@/auth/LoginPage"));
 const Verify = lazy(() => import("@/pages/Verify"));
 
-/** The public marketing site. Section order here IS the page outline. */
+/** The home page. Section order here IS the page outline. */
 const HomePage = () => (
   <Layout>
     <Hero />
@@ -34,12 +36,10 @@ const HomePage = () => (
     <Capabilities />
     <Partners />
     <Leadership />
-    {/* Renders only once someone is published from the admin panel. */}
-    <Team />
     <Process />
     <Technologies />
     <Faq />
-    {/* Renders only when a role is open in the admin panel. */}
+    {/* Renders only when a role is actually open. */}
     <Careers />
     <ContactEndpoint />
   </Layout>
@@ -55,16 +55,20 @@ const App = () => (
   <ThemeProvider>
     <AuthProvider>
       <BrowserRouter>
+        <ScrollToTop />
         <Suspense fallback={<Loading />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
-            <Route path="/staff-login" element={<LoginPage />} />
+            <Route path="/team" element={<TeamPage />} />
+            <Route path="/careers" element={<CareersPage />} />
 
             {/* Public — where the QR codes on letters and ID cards land. */}
             <Route path="/verify" element={<Verify />} />
 
-            {/* Guarded. With Supabase configured, the guard is backed by real
-                auth and RLS: employee data is never sent to an unauthenticated
+            <Route path="/staff-login" element={<LoginPage />} />
+
+            {/* Guarded. With Supabase configured the guard is backed by real auth
+                and RLS: employee data is never sent to an unauthenticated
                 browser at all. Without it, the guard is cosmetic — see ADMIN.md. */}
             <Route
               path="/admin"

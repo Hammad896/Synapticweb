@@ -1,0 +1,29 @@
+[
+  {
+    "fullName": "Example Person",
+    "role": "Software Engineer",
+    "department": "Engineering",
+    "manager": "Hammad Sohail",
+    "email": "person@synapticlab.com",
+    "phone": "+92 300 0000000",
+    "cnic": "00000-0000000-0",
+    "dateOfBirth": "",
+    "address": "Islamabad",
+    "status": "active",
+    "employmentType": "full-time",
+    "workMode": "onsite",
+    "joinedAt": "2026-01-01",
+    "probationMonths": 3,
+    "exitDate": "",
+    "salaryAmount": 0,
+    "salaryCurrency": "PKR",
+    "emergencyContact": {
+      "name": "",
+      "relationship": "",
+      "phone": ""
+    },
+    "showOnWebsite": false,
+    "publicBio": "",
+    "notes": ""
+  }
+]

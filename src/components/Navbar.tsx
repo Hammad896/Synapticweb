@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
@@ -7,13 +8,23 @@ import { COMPANY, NAV_LINKS } from "@/data/site";
 import { useActiveSection } from "@/hooks/use-active-section";
 import { cn } from "@/lib/utils";
 
-/** Derived once — the hook memoises on identity, so this must not be inline. */
-const SECTION_IDS = NAV_LINKS.map((link) => link.href.slice(1));
+/** Only the in-page anchors take part in the scroll-spy. Route links do not. */
+const SECTION_IDS = NAV_LINKS.filter((l) => l.href.startsWith("#")).map((l) =>
+  l.href.slice(1),
+);
+
+const isRoute = (href: string) => href.startsWith("/");
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const activeId = useActiveSection(SECTION_IDS);
+  const { pathname } = useLocation();
+
+  /* An in-page anchor only resolves on the home page. From /team, "#faq" must
+     become "/#faq" or the browser looks for a section that isn't there. */
+  const resolve = (href: string) =>
+    isRoute(href) || pathname === "/" ? href : `/${href}`;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -43,38 +54,58 @@ const Navbar = () => {
         )}
       >
         <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-6 lg:px-8">
-          <a
-            href="#top"
-            aria-label={`${COMPANY.name} — back to top`}
+          <Link
+            to="/"
+            aria-label={`${COMPANY.name} — home`}
             className="transition-opacity duration-300 ease-apple hover:opacity-70"
           >
             <Logo className="h-7 md:h-8" />
-          </a>
+          </Link>
 
           <div className="hidden items-center gap-8 md:flex">
             {NAV_LINKS.map((link) => {
-              const isActive = activeId === link.href.slice(1);
+              const isActive = isRoute(link.href)
+                ? pathname === link.href
+                : activeId === link.href.slice(1);
+
+              const className = cn(
+                "relative text-xs transition-colors duration-300 ease-apple hover:text-accent",
+                isActive ? "text-foreground" : "text-muted-foreground",
+              );
+
+              const indicator = (
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "gradient-synapse absolute -bottom-1.5 left-0 h-px w-full origin-left transition-transform duration-500 ease-apple",
+                    isActive ? "scale-x-100" : "scale-x-0",
+                  )}
+                />
+              );
+
+              if (isRoute(link.href)) {
+                return (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    aria-current={isActive ? "page" : undefined}
+                    className={className}
+                  >
+                    {link.label}
+                    {indicator}
+                  </Link>
+                );
+              }
 
               return (
                 <a
                   key={link.href}
-                  href={link.href}
+                  href={resolve(link.href)}
                   aria-current={isActive ? "true" : undefined}
-                  className={cn(
-                    "relative text-xs transition-colors duration-300 ease-apple hover:text-accent",
-                    isActive ? "text-foreground" : "text-muted-foreground",
-                  )}
+                  className={className}
                 >
                   {link.label}
-                  {/* The reader always knows where they are. A 1px gradient rule
-                      rather than a color swap — quieter, and it reuses the brand. */}
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      "gradient-synapse absolute -bottom-1.5 left-0 h-px w-full origin-left transition-transform duration-500 ease-apple",
-                      isActive ? "scale-x-100" : "scale-x-0",
-                    )}
-                  />
+                  {indicator}
                 </a>
               );
             })}
@@ -82,7 +113,7 @@ const Navbar = () => {
             <ThemeToggle />
 
             <a
-              href="#contact"
+              href={pathname === "/" ? "#contact" : "/#contact"}
               className="rounded-full bg-accent-solid px-4 py-1.5 text-xs font-medium text-accent-foreground transition-all duration-300 ease-apple hover:scale-[1.02] hover:opacity-90"
             >
               Let's talk
@@ -136,20 +167,30 @@ const Navbar = () => {
                       ease: [0.16, 1, 0.3, 1],
                     }}
                   >
-                    <a
-                      href={link.href}
-                      onClick={() => setIsOpen(false)}
-                      // py-4 gives every row a 60px+ target — thumbs are not cursors.
-                      className="type-display block py-4 text-[clamp(1.75rem,8vw,2.5rem)] text-foreground transition-colors duration-300 ease-apple hover:text-accent"
-                    >
-                      {link.label}
-                    </a>
+                    {isRoute(link.href) ? (
+                      <Link
+                        to={link.href}
+                        onClick={() => setIsOpen(false)}
+                        className="type-display block py-4 text-[clamp(1.75rem,8vw,2.5rem)] text-foreground transition-colors duration-300 ease-apple hover:text-accent"
+                      >
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <a
+                        href={resolve(link.href)}
+                        onClick={() => setIsOpen(false)}
+                        // py-4 gives every row a 60px+ target — thumbs are not cursors.
+                        className="type-display block py-4 text-[clamp(1.75rem,8vw,2.5rem)] text-foreground transition-colors duration-300 ease-apple hover:text-accent"
+                      >
+                        {link.label}
+                      </a>
+                    )}
                   </motion.li>
                 ))}
               </ul>
 
               <a
-                href="#contact"
+                href={pathname === "/" ? "#contact" : "/#contact"}
                 onClick={() => setIsOpen(false)}
                 className="mt-10 w-full rounded-full bg-accent-solid py-4 text-center text-base font-medium text-accent-foreground transition-opacity duration-300 ease-apple hover:opacity-90"
               >

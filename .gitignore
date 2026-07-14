@@ -31,3 +31,7 @@ dist-ssr
 
 # graphify artifacts (regenerate with /graphify)
 graphify-out/
+
+# Employee PII — MUST NEVER be committed (public repo)
+seed-employees.local.json
+*.local.json

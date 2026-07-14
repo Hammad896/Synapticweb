@@ -95,37 +95,53 @@ export interface HrRepository {
 
 /* ── Supabase adapter (the real one) ──────────────────────────────────────── */
 
+/**
+ * A row exactly as Postgres returns it: snake_case, and every column nullable
+ * as far as the client can prove. `unknown` rather than `any` — it forces the
+ * mappers below to actually coerce, instead of silently trusting the shape.
+ */
+type Row = Record<string, unknown>;
+
+const str = (value: unknown, fallback = ""): string =>
+  typeof value === "string" ? value : fallback;
+
+const num = (value: unknown, fallback = 0): number =>
+  typeof value === "number" ? value : Number(value ?? fallback) || fallback;
+
+const bool = (value: unknown, fallback = false): boolean =>
+  typeof value === "boolean" ? value : fallback;
+
 /** DB rows are snake_case; the app is camelCase. This is the only place they meet. */
-const toEmployee = (row: Record<string, any>): Employee => ({
-  id: row.id,
-  employeeId: row.employee_id ?? "",
-  verifyToken: row.verify_token ?? "",
-  fullName: row.full_name ?? "",
-  role: row.role ?? "",
-  department: row.department ?? "",
-  manager: row.manager ?? "",
-  email: row.email ?? "",
-  phone: row.phone ?? "",
-  cnic: row.cnic ?? "",
-  dateOfBirth: row.date_of_birth ?? "",
-  address: row.address ?? "",
-  status: row.status ?? "active",
-  employmentType: row.employment_type ?? "full-time",
-  workMode: row.work_mode ?? "onsite",
-  joinedAt: row.joined_at ?? "",
-  probationMonths: row.probation_months ?? 3,
-  exitDate: row.exit_date ?? "",
-  salaryAmount: Number(row.salary_amount ?? 0),
-  salaryCurrency: row.salary_currency ?? "PKR",
+const toEmployee = (row: Row): Employee => ({
+  id: str(row.id),
+  employeeId: str(row.employee_id),
+  verifyToken: str(row.verify_token),
+  fullName: str(row.full_name),
+  role: str(row.role),
+  department: str(row.department),
+  manager: str(row.manager),
+  email: str(row.email),
+  phone: str(row.phone),
+  cnic: str(row.cnic),
+  dateOfBirth: str(row.date_of_birth),
+  address: str(row.address),
+  status: str(row.status, "active") as Employee["status"],
+  employmentType: str(row.employment_type, "full-time") as Employee["employmentType"],
+  workMode: str(row.work_mode, "onsite") as Employee["workMode"],
+  joinedAt: str(row.joined_at),
+  probationMonths: num(row.probation_months, 3),
+  exitDate: str(row.exit_date),
+  salaryAmount: num(row.salary_amount),
+  salaryCurrency: str(row.salary_currency, "PKR"),
   emergencyContact: {
-    name: row.emergency_name ?? "",
-    relationship: row.emergency_relationship ?? "",
-    phone: row.emergency_phone ?? "",
+    name: str(row.emergency_name),
+    relationship: str(row.emergency_relationship),
+    phone: str(row.emergency_phone),
   },
-  photoPath: row.photo_path ?? "",
-  notes: row.notes ?? "",
-  showOnWebsite: row.show_on_website ?? false,
-  publicBio: row.public_bio ?? "",
+  photoPath: str(row.photo_path),
+  notes: str(row.notes),
+  showOnWebsite: bool(row.show_on_website),
+  publicBio: str(row.public_bio),
 });
 
 /** NOTE: `verify_token` is deliberately absent — the DATABASE generates it and
@@ -228,22 +244,22 @@ class SupabaseRepository implements HrRepository {
       .order("created_at", { ascending: false });
     if (error) throw error;
 
-    return (data ?? []).map((row: any) => ({
-      id: row.id,
-      reference: row.reference,
-      verifyToken: row.verify_token ?? "",
-      letterType: row.letter_type,
-      employeeId: row.employee_id,
-      employeeName: row.employee_name,
-      status: row.status,
-      subject: row.subject ?? "",
-      body: row.body ?? "",
-      fields: row.fields ?? {},
-      issuedAt: row.issued_at,
-      issuedBy: row.issued_by,
-      revokedAt: row.revoked_at,
-      revokeReason: row.revoke_reason,
-      createdAt: row.created_at,
+    return (data ?? []).map((row: Row) => ({
+      id: str(row.id),
+      reference: str(row.reference),
+      verifyToken: str(row.verify_token),
+      letterType: str(row.letter_type),
+      employeeId: row.employee_id ? str(row.employee_id) : null,
+      employeeName: str(row.employee_name),
+      status: str(row.status, "draft") as IssuedDocument["status"],
+      subject: str(row.subject),
+      body: str(row.body),
+      fields: (row.fields ?? {}) as Record<string, string>,
+      issuedAt: row.issued_at ? str(row.issued_at) : null,
+      issuedBy: row.issued_by ? str(row.issued_by) : null,
+      revokedAt: row.revoked_at ? str(row.revoked_at) : null,
+      revokeReason: row.revoke_reason ? str(row.revoke_reason) : null,
+      createdAt: str(row.created_at),
     }));
   }
 
@@ -297,15 +313,15 @@ class SupabaseRepository implements HrRepository {
       .order("created_at", { ascending: false });
     if (error) throw error;
 
-    return (data ?? []).map((row: any) => ({
-      id: row.id,
-      role: row.role,
-      type: row.type,
-      location: row.location ?? "",
-      pitch: row.pitch ?? "",
-      description: row.description ?? "",
-      isActive: row.is_active,
-      createdAt: row.created_at,
+    return (data ?? []).map((row: Row) => ({
+      id: str(row.id),
+      role: str(row.role),
+      type: str(row.type, "Full-time"),
+      location: str(row.location),
+      pitch: str(row.pitch),
+      description: str(row.description),
+      isActive: bool(row.is_active, true),
+      createdAt: str(row.created_at),
     }));
   }
 
@@ -355,14 +371,14 @@ class SupabaseRepository implements HrRepository {
       .order("created_at", { ascending: false });
     if (error) throw error;
 
-    return (data ?? []).map((row: any) => ({
-      id: row.id,
-      kind: row.kind,
-      title: row.title,
-      body: row.body ?? "",
-      link: row.link ?? "",
-      isActive: row.is_active,
-      createdAt: row.created_at,
+    return (data ?? []).map((row: Row) => ({
+      id: str(row.id),
+      kind: str(row.kind, "news") as Announcement["kind"],
+      title: str(row.title),
+      body: str(row.body),
+      link: str(row.link),
+      isActive: bool(row.is_active, true),
+      createdAt: str(row.created_at),
     }));
   }
 
@@ -409,13 +425,13 @@ class SupabaseRepository implements HrRepository {
       .limit(limit);
     if (error) throw error;
 
-    return (data ?? []).map((row: any) => ({
+    return (data ?? []).map((row: Row) => ({
       id: String(row.id),
-      actor: row.actor,
-      action: row.action,
-      target: row.target ?? "",
-      detail: row.detail ?? {},
-      createdAt: row.created_at,
+      actor: str(row.actor),
+      action: str(row.action),
+      target: str(row.target),
+      detail: (row.detail ?? {}) as Record<string, unknown>,
+      createdAt: str(row.created_at),
     }));
   }
 

@@ -14,12 +14,16 @@ export const COMPANY = {
   location: "Islamabad, Pakistan — Head Office. Operating globally.",
 } as const;
 
+/**
+ * `href` starting with "#" is an in-page anchor (home only, drives the scroll-spy).
+ * `href` starting with "/" is a real route and renders as a router <Link>.
+ */
 export const NAV_LINKS = [
   { label: "How we work", href: "#engagements" },
   { label: "Capabilities", href: "#capabilities" },
   { label: "Partners", href: "#partners" },
-  { label: "Team", href: "#leadership" },
-  { label: "Technologies", href: "#technologies" },
+  { label: "Team", href: "/team" },
+  { label: "Careers", href: "/careers" },
   { label: "FAQ", href: "#faq" },
 ] as const;
 
@@ -173,6 +177,103 @@ export const CAPABILITIES: Capability[] = [
     description:
       "When the system does not exist yet: custom web and software engineering, architected from the data model up.",
     detail: ["Greenfield architecture", "Legacy modernization", "Systems integration"],
+  },
+];
+
+/**
+ * The public org chart.
+ *
+ * NAMES AND JOB TITLES ONLY. Salaries, CNICs, personal phone numbers and
+ * emergency contacts must NEVER appear in this file — it is compiled into the
+ * public bundle and the repository is public. That data belongs in the database,
+ * entered through the admin panel, where row-level security protects it.
+ */
+export interface TeamMemberProfile {
+  name: string;
+  role: string;
+  initials: string;
+  /** Rank in the hierarchy. 0 = CEO. Drives the org-chart layout. */
+  level: 0 | 1 | 2;
+  summary: string;
+  domains: string[];
+}
+
+export const TEAM_INTRO = {
+  eyebrow: "The Team",
+  headline: "A small team that ships large systems.",
+  description:
+    "Everyone here is an operator, not a manager of operators. The people who architect your system are the people who build it.",
+} as const;
+
+export const TEAM: TeamMemberProfile[] = [
+  {
+    name: "Hammad Sohail",
+    role: "Chief Executive Officer & Director",
+    initials: "HS",
+    level: 0,
+    summary:
+      "Founder and CEO. Runs the firm end to end — project delivery, client architecture, people, and growth. Specialist in large-scale project management, enterprise IT solutions, and technical architecture for the global finance sector. Every engagement ultimately answers to him.",
+    domains: [
+      "Large-scale project management",
+      "Enterprise IT industry solutions",
+      "Technical architecture — global finance",
+      "Client & partner relationships",
+    ],
+  },
+  {
+    name: "Muhammad Umer",
+    role: "DevOps Manager",
+    initials: "MU",
+    level: 1,
+    summary:
+      "Owns everything the code runs on: servers, deployment pipelines, and production infrastructure. Specialist in DevOps management, large-scale Hospital Management Systems, and high-security FinTech infrastructure.",
+    domains: [
+      "Servers & cloud infrastructure",
+      "Deployment & CI/CD pipelines",
+      "Hospital Management Systems (HMS)",
+      "High-security FinTech infrastructure",
+    ],
+  },
+  {
+    name: "Farhan",
+    role: "Lead Developer",
+    initials: "F",
+    level: 1,
+    summary:
+      "Leads the engineering team and owns delivery on the platform work. Senior Laravel developer, architecting and shipping the large back-end systems our clients run their businesses on.",
+    domains: [
+      "Engineering leadership",
+      "Senior Laravel development",
+      "Back-end architecture",
+      "Code review & standards",
+    ],
+  },
+  {
+    name: "Usama",
+    role: "Senior Developer",
+    initials: "U",
+    level: 2,
+    summary:
+      "Senior Laravel developer. Builds and maintains the platform systems — ERP, commerce, and booking infrastructure — to production standard.",
+    domains: [
+      "Laravel development",
+      "Platform & API engineering",
+      "Database design",
+    ],
+  },
+  {
+    name: "Abdul Wahab",
+    role: "AI & Multi-Platform Engineering Lead",
+    initials: "AW",
+    level: 2,
+    summary:
+      "The firm's applied-AI lead and its most versatile builder. Drives our deep research into AI systems and delivers across the MERN stack — web, mobile, and everything between.",
+    domains: [
+      "Applied AI & deep research",
+      "MERN stack engineering",
+      "Cross-platform mobile applications",
+      "End-to-end product delivery",
+    ],
   },
 ];
 
