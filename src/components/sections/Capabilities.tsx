@@ -1,5 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
+import { useEffect, useState } from "react";
 import Reveal from "@/components/Reveal";
+import { getRepository } from "@/admin/repository";
 import { CAPABILITIES, CAPABILITIES_INTRO, type Capability } from "@/data/site";
 
 /**
@@ -73,7 +75,34 @@ const CapabilityRow = ({
   </Reveal>
 );
 
-const Capabilities = () => (
+const Capabilities = () => {
+  const [live, setLive] = useState<Capability[] | null>(null);
+
+  useEffect(() => {
+    void getRepository()
+      .listCapabilities()
+      .then((rows) => {
+        const active = rows.filter((r) => r.isActive);
+        if (active.length > 0) {
+          setLive(
+            active.map((r, i) => ({
+              id: r.id,
+              index: String(i + 1).padStart(2, "0"),
+              title: r.title,
+              description: r.description,
+              detail: r.detail,
+            })),
+          );
+        }
+      })
+      .catch(() => {
+        /* fall back to the built-ins */
+      });
+  }, []);
+
+  const capabilities = live ?? CAPABILITIES;
+
+  return (
   <section id="capabilities" className="px-6 py-24 md:py-32">
     <div className="mx-auto max-w-7xl">
       <Reveal as="header" className="max-w-3xl">
@@ -89,12 +118,13 @@ const Capabilities = () => (
       </Reveal>
 
       <ul className="mt-10 sm:mt-16">
-        {CAPABILITIES.map((capability, i) => (
+        {capabilities.map((capability, i) => (
           <CapabilityRow key={capability.id} capability={capability} index={i} />
         ))}
       </ul>
     </div>
   </section>
-);
+  );
+};
 
 export default Capabilities;

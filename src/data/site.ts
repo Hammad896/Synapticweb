@@ -19,12 +19,12 @@ export const COMPANY = {
  * `href` starting with "/" is a real route and renders as a router <Link>.
  */
 export const NAV_LINKS = [
-  { label: "How we work", href: "#engagements" },
-  { label: "Capabilities", href: "#capabilities" },
-  { label: "Partners", href: "#partners" },
+  { label: "How we work", href: "/how-we-work" },
+  { label: "Capabilities", href: "/capabilities" },
+  { label: "Partners", href: "/partners" },
   { label: "Team", href: "/team" },
   { label: "Careers", href: "/careers" },
-  { label: "FAQ", href: "#faq" },
+  { label: "FAQ", href: "/faq" },
 ] as const;
 
 export const HERO = {
@@ -32,8 +32,8 @@ export const HERO = {
   headline: "The engineering floor behind software firms abroad.",
   subheadline:
     "Synaptic Lab runs dedicated back-office engineering for companies in Norway and beyond — and builds independent platforms end to end. Web, mobile, ERP, commerce, AI. You name the system; we staff it, architect it, and ship it.",
-  primaryCta: { label: "Start an engagement", href: "#contact" },
-  secondaryCta: { label: "See how we work", href: "#engagements" },
+  primaryCta: { label: "Start an engagement", href: "/contact" },
+  secondaryCta: { label: "See how we work", href: "/how-we-work" },
   /** The strongest credibility signal the firm has — it sits directly under the fold. */
   trustLabel: "Back-office engineering arm for",
 } as const;

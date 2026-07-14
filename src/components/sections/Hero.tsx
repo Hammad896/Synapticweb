@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { motion, useReducedMotion } from "framer-motion";
 import CountUp from "@/components/CountUp";
 import LiveStatus from "@/components/LiveStatus";
@@ -92,19 +93,19 @@ const Hero = () => {
             // this page a thumb must never miss.
             className="mt-9 flex w-full flex-col items-center gap-5 sm:mt-10 sm:w-auto sm:flex-row sm:gap-6"
           >
-            <a
-              href={HERO.primaryCta.href}
+            <Link
+              to={HERO.primaryCta.href}
               className="w-full rounded-full bg-accent-solid px-8 py-4 text-center text-base font-medium text-accent-foreground transition-all duration-300 ease-apple hover:scale-[1.02] hover:opacity-90 sm:w-auto sm:py-3.5 sm:text-sm"
             >
               {HERO.primaryCta.label}
-            </a>
+            </Link>
 
-            <a
-              href={HERO.secondaryCta.href}
+            <Link
+              to={HERO.secondaryCta.href}
               className="py-2 text-sm text-muted-foreground transition-colors duration-300 ease-apple hover:text-foreground"
             >
               {HERO.secondaryCta.label}
-            </a>
+            </Link>
           </motion.div>
 
           {/* The trust strip. Named partners above the fold do more for
@@ -119,12 +120,12 @@ const Hero = () => {
             <ul className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 md:gap-x-10">
               {PARTNERS.map((partner) => (
                 <li key={partner.name}>
-                  <a
-                    href="#partners"
+                  <Link
+                    to="/partners"
                     className="type-display text-lg text-foreground transition-colors duration-300 ease-apple hover:text-accent sm:text-xl md:text-2xl"
                   >
                     {partner.name}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

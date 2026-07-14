@@ -112,12 +112,12 @@ const Navbar = () => {
 
             <ThemeToggle />
 
-            <a
-              href={pathname === "/" ? "#contact" : "/#contact"}
+            <Link
+              to="/contact"
               className="rounded-full bg-accent-solid px-4 py-1.5 text-xs font-medium text-accent-foreground transition-all duration-300 ease-apple hover:scale-[1.02] hover:opacity-90"
             >
               Let's talk
-            </a>
+            </Link>
           </div>
 
           {/* -mr-2 pulls the enlarged 44px hit area back to the visual edge, so
@@ -189,13 +189,13 @@ const Navbar = () => {
                 ))}
               </ul>
 
-              <a
-                href={pathname === "/" ? "#contact" : "/#contact"}
+              <Link
+                to="/contact"
                 onClick={() => setIsOpen(false)}
                 className="mt-10 w-full rounded-full bg-accent-solid py-4 text-center text-base font-medium text-accent-foreground transition-opacity duration-300 ease-apple hover:opacity-90"
               >
                 Let's talk
-              </a>
+              </Link>
             </div>
           </motion.div>
         )}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+import { getRepository } from "@/admin/repository";
 
 interface Live {
   id: string;
@@ -25,19 +25,10 @@ const AnnouncementBar = () => {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    if (!supabase) return;
-
     const load = async () => {
-      // RLS already filters to live announcements only — the client asks for the
-      // newest and gets nothing it isn't allowed to see.
-      const { data } = await supabase
-        .from("announcements")
-        .select("id, kind, title, link")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (!data) return;
+      const all = await getRepository().listAnnouncements();
+      const newest = all.find((a) => a.isActive);
+      if (!newest) return;
 
       let seen: string[] = [];
       try {
@@ -46,11 +37,21 @@ const AnnouncementBar = () => {
         seen = [];
       }
 
-      if (seen.includes(data.id)) return;
-      setAnnouncement(data as Live);
+      // Dismissal is remembered PER ANNOUNCEMENT, so a new one still shows. A
+      // banner that reappears on every load teaches people to ignore it.
+      if (seen.includes(newest.id)) return;
+
+      setAnnouncement({
+        id: newest.id,
+        kind: newest.kind,
+        title: newest.title,
+        link: newest.link,
+      });
     };
 
-    void load();
+    void load().catch(() => {
+      /* no announcements available */
+    });
   }, []);
 
   const dismiss = () => {

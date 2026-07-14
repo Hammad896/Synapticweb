@@ -46,6 +46,46 @@ export const EMPTY_JOB: JobDraft = {
 
 export const JOB_TYPES = ["Full-time", "Part-time", "Contract", "Internship"];
 
+export interface SitePartner {
+  id: string;
+  name: string;
+  country: string;
+  relationship: string;
+  description: string;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export type SitePartnerDraft = Omit<SitePartner, "id">;
+
+export const EMPTY_PARTNER: SitePartnerDraft = {
+  name: "",
+  country: "",
+  relationship: "Back-office engineering partner",
+  description: "",
+  isActive: true,
+  sortOrder: 100,
+};
+
+export interface SiteCapability {
+  id: string;
+  title: string;
+  description: string;
+  detail: string[];
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export type SiteCapabilityDraft = Omit<SiteCapability, "id">;
+
+export const EMPTY_CAPABILITY: SiteCapabilityDraft = {
+  title: "",
+  description: "",
+  detail: ["", "", ""],
+  isActive: true,
+  sortOrder: 100,
+};
+
 export interface Application {
   id: string;
   role: string;
@@ -92,6 +132,14 @@ export interface HrRepository {
   listDocuments(): Promise<IssuedDocument[]>;
   saveDocument(doc: Omit<IssuedDocument, "id" | "createdAt">): Promise<IssuedDocument>;
   updateDocument(id: string, patch: Partial<IssuedDocument>): Promise<void>;
+
+  listPartners(): Promise<SitePartner[]>;
+  savePartner(draft: SitePartnerDraft, id?: string): Promise<void>;
+  removePartner(id: string): Promise<void>;
+
+  listCapabilities(): Promise<SiteCapability[]>;
+  saveCapability(draft: SiteCapabilityDraft, id?: string): Promise<void>;
+  removeCapability(id: string): Promise<void>;
 
   listApplications(): Promise<Application[]>;
   updateApplication(id: string, status: Application["status"]): Promise<void>;
@@ -323,6 +371,75 @@ class SupabaseRepository implements HrRepository {
     if (error) throw error;
   }
 
+  async listPartners(): Promise<SitePartner[]> {
+    const { data, error } = await this.db.from("partners").select("*").order("sort_order");
+    if (error) throw error;
+    return (data ?? []).map((row: Row) => ({
+      id: str(row.id),
+      name: str(row.name),
+      country: str(row.country),
+      relationship: str(row.relationship),
+      description: str(row.description),
+      isActive: bool(row.is_active, true),
+      sortOrder: num(row.sort_order, 100),
+    }));
+  }
+
+  async savePartner(draft: SitePartnerDraft, id?: string): Promise<void> {
+    const row = {
+      name: draft.name,
+      country: draft.country,
+      relationship: draft.relationship,
+      description: draft.description,
+      is_active: draft.isActive,
+      sort_order: draft.sortOrder,
+    };
+    const { error } = id
+      ? await this.db.from("partners").update(row).eq("id", id)
+      : await this.db.from("partners").insert(row);
+    if (error) throw error;
+  }
+
+  async removePartner(id: string): Promise<void> {
+    const { error } = await this.db.from("partners").delete().eq("id", id);
+    if (error) throw error;
+  }
+
+  async listCapabilities(): Promise<SiteCapability[]> {
+    const { data, error } = await this.db
+      .from("capabilities")
+      .select("*")
+      .order("sort_order");
+    if (error) throw error;
+    return (data ?? []).map((row: Row) => ({
+      id: str(row.id),
+      title: str(row.title),
+      description: str(row.description),
+      detail: Array.isArray(row.detail) ? (row.detail as string[]) : [],
+      isActive: bool(row.is_active, true),
+      sortOrder: num(row.sort_order, 100),
+    }));
+  }
+
+  async saveCapability(draft: SiteCapabilityDraft, id?: string): Promise<void> {
+    const row = {
+      title: draft.title,
+      description: draft.description,
+      detail: draft.detail.filter((d) => d.trim() !== ""),
+      is_active: draft.isActive,
+      sort_order: draft.sortOrder,
+    };
+    const { error } = id
+      ? await this.db.from("capabilities").update(row).eq("id", id)
+      : await this.db.from("capabilities").insert(row);
+    if (error) throw error;
+  }
+
+  async removeCapability(id: string): Promise<void> {
+    const { error } = await this.db.from("capabilities").delete().eq("id", id);
+    if (error) throw error;
+  }
+
   async listApplications(): Promise<Application[]> {
     const { data, error } = await this.db
       .from("applications")
@@ -499,6 +616,8 @@ class SupabaseRepository implements HrRepository {
 /* ── Local adapter (fallback so a fresh clone still runs) ─────────────────── */
 
 const KEY = {
+  partners: "synapticlab.hr.partners",
+  capabilities: "synapticlab.hr.capabilities",
   jobs: "synapticlab.hr.jobs",
   employees: "synapticlab.hr.employees",
   documents: "synapticlab.hr.documents",
@@ -584,6 +703,43 @@ class LocalRepository implements HrRepository {
       read<IssuedDocument>(KEY.documents).map((d) =>
         d.id === id ? { ...d, ...patch } : d,
       ),
+    );
+  }
+
+  async listPartners() {
+    return read<SitePartner>(KEY.partners).sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  async savePartner(draft: SitePartnerDraft, id?: string) {
+    const all = read<SitePartner>(KEY.partners);
+    if (id) {
+      write(KEY.partners, all.map((p) => (p.id === id ? { ...draft, id } : p)));
+    } else {
+      write(KEY.partners, [...all, { ...draft, id: crypto.randomUUID() }]);
+    }
+  }
+
+  async removePartner(id: string) {
+    write(KEY.partners, read<SitePartner>(KEY.partners).filter((p) => p.id !== id));
+  }
+
+  async listCapabilities() {
+    return read<SiteCapability>(KEY.capabilities).sort((a, b) => a.sortOrder - b.sortOrder);
+  }
+
+  async saveCapability(draft: SiteCapabilityDraft, id?: string) {
+    const all = read<SiteCapability>(KEY.capabilities);
+    if (id) {
+      write(KEY.capabilities, all.map((c) => (c.id === id ? { ...draft, id } : c)));
+    } else {
+      write(KEY.capabilities, [...all, { ...draft, id: crypto.randomUUID() }]);
+    }
+  }
+
+  async removeCapability(id: string) {
+    write(
+      KEY.capabilities,
+      read<SiteCapability>(KEY.capabilities).filter((c) => c.id !== id),
     );
   }
 

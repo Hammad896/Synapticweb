@@ -150,6 +150,58 @@ create policy "admins manage jobs" on jobs
   for all to authenticated
   using (is_admin()) with check (is_admin());
 
+-- ── Website content: partners & capabilities ───────────────────────────────
+-- Editable from the admin panel instead of being hardcoded in the bundle. The
+-- LENGTH LIMITS ARE ENFORCED HERE, not just in the form: the public site's
+-- layout depends on a title fitting one line and a description fitting a card.
+-- A 400-character "short description" doesn't look bad, it breaks the design —
+-- so the database refuses it.
+create table if not exists partners (
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null check (char_length(name) between 2 and 40),
+  country      text default '' check (char_length(country) <= 24),
+  relationship text default '' check (char_length(relationship) <= 60),
+  description  text default '' check (char_length(description) <= 320),
+  is_active    boolean default true,
+  sort_order   int default 100,
+  created_at   timestamptz default now()
+);
+
+create table if not exists capabilities (
+  id          uuid primary key default gen_random_uuid(),
+  title       text not null check (char_length(title) between 3 and 44),
+  description text not null check (char_length(description) between 20 and 260),
+  -- Three short chips under each row. Any more and they wrap into a mess.
+  detail      text[] default '{}',
+  is_active   boolean default true,
+  sort_order  int default 100,
+  created_at  timestamptz default now()
+);
+
+alter table partners     enable row level security;
+alter table capabilities enable row level security;
+
+drop policy if exists "public reads active partners" on partners;
+create policy "public reads active partners" on partners
+  for select to anon, authenticated using (is_active = true);
+
+drop policy if exists "admins manage partners" on partners;
+create policy "admins manage partners" on partners
+  for all to authenticated using (is_admin()) with check (is_admin());
+
+drop policy if exists "public reads active capabilities" on capabilities;
+create policy "public reads active capabilities" on capabilities
+  for select to anon, authenticated using (is_active = true);
+
+drop policy if exists "admins manage capabilities" on capabilities;
+create policy "admins manage capabilities" on capabilities
+  for all to authenticated using (is_admin()) with check (is_admin());
+
+-- Announcements already exist above. Same idea, same reason:
+alter table announcements
+  add constraint announcements_title_len check (char_length(title) between 4 and 90)
+  not valid;
+
 -- ── Job applications ───────────────────────────────────────────────────────
 -- Submitted by strangers from the public careers page. This is the ONLY table
 -- an anonymous visitor may write to, and they may not read a single row back —

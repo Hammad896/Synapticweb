@@ -27,12 +27,12 @@ const Footer = () => (
           <ul className="mt-6 flex flex-col gap-3">
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
-                <a
-                  href={link.href}
+                <Link
+                  to={link.href}
                   className="text-sm text-foreground transition-colors duration-300 ease-apple hover:text-accent"
                 >
                   {link.label}
-                </a>
+                </Link>
               </li>
             ))}
           </ul>

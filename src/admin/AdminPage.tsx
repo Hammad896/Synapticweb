@@ -224,8 +224,16 @@ const AdminPage = () => {
               <WebsiteTab
                 employees={data.employees}
                 announcements={data.announcements}
-                onToggle={data.toggleAnnouncement}
-                onDelete={data.deleteAnnouncement}
+                partners={data.partners}
+                capabilities={data.capabilities}
+                onSaveAnnouncement={data.createAnnouncement}
+                onUpdateAnnouncement={data.editAnnouncement}
+                onToggleAnnouncement={data.toggleAnnouncement}
+                onDeleteAnnouncement={data.deleteAnnouncement}
+                onSavePartner={data.savePartner}
+                onDeletePartner={data.deletePartner}
+                onSaveCapability={data.saveCapability}
+                onDeleteCapability={data.deleteCapability}
               />
             )}
 

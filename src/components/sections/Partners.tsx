@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import Reveal from "@/components/Reveal";
+import { getRepository } from "@/admin/repository";
 import { PARTNERS, PARTNERS_INTRO, type Partner } from "@/data/site";
 
 const PartnerCard = ({ partner, index }: { partner: Partner; index: number }) => (
@@ -32,7 +34,35 @@ const PartnerCard = ({ partner, index }: { partner: Partner; index: number }) =>
   </Reveal>
 );
 
-const Partners = () => (
+const Partners = () => {
+  /* Managed content wins; the built-in entries are the fallback so the page is
+     never empty before anything has been added in the admin. */
+  const [live, setLive] = useState<Partner[] | null>(null);
+
+  useEffect(() => {
+    void getRepository()
+      .listPartners()
+      .then((rows) => {
+        const active = rows.filter((r) => r.isActive);
+        if (active.length > 0) {
+          setLive(
+            active.map((r) => ({
+              name: r.name,
+              country: r.country,
+              relationship: r.relationship,
+              description: r.description,
+            })),
+          );
+        }
+      })
+      .catch(() => {
+        /* fall back to the built-ins */
+      });
+  }, []);
+
+  const partners = live ?? PARTNERS;
+
+  return (
   <section id="partners" className="px-6 py-24 md:py-32">
     <div className="mx-auto max-w-7xl">
       <Reveal as="header" className="max-w-4xl">
@@ -48,12 +78,13 @@ const Partners = () => (
       </Reveal>
 
       <div className="mt-12 grid gap-5 sm:mt-16 sm:gap-6 lg:mt-20 md:grid-cols-2">
-        {PARTNERS.map((partner, i) => (
+        {partners.map((partner, i) => (
           <PartnerCard key={partner.name} partner={partner} index={i} />
         ))}
       </div>
     </div>
   </section>
-);
+  );
+};
 
 export default Partners;

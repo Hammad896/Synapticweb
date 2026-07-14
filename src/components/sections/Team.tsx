@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import Reveal from "@/components/Reveal";
+import { getRepository } from "@/admin/repository";
 import { Section, SectionHeader } from "@/components/kit";
 import { TEAM, TEAM_INTRO, type TeamMemberProfile } from "@/data/site";
 import { cn } from "@/lib/utils";
@@ -90,9 +92,57 @@ const Connector = () => (
 );
 
 const Team = () => {
-  const ceo = TEAM.find((m) => m.level === 0);
-  const managers = TEAM.filter((m) => m.level === 1);
-  const engineers = TEAM.filter((m) => m.level === 2);
+  /* Published employees are the source of truth. The static org chart is the
+     fallback so /team is never empty before anyone has been published — the
+     admin and the website were previously reading DIFFERENT sources, which is
+     exactly why they disagreed. */
+  const [live, setLive] = useState<TeamMemberProfile[] | null>(null);
+
+  useEffect(() => {
+    void getRepository()
+      .listEmployees()
+      .then((rows) => {
+        const published = rows.filter((e) => e.showOnWebsite && e.status === "active");
+        if (published.length === 0) return;
+
+        setLive(
+          published.map((e) => {
+            /* The hierarchy is derived from the `manager` field, not stored
+               twice: nobody above them = CEO; reporting to the CEO = manager;
+               everyone else = engineer. */
+            const hasManager = e.manager.trim() !== "";
+            const reportsToCeo =
+              hasManager &&
+              published.some(
+                (m) => m.fullName === e.manager && m.manager.trim() === "",
+              );
+
+            return {
+              name: e.fullName,
+              role: e.role,
+              initials: e.fullName
+                .split(" ")
+                .filter(Boolean)
+                .slice(0, 2)
+                .map((part) => part[0])
+                .join("")
+                .toUpperCase(),
+              level: (!hasManager ? 0 : reportsToCeo ? 1 : 2) as 0 | 1 | 2,
+              summary: e.publicBio,
+              domains: [],
+            };
+          }),
+        );
+      })
+      .catch(() => {
+        /* fall back to the static chart */
+      });
+  }, []);
+
+  const roster = live ?? TEAM;
+  const ceo = roster.find((m) => m.level === 0);
+  const managers = roster.filter((m) => m.level === 1);
+  const engineers = roster.filter((m) => m.level === 2);
 
   return (
     <Section id="team">

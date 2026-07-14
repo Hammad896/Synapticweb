@@ -9,6 +9,10 @@ import {
   type Application,
   type Job,
   type JobDraft,
+  type SiteCapability,
+  type SiteCapabilityDraft,
+  type SitePartner,
+  type SitePartnerDraft,
 } from "./repository";
 import { monthsSince } from "./format";
 import type { Employee, EmployeeDraft } from "./types";
@@ -34,18 +38,22 @@ export const useHrData = () => {
   const [audit, setAudit] = useState<AuditEntry[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
+  const [partners, setPartners] = useState<SitePartner[]>([]);
+  const [capabilities, setCapabilities] = useState<SiteCapability[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      const [e, d, a, l, j, apps] = await Promise.all([
+      const [e, d, a, l, j, apps, prt, cap] = await Promise.all([
         repository.listEmployees(),
         repository.listDocuments(),
         repository.listAnnouncements(),
         repository.listAudit(),
         repository.listJobs(),
         repository.listApplications(),
+        repository.listPartners(),
+        repository.listCapabilities(),
       ]);
 
       setEmployees(e);
@@ -54,6 +62,8 @@ export const useHrData = () => {
       setAudit(l);
       setJobs(j);
       setApplications(apps);
+      setPartners(prt);
+      setCapabilities(cap);
       setError(null);
     } catch (caught) {
       setError(
@@ -205,6 +215,66 @@ export const useHrData = () => {
     [repository, actor, refresh],
   );
 
+  /* ── Website content ───────────────────────────────────────────────────── */
+
+  const createAnnouncement = useCallback(
+    async (draft: Omit<Announcement, "id" | "createdAt">) => {
+      await repository.createAnnouncement(draft);
+      await repository.audit(actor, "announcement.create", draft.title);
+      await refresh();
+    },
+    [repository, actor, refresh],
+  );
+
+  const editAnnouncement = useCallback(
+    async (announcement: Announcement, draft: Omit<Announcement, "id" | "createdAt">) => {
+      await repository.updateAnnouncement(announcement.id, draft);
+      await repository.audit(actor, "announcement.update", draft.title);
+      await refresh();
+    },
+    [repository, actor, refresh],
+  );
+
+  const savePartner = useCallback(
+    async (draft: SitePartnerDraft, id?: string) => {
+      await repository.savePartner(draft, id);
+      await repository.audit(actor, id ? "partner.update" : "partner.create", draft.name);
+      await refresh();
+    },
+    [repository, actor, refresh],
+  );
+
+  const deletePartner = useCallback(
+    async (partner: SitePartner) => {
+      await repository.removePartner(partner.id);
+      await repository.audit(actor, "partner.delete", partner.name);
+      await refresh();
+    },
+    [repository, actor, refresh],
+  );
+
+  const saveCapability = useCallback(
+    async (draft: SiteCapabilityDraft, id?: string) => {
+      await repository.saveCapability(draft, id);
+      await repository.audit(
+        actor,
+        id ? "capability.update" : "capability.create",
+        draft.title,
+      );
+      await refresh();
+    },
+    [repository, actor, refresh],
+  );
+
+  const deleteCapability = useCallback(
+    async (capability: SiteCapability) => {
+      await repository.removeCapability(capability.id);
+      await repository.audit(actor, "capability.delete", capability.title);
+      await refresh();
+    },
+    [repository, actor, refresh],
+  );
+
   /* ── Announcements ─────────────────────────────────────────────────────── */
 
   const toggleAnnouncement = useCallback(
@@ -257,6 +327,8 @@ export const useHrData = () => {
     audit,
     jobs,
     applications,
+    partners,
+    capabilities,
     metrics,
     error,
     isLoading,
@@ -272,6 +344,12 @@ export const useHrData = () => {
     deleteJob,
     toggleAnnouncement,
     deleteAnnouncement,
+    createAnnouncement,
+    editAnnouncement,
+    savePartner,
+    deletePartner,
+    saveCapability,
+    deleteCapability,
   };
 };
 

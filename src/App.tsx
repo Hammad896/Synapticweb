@@ -4,19 +4,15 @@ import { ThemeProvider } from "@/hooks/use-theme";
 import { AuthProvider } from "@/auth/auth";
 import RequireAuth from "@/auth/RequireAuth";
 import ScrollToTop from "@/components/ScrollToTop";
-import Layout from "@/components/Layout";
-import Hero from "@/components/sections/Hero";
-import Engagements from "@/components/sections/Engagements";
-import Capabilities from "@/components/sections/Capabilities";
-import Partners from "@/components/sections/Partners";
-import Leadership from "@/components/sections/Leadership";
-import Process from "@/components/sections/Process";
-import Technologies from "@/components/sections/Technologies";
-import Faq from "@/components/sections/Faq";
-import Careers from "@/components/sections/Careers";
-import ContactEndpoint from "@/components/sections/ContactEndpoint";
+import HomePage from "@/pages/HomePage";
+import HowWeWorkPage from "@/pages/HowWeWorkPage";
+import CapabilitiesPage from "@/pages/CapabilitiesPage";
+import PartnersPage from "@/pages/PartnersPage";
 import TeamPage from "@/pages/TeamPage";
 import CareersPage from "@/pages/CareersPage";
+import FaqPage from "@/pages/FaqPage";
+import ContactPage from "@/pages/ContactPage";
+import NotFoundPage from "@/pages/NotFoundPage";
 
 /**
  * The HR module carries pdf-lib, qrcode and the whole admin surface — roughly
@@ -27,23 +23,6 @@ import CareersPage from "@/pages/CareersPage";
 const AdminPage = lazy(() => import("@/admin/AdminPage"));
 const LoginPage = lazy(() => import("@/auth/LoginPage"));
 const Verify = lazy(() => import("@/pages/Verify"));
-
-/** The home page. Section order here IS the page outline. */
-const HomePage = () => (
-  <Layout>
-    <Hero />
-    <Engagements />
-    <Capabilities />
-    <Partners />
-    <Leadership />
-    <Process />
-    <Technologies />
-    <Faq />
-    {/* Renders only when a role is actually open. */}
-    <Careers />
-    <ContactEndpoint />
-  </Layout>
-);
 
 const Loading = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
@@ -58,9 +37,15 @@ const App = () => (
         <ScrollToTop />
         <Suspense fallback={<Loading />}>
           <Routes>
+            {/* ── The public site — one page per subject, one URL each ────── */}
             <Route path="/" element={<HomePage />} />
+            <Route path="/how-we-work" element={<HowWeWorkPage />} />
+            <Route path="/capabilities" element={<CapabilitiesPage />} />
+            <Route path="/partners" element={<PartnersPage />} />
             <Route path="/team" element={<TeamPage />} />
             <Route path="/careers" element={<CareersPage />} />
+            <Route path="/faq" element={<FaqPage />} />
+            <Route path="/contact" element={<ContactPage />} />
 
             {/* Public — where the QR codes on letters and ID cards land. */}
             <Route path="/verify" element={<Verify />} />
@@ -79,7 +64,9 @@ const App = () => (
               }
             />
 
-            <Route path="*" element={<HomePage />} />
+            {/* A real 404. Silently rendering the home page for any unknown URL
+                tells the visitor nothing and tells Google the wrong thing. */}
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
       </BrowserRouter>
