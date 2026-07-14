@@ -25,7 +25,7 @@ const formatDate = (iso: string | null) =>
         month: "long",
         year: "numeric",
       }).format(new Date(iso))
-    : "—";
+    : "";
 
 const LETTER_NAMES: Record<string, string> = {
   offer: "Offer Letter",
@@ -72,7 +72,7 @@ const Verify = () => {
         setResult({
           state: "invalid",
           reason:
-            "Verification is unavailable — this deployment has no database configured.",
+            "Verification is unavailable, this deployment has no database configured.",
         });
         return;
       }

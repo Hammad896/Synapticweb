@@ -22,7 +22,7 @@ const Layout = ({ children }: { children: ReactNode }) => (
     <AnnouncementBar />
     <ScrollProgress />
 
-    {/* pt-14 clears the 56px fixed nav exactly — no arbitrary spacer. */}
+    {/* pt-14 clears the 56px fixed nav exactly, no arbitrary spacer. */}
     <main id="main" className="flex-1 pt-16">
       {children}
     </main>

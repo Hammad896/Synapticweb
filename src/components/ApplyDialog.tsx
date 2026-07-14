@@ -93,7 +93,7 @@ const ApplyDialog = ({ role, onClose }: Props) => {
 
     /* 2. Email it. */
     const payload: MailPayload = {
-      subject: `Application — ${role.role} — ${form.fullName}`,
+      subject: `Application, ${role.role}, ${form.fullName}`,
       fromName: `${form.fullName} (Careers)`,
       replyTo: form.email,
       fields: [
@@ -118,7 +118,7 @@ const ApplyDialog = ({ role, onClose }: Props) => {
       window.location.href = mailtoHref(payload);
       setDone(true);
       setNotice(
-        "Your mail app has been opened with the application filled in — press send to complete it.",
+        "Your mail app has been opened with the application filled in, press send to complete it.",
       );
     }
 
@@ -174,7 +174,7 @@ const ApplyDialog = ({ role, onClose }: Props) => {
                 </h3>
                 <p className="measure mt-3 text-sm leading-relaxed text-muted-foreground">
                   {notice ??
-                    `Thank you. We read every application ourselves — if there is a fit, we will reply to ${form.email} directly.`}
+                    `Thank you. We read every application ourselves, if there is a fit, we will reply to ${form.email} directly.`}
                 </p>
                 <Button className="mt-8" onClick={onClose}>
                   Close
@@ -238,7 +238,7 @@ const ApplyDialog = ({ role, onClose }: Props) => {
                     id="a-experience"
                     value={form.experience}
                     onChange={(e) => set("experience", e.target.value)}
-                    placeholder="e.g. 4 years — Laravel, MySQL, REST APIs"
+                    placeholder="e.g. 4 years, Laravel, MySQL, REST APIs"
                     className={inputClass()}
                   />
                 </Field>
@@ -246,7 +246,7 @@ const ApplyDialog = ({ role, onClose }: Props) => {
                 <Field
                   id="a-portfolio"
                   label="CV / Portfolio / LinkedIn"
-                  hint="Paste a link — Google Drive, GitHub, LinkedIn. We read these."
+                  hint="Paste a link, Google Drive, GitHub, LinkedIn. We read these."
                 >
                   <input
                     id="a-portfolio"

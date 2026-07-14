@@ -18,7 +18,7 @@ const Faq = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => {
   const [openIndex, setOpenIndex] = useState<number | null>(0);
 
   return (
-    <section id="faq" className="px-6 py-24 md:py-32">
+    <section id="faq" className="px-6 py-16 md:py-24">
       <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-24">
         {!hideHeader && (
 

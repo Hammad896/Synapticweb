@@ -140,7 +140,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   faqs: FAQS.map((f) => ({ ...f })),
 
   teamNote:
-    "No account managers. No handoffs. No bench. The engineer who architects your system is the one who writes it, the one who ships it, and the one who answers when you call — and every one of them puts their name on the work.",
+    "No account managers. No handoffs. No bench. The engineer who architects your system is the one who writes it, the one who ships it, and the one who answers when you call. Every one of them puts their name on the work.",
 };
 
 /** Merge a stored payload onto the defaults, so a field added later still loads. */

@@ -68,7 +68,7 @@ const Engagements = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => {
   const ENGAGEMENTS = content.engagements;
 
   return (
-  <section id="engagements" className={hideHeader ? "px-6 pb-24 pt-16 md:pb-32 md:pt-20" : "px-6 py-24 md:py-32"}>
+  <section id="engagements" className={hideHeader ? "px-6 pb-16 pt-8 md:pb-24 md:pt-10" : "px-6 py-16 md:py-24"}>
     <div className="mx-auto max-w-7xl">
       {!hideHeader && (
 
@@ -76,17 +76,17 @@ const Engagements = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => {
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
           {intro.eyebrow}
         </p>
-        <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-6xl">
+        <h2 className="type-display mt-4 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground md:text-5xl">
           {intro.headline}
         </h2>
-        <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
+        <p className="measure mt-4 text-base leading-relaxed text-muted-foreground">
           {intro.description}
         </p>
         </Reveal>
 
       )}
 
-      <div className="mt-12 grid gap-5 sm:mt-16 sm:gap-6 lg:mt-20 md:grid-cols-2">
+      <div className="mt-10 grid gap-5 sm:gap-6 md:grid-cols-2">
         {ENGAGEMENTS.map((engagement, i) => (
           <EngagementCard key={engagement.index} engagement={engagement} index={i} />
         ))}

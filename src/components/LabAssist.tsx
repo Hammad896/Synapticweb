@@ -132,7 +132,7 @@ const LabAssist = () => {
         {isOpen && (
           <motion.div
             role="dialog"
-            aria-label="Lab Assist — chat with Synaptic Lab"
+            aria-label="Lab Assist, chat with Synaptic Lab"
             initial={{ opacity: 0, y: 16, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.98 }}
@@ -261,7 +261,7 @@ const LabAssist = () => {
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
-        aria-label={isOpen ? "Close Lab Assist" : "Open Lab Assist — chat with us"}
+        aria-label={isOpen ? "Close Lab Assist" : "Open Lab Assist, chat with us"}
         aria-expanded={isOpen}
         className="group fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-4 z-50 flex items-center rounded-full border border-border bg-card/80 p-4 text-foreground shadow-lg backdrop-blur-md transition-all duration-500 ease-apple hover:scale-[1.02] hover:border-accent hover:text-accent sm:right-6"
       >

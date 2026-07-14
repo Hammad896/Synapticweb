@@ -48,7 +48,7 @@ const Hero = () => {
           </motion.div>
 
           {/* Word-by-word reveal. The headline assembles itself rather than
-              fading in as a block — the single most-watched moment on the page,
+              fading in as a block, the single most-watched moment on the page,
               and the only place we spend this much motion.
 
               Size is capped at 5rem and the measure at ~14ch-per-line via
@@ -142,7 +142,7 @@ const Hero = () => {
 
         <motion.dl
           {...rise(0.9)}
-          className="mt-16 grid grid-cols-2 gap-x-4 gap-y-9 border-t border-border pt-10 md:mt-20 md:grid-cols-4 md:gap-x-6 md:pt-12"
+          className="mt-10 grid grid-cols-2 gap-x-4 gap-y-9 border-t border-border pt-10 md:mt-20 md:grid-cols-4 md:gap-x-6 md:pt-12"
         >
           {STATS.map((stat) => (
             <div key={stat.label} className="text-center">

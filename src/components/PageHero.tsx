@@ -37,8 +37,8 @@ const PageHero = ({
         };
 
   return (
-    <section className="relative overflow-hidden border-b border-border px-6 pb-16 pt-14 md:pb-20 md:pt-16">
-      {/* Same two atmospheric layers as the home hero, at lower intensity — the
+    <section className="relative overflow-hidden border-b border-border px-6 pb-10 pt-10 md:pb-12 md:pt-12">
+      {/* Same two atmospheric layers as the home hero, at lower intensity, the
           page is a chapter, not the cover. */}
       <div
         aria-hidden="true"
@@ -70,7 +70,7 @@ const PageHero = ({
 
         <motion.h1
           {...rise(0.08)}
-          className="type-display mt-6 max-w-4xl text-balance text-[clamp(2rem,5.5vw,4rem)] text-foreground"
+          className="type-display mt-5 max-w-4xl text-balance text-[clamp(1.9rem,4.6vw,3.4rem)] text-foreground"
         >
           {title}
         </motion.h1>
@@ -78,7 +78,7 @@ const PageHero = ({
         {description && (
           <motion.p
             {...rise(0.16)}
-            className="measure mt-5 text-base leading-relaxed text-muted-foreground md:text-lg"
+            className="measure mt-4 text-base leading-relaxed text-muted-foreground"
           >
             {description}
           </motion.p>

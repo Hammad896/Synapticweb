@@ -11,7 +11,7 @@ export const COMPANY = {
   /** Display form. `whatsappNumber` is the dialable form wa.me requires. */
   phone: "+92 313 9676896",
   whatsappNumber: "923139676896",
-  location: "Islamabad, Pakistan — Head Office. Operating globally.",
+  location: "Islamabad, Pakistan. Head office, operating globally.",
 } as const;
 
 /**
@@ -31,7 +31,7 @@ export const HERO = {
   eyebrow: "Your engineering department, abroad",
   headline: "The engineering floor behind software firms abroad.",
   subheadline:
-    "Synaptic Lab runs dedicated back-office engineering for companies in Norway and beyond — and builds independent platforms end to end. Web, mobile, ERP, commerce, AI. You name the system; we staff it, architect it, and ship it.",
+    "Synaptic Lab runs dedicated back-office engineering for companies in Norway and beyond, and builds independent platforms end to end. Web, mobile, ERP, commerce, AI. You name the system; we staff it, architect it, and ship it.",
   primaryCta: { label: "Start an engagement", href: "/contact" },
   secondaryCta: { label: "See how we work", href: "/how-we-work" },
   /** The strongest credibility signal the firm has — it sits directly under the fold. */
@@ -50,7 +50,7 @@ export const ENGAGEMENTS_INTRO = {
   eyebrow: "How We Work",
   headline: "Two ways to put us to work.",
   description:
-    "Whether you need an engineering floor that answers to your head office, or a finished product that did not exist yesterday — the engagement is built around which of those you are buying.",
+    "Whether you need an engineering floor that answers to your head office, or a finished product that did not exist yesterday, the engagement is built around which of those you are buying.",
 } as const;
 
 export const ENGAGEMENTS: Engagement[] = [
@@ -59,9 +59,9 @@ export const ENGAGEMENTS: Engagement[] = [
     title: "Extended Engineering Team",
     pitch: "For head offices abroad.",
     description:
-      "We become your back office. A dedicated squad works under your brand, inside your process, and on your release calendar — the capability of an in-house department without the cost and lead time of building one. This is exactly what we do today for Noregna AS and Superlogics AS in Norway.",
+      "We become your back office. A dedicated squad works under your brand, inside your process, and on your release calendar: the capability of an in-house department without the cost and lead time of building one. This is exactly what we do today for Noregna AS and Superlogics AS in Norway.",
     points: [
-      "Dedicated, named engineers — not a rotating pool",
+      "Dedicated, named engineers, not a rotating pool",
       "Your process, your standards, your repositories",
       "European timezone overlap, daily",
       "Scale the team up or down without a hiring cycle",
@@ -72,9 +72,9 @@ export const ENGAGEMENTS: Engagement[] = [
     title: "Independent Product Builds",
     pitch: "For companies who need the thing built.",
     description:
-      "You describe the system; we own it end to end — data model, architecture, engineering, launch, and the support that keeps it standing. Web platforms, mobile apps, ERP, e-commerce, AI-driven tooling. One accountable team from first call to production traffic.",
+      "You describe the system; we own it end to end: data model, architecture, engineering, launch, and the support that keeps it standing. Web platforms, mobile apps, ERP, e-commerce, AI-driven tooling. One accountable team from first call to production traffic.",
     points: [
-      "Fixed scope, fixed price — or a retainer if it keeps evolving",
+      "Fixed scope, fixed price, or a retainer if it keeps evolving",
       "Web, mobile, and full-stack platform engineering",
       "Architected to be maintained, not demoed",
       "You own the code, the infrastructure, and the documentation",
@@ -102,7 +102,7 @@ export const PARTNERS_INTRO = {
   eyebrow: "Nordic Operations",
   headline: "We are the engineering floor behind Norwegian software firms.",
   description:
-    "Synaptic Lab operates as the dedicated back-office engineering arm for established Norwegian companies — running delivery, infrastructure, and long-term platform work under their brand, to Nordic standards, on Nordic timelines.",
+    "Synaptic Lab operates as the dedicated back-office engineering arm for established Norwegian companies, running delivery, infrastructure and long-term platform work under their brand, to Nordic standards, on Nordic timelines.",
 } as const;
 
 export const PARTNERS: Partner[] = [
@@ -111,7 +111,7 @@ export const PARTNERS: Partner[] = [
     country: "Norway",
     relationship: "Back-office engineering partner",
     description:
-      "We run dedicated engineering capacity for Noregna — architecting, building, and maintaining production systems as an embedded extension of their team.",
+      "We run dedicated engineering capacity for Noregna, architecting, building and maintaining production systems as an embedded extension of their team.",
   },
   {
     name: "Superlogics AS",
@@ -151,7 +151,7 @@ export const CAPABILITIES: Capability[] = [
     index: "02",
     title: "Automotive Workshop Management",
     description:
-      "Advanced platforms covering the full service lifecycle — intake, job cards, parts, technician scheduling, and invoicing.",
+      "Advanced platforms covering the full service lifecycle: intake, job cards, parts, technician scheduling and invoicing.",
     detail: ["Job-card lifecycle", "Parts inventory", "Technician dispatch"],
   },
   {
@@ -167,7 +167,7 @@ export const CAPABILITIES: Capability[] = [
     index: "04",
     title: "High-Throughput E-Commerce",
     description:
-      "Commerce ecosystems engineered for peak load — catalog, checkout, payments, and fulfilment that hold under a traffic spike.",
+      "Commerce ecosystems engineered for peak load: catalog, checkout, payments and fulfilment that hold under a traffic spike.",
     detail: ["Peak-load checkout", "Payment orchestration", "Fulfilment pipelines"],
   },
   {
@@ -216,7 +216,7 @@ export const TEAM: TeamMemberProfile[] = [
     domains: [
       "Large-scale project management",
       "Enterprise IT industry solutions",
-      "Technical architecture — global finance",
+      "Technical architecture, global finance",
       "Client & partner relationships",
     ],
   },
@@ -267,7 +267,7 @@ export const TEAM: TeamMemberProfile[] = [
     initials: "AW",
     level: 2,
     summary:
-      "Applied-AI lead. Delivers across the MERN stack — web and mobile.",
+      "Applied-AI lead. Delivers across the MERN stack, web and mobile.",
     domains: [
       "Applied AI & deep research",
       "MERN stack engineering",
@@ -293,44 +293,44 @@ export const PROCESS_INTRO = {
   eyebrow: "The Method",
   headline: "How the work actually gets built.",
   description:
-    "No black box, and no six-week silence followed by a reveal. Each phase ends in something you can hold, review, and reject — and you see working software long before launch day.",
+    "No black box, and no six-week silence followed by a reveal. Each phase ends in something you can hold, review and reject, and you see working software long before launch day.",
 } as const;
 
 export const PROCESS: ProcessStep[] = [
   {
     index: "01",
     title: "Discovery",
-    duration: "1–2 weeks",
+    duration: "1 to 2 weeks",
     description:
-      "Before a line of code, we learn your business the way your operators understand it — the rules, the exceptions, and the constraints nobody wrote down.",
+      "Before a line of code, we learn your business the way your operators understand it: the rules, the exceptions, and the constraints nobody wrote down.",
     activities: [
       "Stakeholder and operator interviews",
       "Business logic and edge-case mapping",
       "Existing systems and integration audit",
       "Success metrics agreed in writing",
     ],
-    deliverable: "A written scope, risk register, and a fixed estimate you can act on.",
+    deliverable: "A written scope, a risk register, and a fixed estimate you can act on.",
   },
   {
     index: "02",
     title: "Architecture",
-    duration: "1–3 weeks",
+    duration: "1 to 3 weeks",
     description:
-      "We design the system before we build it. The data model is where a platform lives or dies — most rewrites we are called in to fix were lost at this stage.",
+      "We design the system before we build it. The data model is where a platform lives or dies. Most rewrites we are called in to fix were lost at this stage.",
     activities: [
       "Data model and schema design",
       "Infrastructure and scaling plan",
       "API contracts and integration surface",
       "Interface systems and component library",
     ],
-    deliverable: "An architecture document, schema, API contracts, and clickable UI system.",
+    deliverable: "An architecture document, schema, API contracts, and a clickable UI system.",
   },
   {
     index: "03",
     title: "Engineering",
-    duration: "Continuous, in two-week increments",
+    duration: "Two-week increments",
     description:
-      "Built in the open. You get a working environment early and a reviewable increment every fortnight — never a demo, always the real system running real data.",
+      "Built in the open. You get a working environment early and a reviewable increment every fortnight. Never a demo, always the real system running real data.",
     activities: [
       "Two-week increments, each one shippable",
       "Peer review on every merge",
@@ -341,17 +341,45 @@ export const PROCESS: ProcessStep[] = [
   },
   {
     index: "04",
-    title: "Deployment & Care",
-    duration: "Launch, then ongoing",
+    title: "Hardening",
+    duration: "1 to 2 weeks",
     description:
-      "Launch is the start of the system's life, not the end of ours. It goes out on continuous delivery, with monitoring watching it from the first hour of real traffic.",
+      "The step most teams skip, and the reason their launch is a bad week. We try to break the system on purpose, before your customers do it by accident.",
+    activities: [
+      "Load and stress testing against peak traffic",
+      "Security review and dependency audit",
+      "Failure and recovery drills",
+      "Accessibility and cross-device pass",
+    ],
+    deliverable: "A system proven under load, with the failure modes found and closed.",
+  },
+  {
+    index: "05",
+    title: "Launch",
+    duration: "Launch week",
+    description:
+      "It goes out on continuous delivery, with monitoring watching it from the first hour of real traffic. Nobody is guessing whether it is healthy.",
     activities: [
       "Continuous CI/CD pipeline",
-      "Monitoring, logging, and alerting",
-      "Load and security verification before go-live",
+      "Monitoring, logging and alerting",
+      "Rollback tested before it is needed",
       "Handover: repositories, infrastructure, documentation",
     ],
-    deliverable: "A live, monitored system — and full ownership of every part of it.",
+    deliverable: "A live, monitored system, and full ownership of every part of it.",
+  },
+  {
+    index: "06",
+    title: "Care",
+    duration: "Ongoing",
+    description:
+      "Launch is the start of the system's life, not the end of ours. Incidents get answered by the people who built the thing, not a support tier reading a script.",
+    activities: [
+      "Incident response with a named engineer",
+      "Iteration on what real usage reveals",
+      "Dependency and security upkeep",
+      "Capacity planning as you grow",
+    ],
+    deliverable: "A system that keeps working, and a team that still knows why it works.",
   },
 ];
 
@@ -368,7 +396,7 @@ export const TECH_INTRO = {
   eyebrow: "Technologies",
   headline: "The stack, tiered by engagement.",
   description:
-    "We do not chase frameworks. This is what we run in production today, grouped by the scale of the system it belongs in — so you can see exactly which tier your project lands in.",
+    "We do not chase frameworks. This is what we run in production today, grouped by the scale of the system it belongs in, so you can see exactly which tier your project lands in.",
 } as const;
 
 export const TECH_TIERS: TechTier[] = [
@@ -377,7 +405,7 @@ export const TECH_TIERS: TechTier[] = [
     scope: "Interface and application layer",
     suitedTo: "Marketing platforms, web apps, mobile products",
     description:
-      "Everything the user actually touches. Typed end to end, component-driven, and fast on the devices your customers really own — not just on a developer's laptop.",
+      "Everything the user actually touches. Typed end to end, component-driven, and fast on the devices your customers really own, not just on a developer's laptop.",
     items: [
       "TypeScript",
       "React",
@@ -423,7 +451,7 @@ export const TECH_TIERS: TechTier[] = [
     scope: "Research, automation, and intelligence",
     suitedTo: "Teams putting AI into a real product, not a demo",
     description:
-      "Our deep-research practice. We integrate language models and automation into systems that already carry load — where the hard part is grounding, evaluation, and cost, not the prompt.",
+      "Our deep-research practice. We integrate language models and automation into systems that already carry load, where the hard part is grounding, evaluation and cost, not the prompt.",
     items: [
       "Python",
       "LLM & model integration",
@@ -443,7 +471,7 @@ export const FAQS = [
   {
     question: "How do you price an engagement?",
     answer:
-      "Fixed scope is quoted as a fixed price. Anything open-ended — a platform we will keep evolving with you — runs on a monthly retainer. We do not bill hourly, because it rewards the wrong thing.",
+      "Fixed scope is quoted as a fixed price. Anything open-ended, such as a platform we will keep evolving with you, runs on a monthly retainer. We do not bill hourly, because it rewards the wrong thing.",
   },
   {
     question: "How long does a build take?",
@@ -458,7 +486,7 @@ export const FAQS = [
   {
     question: "What does the engagement process look like?",
     answer:
-      "Discovery, architecture, engineering, deployment. You get a working environment early and see increments throughout — no black box, no six-week silence followed by a reveal.",
+      "Discovery, architecture, engineering, deployment. You get a working environment early and see increments throughout. No black box, no six-week silence followed by a reveal.",
   },
   {
     question: "Do you support the system after launch?",
@@ -468,7 +496,7 @@ export const FAQS = [
   {
     question: "Who owns the code?",
     answer:
-      "You do, outright, on final payment — repositories, infrastructure, and documentation. There is no lock-in and no licensing arrangement holding your own platform hostage.",
+      "You do, outright, on final payment, repositories, infrastructure, and documentation. There is no lock-in and no licensing arrangement holding your own platform hostage.",
   },
 ] as const;
 
@@ -480,4 +508,4 @@ export const CONTACT = {
 } as const;
 
 export const WHATSAPP_MESSAGE =
-  "Hello Synaptic Lab — I'd like to discuss an engineering engagement.";
+  "Hello Synaptic Lab, I'd like to discuss an engineering engagement.";

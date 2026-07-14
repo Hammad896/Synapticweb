@@ -73,7 +73,7 @@ const Footer = () => {
         </p>
 
         <div className="flex items-center gap-6">
-          {/* Staff entry point. Deliberately quiet — it is a utility door, not a
+          {/* Staff entry point. Deliberately quiet, it is a utility door, not a
               call to action, and it must never compete with the contact CTA. */}
           <Link
             to="/staff-login"

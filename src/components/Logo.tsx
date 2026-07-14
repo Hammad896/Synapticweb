@@ -18,7 +18,7 @@ const Logo = ({ className }: { className?: string }) => {
   return (
     <img
       src={theme === "dark" ? "/logo-dark.png" : "/logo-light.png"}
-      alt={`${COMPANY.name} — home`}
+      alt={`${COMPANY.name}, home`}
       width={871}
       height={209}
       className={cn("h-7 w-auto select-none", className)}

@@ -28,7 +28,7 @@ const CapabilityRow = ({
     className="group relative isolate border-b border-border first:border-t"
   >
     {/* The fill sweeps horizontally on a row (origin-left), where the card
-        version swept vertically. A separate layer, not a background transition —
+        version swept vertically. A separate layer, not a background transition 
         CSS cannot interpolate between gradients. */}
     <div
       aria-hidden="true"
@@ -37,7 +37,7 @@ const CapabilityRow = ({
 
     <article className="grid items-baseline gap-x-8 gap-y-3 px-1 py-7 transition-[padding] duration-500 ease-apple group-hover:px-3 sm:px-4 sm:py-9 sm:group-hover:px-8 lg:grid-cols-12 lg:gap-y-4 lg:py-10">
       {/* Below lg the index rides INLINE with the title. Left on its own row it
-          reads as an orphaned number floating above the heading — the classic
+          reads as an orphaned number floating above the heading, the classic
           artefact of a desktop grid collapsing into a single column. */}
       <div className="flex items-baseline gap-4 lg:contents">
         <span className="shrink-0 text-sm tabular-nums text-accent transition-colors duration-500 ease-apple group-hover:text-white lg:col-span-1">
@@ -81,7 +81,7 @@ const Capabilities = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => 
   if (capabilities.length === 0) return null;
 
   return (
-  <section id="capabilities" className={hideHeader ? "px-6 pb-24 pt-16 md:pb-32 md:pt-20" : "px-6 py-24 md:py-32"}>
+  <section id="capabilities" className={hideHeader ? "px-6 pb-16 pt-8 md:pb-24 md:pt-10" : "px-6 py-16 md:py-24"}>
     <div className="mx-auto max-w-7xl">
       {!hideHeader && (
 
@@ -89,17 +89,17 @@ const Capabilities = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => 
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
           {intro.eyebrow}
         </p>
-        <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-6xl">
+        <h2 className="type-display mt-4 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground md:text-5xl">
           {intro.headline}
         </h2>
-        <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
+        <p className="measure mt-4 text-base leading-relaxed text-muted-foreground">
           {intro.description}
         </p>
         </Reveal>
 
       )}
 
-      <ul className="mt-10 sm:mt-16">
+      <ul className="mt-8 sm:mt-10">
         {capabilities.map((capability, i) => (
           <CapabilityRow key={capability.id} capability={capability} index={i} />
         ))}

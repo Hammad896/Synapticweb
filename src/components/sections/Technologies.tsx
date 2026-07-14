@@ -53,7 +53,7 @@ const Technologies = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => 
   const ALL_TECH = TECH_TIERS.flatMap((tier) => tier.items);
 
   return (
-  <section id="technologies" className="py-24 md:py-32">
+  <section id="technologies" className="py-16 md:py-24">
     <div className="mx-auto max-w-7xl px-6">
       {!hideHeader && (
 
@@ -61,17 +61,17 @@ const Technologies = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => 
         <p className="text-xs uppercase tracking-[0.2em] text-accent">
           {intro.eyebrow}
         </p>
-        <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-6xl">
+        <h2 className="type-display mt-4 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground md:text-5xl">
           {intro.headline}
         </h2>
-        <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
+        <p className="measure mt-4 text-base leading-relaxed text-muted-foreground">
           {intro.description}
         </p>
         </Reveal>
 
       )}
 
-      <div className="mt-12 grid gap-5 sm:mt-16 sm:gap-6 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-10 grid gap-5 sm:gap-6 md:grid-cols-2 xl:grid-cols-4">
         {TECH_TIERS.map((tier, i) => (
           <TierCard key={tier.tier} tier={tier} index={i} />
         ))}

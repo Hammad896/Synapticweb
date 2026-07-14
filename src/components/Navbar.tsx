@@ -56,7 +56,7 @@ const Navbar = () => {
         <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-6 lg:px-8">
           <Link
             to="/"
-            aria-label={`${COMPANY.name} — home`}
+            aria-label={`${COMPANY.name}, home`}
             className="transition-opacity duration-300 ease-apple hover:opacity-70"
           >
             <Logo className="h-8 md:h-9" />

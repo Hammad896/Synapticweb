@@ -29,7 +29,7 @@ export interface Intent {
 }
 
 export const buildGreeting = (content: SiteContent) =>
-  `Hi — I'm Lab Assist, ${content.company.name}'s assistant.
+  `Hi, I'm Lab Assist, ${content.company.name}'s assistant.
 
 I can answer questions about what we build, how we work, pricing, timelines, our team, and open roles. Ask me anything, or pick one below.`;
 
@@ -76,7 +76,7 @@ export const buildIntents = (
         "how do you work", "how we work", "models", "model",
       ],
       answer: `There are two ways to work with us:\n\n${engagements
-        .map((e) => `${e.index} ${e.title} — ${e.pitch}\n${e.description}`)
+        .map((e) => `${e.index} ${e.title}, ${e.pitch}\n${e.description}`)
         .join("\n\n")}`,
       followUps: ["How much does it cost?", "How long does it take?", "Talk to a human"],
     },
@@ -148,10 +148,10 @@ export const buildIntents = (
       ],
       answer: partners.length
         ? `We are the back-office engineering arm for:\n\n${partners
-            .map((p) => `• ${p.name}${p.country ? ` (${p.country})` : ""} — ${p.relationship}`)
+            .map((p) => `• ${p.name}${p.country ? ` (${p.country})` : ""}, ${p.relationship}`)
             .join(
               "\n",
-            )}\n\nWe run dedicated delivery, infrastructure and long-term platform work as an embedded extension of their teams — under their brand, inside their process.`
+            )}\n\nWe run dedicated delivery, infrastructure and long-term platform work as an embedded extension of their teams, under their brand, inside their process.`
         : `We work as the back-office engineering arm for software firms abroad. Ask us and we'll put you in touch with a reference directly.`,
       followUps: ["How do I hire your team?", "Talk to a human"],
     },
@@ -165,10 +165,10 @@ export const buildIntents = (
       // Derived from TEAM — the hardcoded copy that used to live here had already
       // gone stale about a real person's job title.
       answer: `The company is run by the people who build the work:\n\n${TEAM.map(
-        (m) => `• ${m.name} — ${m.role}`,
+        (m) => `• ${m.name}, ${m.role}`,
       ).join(
         "\n",
-      )}\n\nEveryone reports to the CEO. There is no layer between you and the people writing your code — the full org chart is on the team page.`,
+      )}\n\nEveryone reports to the CEO. There is no layer between you and the people writing your code, the full org chart is on the team page.`,
       followUps: ["Are you hiring?", "Who are your partners?"],
     },
 
@@ -180,12 +180,12 @@ export const buildIntents = (
         "opening", "openings", "work for you", "join",
       ],
       answer: openRoles.length
-        ? `Yes — we're hiring:\n\n${openRoles
+        ? `Yes, we're hiring:\n\n${openRoles
             .map((j) => `• ${j.role} (${j.type}${j.location ? `, ${j.location}` : ""})`)
             .join(
               "\n",
-            )}\n\nApply on the careers page — it goes straight to us, not to a recruiter. There's a short form; a link to your CV or GitHub is all we need to start.`
-        : `We have no open roles listed right now, but we hire good engineers when we meet them. Write to ${company.email} and tell us what you've built — speculative applications genuinely get read.`,
+            )}\n\nApply on the careers page, it goes straight to us, not to a recruiter. There's a short form; a link to your CV or GitHub is all we need to start.`
+        : `We have no open roles listed right now, but we hire good engineers when we meet them. Write to ${company.email} and tell us what you've built, speculative applications genuinely get read.`,
       followUps: ["What do you build?", "Talk to a human"],
     },
 
@@ -196,7 +196,7 @@ export const buildIntents = (
         "framework", "database", "cloud", "docker", "typescript", "python", "laravel",
       ],
       answer: `We run these tiers, by the scale of the system:\n\n${techTiers
-        .map((t) => `${t.tier} — ${t.items.slice(0, 4).join(", ")}`)
+        .map((t) => `${t.tier}, ${t.items.slice(0, 4).join(", ")}`)
         .join(
           "\n",
         )}\n\nWe don't chase frameworks; that's what we actually run in production.`,
@@ -209,7 +209,7 @@ export const buildIntents = (
         "ai", "artificial intelligence", "machine learning", "ml", "llm", "gpt",
         "chatbot", "automation", "rag", "model",
       ],
-      answer: `Yes — applied AI is a real practice here, led by Abdul Wahab.\n\nWe integrate language models and automation into systems that already carry load: retrieval-augmented generation, vector search, and workflow automation. The hard part is never the prompt — it's grounding, evaluation and cost, and that's the part we engineer.`,
+      answer: `Yes, applied AI is a real practice here, led by Abdul Wahab.\n\nWe integrate language models and automation into systems that already carry load: retrieval-augmented generation, vector search, and workflow automation. The hard part is never the prompt, it's grounding, evaluation and cost, and that's the part we engineer.`,
       followUps: ["What is your tech stack?", "Talk to a human"],
     },
 
@@ -226,7 +226,7 @@ export const buildIntents = (
         "where", "location", "based", "office", "country", "timezone", "time zone",
         "islamabad", "pakistan", "remote", "overlap",
       ],
-      answer: `${company.location}\n\nFor clients in Europe that matters practically: we hold daily timezone overlap with the Nordics and the EU — which is exactly how our Norwegian engagements run.`,
+      answer: `${company.location}\n\nFor clients in Europe that matters practically: we hold daily timezone overlap with the Nordics and the EU, which is exactly how our Norwegian engagements run.`,
       followUps: ["Who are your partners?", "Talk to a human"],
     },
 
@@ -237,10 +237,10 @@ export const buildIntents = (
         "case studies", "stats", "proof", "years",
       ],
       answer: `Our delivery record:\n\n${stats
-        .map((s) => `• ${s.value} — ${s.label}`)
+        .map((s) => `• ${s.value}, ${s.label}`)
         .join(
           "\n",
-        )}\n\nWe don't publish case studies for work we can't name — much of it runs under client brands. If you want references, ask and we'll arrange them directly.`,
+        )}\n\nWe don't publish case studies for work we can't name, much of it runs under client brands. If you want references, ask and we'll arrange them directly.`,
       followUps: ["Who are your partners?", "Talk to a human"],
     },
 
@@ -250,13 +250,13 @@ export const buildIntents = (
         "contact", "talk", "human", "call", "email", "whatsapp", "reach", "speak",
         "meeting", "book", "sales", "person",
       ],
-      answer: `Happy to hand you to a human — no sales script, it goes straight to the people who'd architect the work.\n\n${contactBlock}\n\nOr use the form on the contact page and tell us what you're building.`,
+      answer: `Happy to hand you to a human, no sales script, it goes straight to the people who'd architect the work.\n\n${contactBlock}\n\nOr use the form on the contact page and tell us what you're building.`,
     },
 
     {
       id: "greeting",
       keywords: ["hi", "hello", "hey", "salam", "assalam", "good morning", "good evening"],
-      answer: `Hello — good to meet you. Ask me about what we build, how we work, pricing, timelines, the team, or open roles.`,
+      answer: `Hello, good to meet you. Ask me about what we build, how we work, pricing, timelines, the team, or open roles.`,
       followUps: QUICK_REPLIES.slice(0, 3),
     },
 
@@ -269,7 +269,7 @@ export const buildIntents = (
 };
 
 export const buildFallback = (content: SiteContent) =>
-  `I don't want to guess at that one — and on anything commercial I'd rather be right than fast.
+  `I don't want to guess at that one, and on anything commercial I'd rather be right than fast.
 
 The people who'd actually do the work will answer it directly:
 

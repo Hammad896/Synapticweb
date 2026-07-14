@@ -137,7 +137,7 @@ const Team = ({ hideHeader = false }: { hideHeader?: boolean } = {}) => {
   if (roster.length === 0) return null;
 
   return (
-    <Section id="team" className={hideHeader ? "pt-16 md:pt-20" : undefined}>
+    <Section id="team" className={hideHeader ? "pt-8 md:pt-10" : undefined}>
       {!hideHeader && (
         <SectionHeader
           eyebrow={intro.eyebrow}

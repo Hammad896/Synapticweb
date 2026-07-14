@@ -123,7 +123,7 @@ const AnnouncementBar = () => {
           </AnimatePresence>
         </div>
 
-        {/* Dots, not arrows — and only when there is more than one. */}
+        {/* Dots, not arrows, and only when there is more than one. */}
         {visible.length > 1 && (
           <div className="hidden shrink-0 items-center gap-1.5 sm:flex">
             {visible.map((a, i) => (

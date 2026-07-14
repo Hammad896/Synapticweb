@@ -17,14 +17,14 @@ export interface NextLink {
  * point at which people leave. Two deliberate next steps, chosen per page.
  */
 const PageNext = ({ links }: { links: NextLink[] }) => (
-  <Section className="pt-0">
-    <div className="rule mb-16" />
+  <Section className="pb-16 pt-0 md:pb-20">
+    <div className="rule mb-10" />
 
     <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
       Keep going
     </p>
 
-    <div className="mt-8 grid gap-4 md:grid-cols-2">
+    <div className="mt-6 grid gap-4 md:grid-cols-2">
       {links.map((link, i) => (
         <Reveal key={link.to} index={i}>
           <Link

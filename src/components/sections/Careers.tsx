@@ -44,7 +44,7 @@ const Careers = ({
   if (!loaded || (roles.length === 0 && !showEmpty)) return null;
 
   return (
-    <Section id="careers" className={hideHeader ? "pt-16 md:pt-20" : undefined}>
+    <Section id="careers" className={hideHeader ? "pt-8 md:pt-10" : undefined}>
       {!hideHeader && (
         <SectionHeader
           eyebrow="Careers"
@@ -57,11 +57,11 @@ const Careers = ({
         <div className="mt-12">
           <EmptyState
             title="No open roles right now"
-            description="We hire good engineers when we meet them — write to us anyway and tell us what you build."
+            description="We hire good engineers when we meet them, write to us anyway and tell us what you build."
           />
         </div>
       ) : (
-        <ul className="mt-12 sm:mt-16">
+        <ul className="mt-8 sm:mt-10">
           {roles.map((role, i) => (
             <Reveal
               as="li"
@@ -132,7 +132,7 @@ const Careers = ({
         >
           Write to us anyway
         </a>{" "}
-        — we hire good engineers when we meet them.
+, we hire good engineers when we meet them.
       </p>
     </Section>
   );

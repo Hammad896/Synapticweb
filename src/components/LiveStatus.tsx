@@ -79,7 +79,7 @@ const LiveStatus = () => {
         |
       </span>
 
-      {/* Two clocks. The claim is "daily European overlap" — this is the receipt. */}
+      {/* Two clocks. The claim is "daily European overlap", this is the receipt. */}
       <span className="flex items-center gap-2 text-xs text-muted-foreground">
         <span className="tabular-nums">
           {home} <span className="text-muted-foreground/70">Islamabad</span>

@@ -23,7 +23,7 @@ export const Section = ({
   className?: string;
   children: ReactNode;
 }) => (
-  <section id={id} className={cn("px-6 py-24 md:py-32", className)}>
+  <section id={id} className={cn("px-6 py-16 md:py-24", className)}>
     <div className="mx-auto max-w-7xl">{children}</div>
   </section>
 );
@@ -41,11 +41,11 @@ export const SectionHeader = ({
 }) => (
   <header className={cn("max-w-3xl", className)}>
     {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-    <h2 className="type-display mt-5 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground sm:mt-6 md:text-6xl">
+    <h2 className="type-display mt-4 text-[clamp(1.85rem,7vw,2.5rem)] text-foreground md:text-5xl">
       {title}
     </h2>
     {description && (
-      <p className="measure mt-5 text-base leading-relaxed text-muted-foreground sm:mt-6 sm:text-lg">
+      <p className="measure mt-4 text-base leading-relaxed text-muted-foreground">
         {description}
       </p>
     )}

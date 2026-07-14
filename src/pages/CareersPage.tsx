@@ -9,7 +9,7 @@ const CareersPage = () => (
     <PageHero
       eyebrow="Careers"
       title="Build things that carry real weight."
-      description="We are a small team shipping large systems for clients abroad. If you want to own real work rather than a ticket queue — and put your name on it — we would like to hear from you."
+      description="We are a small team shipping large systems for clients abroad. If you want to own real work rather than a ticket queue, and put your name on it, we would like to hear from you."
     />
 
     <Careers showEmpty hideHeader />
