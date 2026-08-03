@@ -1,4 +1,4 @@
-import type { Transaction } from "./types";
+import type { FinanceCategory, Transaction, TransactionType } from "./types";
 
 /**
  * Every report the finance module shows is derived here, from the ledger
@@ -283,3 +283,29 @@ export const monthLabel = (period: string): string => {
 /** Distinct years present in the ledger, newest first. */
 export const yearsOf = (transactions: Array<Pick<Transaction, "date">>): string[] =>
   [...new Set(transactions.map((t) => t.date.slice(0, 4)))].sort().reverse();
+
+/** The chart-of-accounts code for a transaction's category, "" when unset. */
+export const accountCodeOf = (
+  categories: FinanceCategory[],
+  type: TransactionType,
+  name: string,
+): string =>
+  categories.find(
+    (c) =>
+      c.kind === (type === "income" ? "income_source" : "expense_category") &&
+      c.name.toLowerCase() === name.toLowerCase(),
+  )?.accountCode ?? "";
+
+/**
+ * The ledger's name-matching discipline: the first meaningful token of a
+ * person's name ("M. Farhan" → "farhan"). The delete guard, the salary
+ * certificate, and reconciliation must all agree on this — one definition.
+ */
+export const nameNeedle = (fullName: string): string => {
+  const tokens = fullName
+    .toLowerCase()
+    .replace(/\./g, "")
+    .split(/\s+/)
+    .filter((t) => t.length > 2);
+  return tokens[0] ?? fullName.toLowerCase();
+};

@@ -145,3 +145,10 @@ export const suggestedPayMonth = (): string => {
   now.setMonth(now.getMonth() - 1);
   return now.toISOString().slice(0, 7);
 };
+
+/** The inverse: the month a ledger salary payment was EARNED (paid the month
+ *  after). Pure string math — Date round-trips shift months in UTC+5. */
+export const earnedMonthOf = (ledgerDate: string): string => {
+  const [year, month] = ledgerDate.split("-").map(Number);
+  return month === 1 ? `${year - 1}-12` : `${year}-${String(month - 1).padStart(2, "0")}`;
+};

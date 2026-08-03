@@ -1,6 +1,7 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
-import { loadLayout } from "@/hr/layout";
+import type { PDFFont, PDFPage } from "pdf-lib";
+import { ink, line, muted, openLetterhead } from "@/hr/letterhead";
 import {
+  accountCodeOf,
   balanceSheetAsOf,
   breakdown,
   monthLabel,
@@ -31,32 +32,14 @@ export interface ReportParams {
   to: string;
 }
 
-const ink = rgb(0.08, 0.08, 0.1);
-const muted = rgb(0.42, 0.42, 0.47);
-const line = rgb(0.8, 0.8, 0.84);
-
 export const renderFinancialReport = async (params: ReportParams): Promise<Uint8Array> => {
   const { transactions, allTransactions, categories, periodLabel, scopeLabel, from } = params;
 
-  let base: ArrayBuffer | null = null;
-  try {
-    const response = await fetch("/letterhead.pdf");
-    if (response.ok) base = await response.arrayBuffer();
-  } catch {
-    base = null;
-  }
-
-  const pdf = base ? await PDFDocument.load(base) : await PDFDocument.create();
-  const font = await pdf.embedStandardFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedStandardFont(StandardFonts.HelveticaBold);
-
-  const layout = loadLayout();
-  let page: PDFPage = base ? pdf.getPages()[0] : pdf.addPage([595.28, 841.89]);
-  const { width, height } = page.getSize();
-  const left = layout.marginLeft;
-  const right = width - layout.marginRight;
-  const bottom = base ? layout.marginBottom : 70;
-  let y = height - (base ? Math.min(layout.marginTop, 148) : 80);
+  const doc = await openLetterhead(80);
+  const { pdf, font, bold, layout, width, height, left, right, hasArtwork } = doc;
+  let page: PDFPage = doc.page;
+  const bottom = hasArtwork ? layout.marginBottom : 70;
+  let y = doc.top;
 
   const ensureRoom = (needed: number) => {
     if (y - needed >= bottom) return;
@@ -129,10 +112,6 @@ export const renderFinancialReport = async (params: ReportParams): Promise<Uint8
   y -= 10;
 
   /* ── Breakdowns, with account codes ────────────────────────────────────── */
-  const codeOf = (kind: FinanceCategory["kind"], name: string) =>
-    categories.find((c) => c.kind === kind && c.name.toLowerCase() === name.toLowerCase())
-      ?.accountCode ?? "";
-
   const codeX = left;
   const nameX = left + 52;
   const amountX = right;
@@ -143,7 +122,7 @@ export const renderFinancialReport = async (params: ReportParams): Promise<Uint8
     for (const item of income) {
       tableRow(
         [
-          [codeOf("income_source", item.category) || "—", codeX, "left"],
+          [accountCodeOf(categories, "income", item.category) || "—", codeX, "left"],
           [item.category, nameX, "left"],
           [pkr(item.amount), amountX, "right"],
         ],
@@ -160,7 +139,7 @@ export const renderFinancialReport = async (params: ReportParams): Promise<Uint8
     for (const item of expenses) {
       tableRow(
         [
-          [codeOf("expense_category", item.category) || "—", codeX, "left"],
+          [accountCodeOf(categories, "expense", item.category) || "—", codeX, "left"],
           [item.category, nameX, "left"],
           [pkr(item.amount), amountX, "right"],
         ],
@@ -223,24 +202,8 @@ export const renderBalanceSheet = async (
 ): Promise<Uint8Array> => {
   const sheet = balanceSheetAsOf(transactions, asOf);
 
-  let base: ArrayBuffer | null = null;
-  try {
-    const response = await fetch("/letterhead.pdf");
-    if (response.ok) base = await response.arrayBuffer();
-  } catch {
-    base = null;
-  }
-
-  const pdf = base ? await PDFDocument.load(base) : await PDFDocument.create();
-  const page = base ? pdf.getPages()[0] : pdf.addPage([595.28, 841.89]);
-  const font = await pdf.embedStandardFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedStandardFont(StandardFonts.HelveticaBold);
-
-  const layout = loadLayout();
-  const { width, height } = page.getSize();
-  const left = layout.marginLeft;
-  const right = width - layout.marginRight;
-  let y = height - (base ? Math.min(layout.marginTop, 148) : 90);
+  const { pdf, page, font, bold, left, right, top } = await openLetterhead(90);
+  let y = top;
 
   const center = (value: string, f: PDFFont, size: number) =>
     left + (right - left - f.widthOfTextAtSize(value, size)) / 2;

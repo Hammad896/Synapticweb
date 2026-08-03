@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Download, FileText, Loader2 } from "lucide-react";
 import { Button, EmptyState, Field, Stat, inputClass } from "@/components/kit";
+import { errorMessage } from "@/lib/utils";
 import { openPdf } from "@/hr/pdf";
 import {
   fiscalYearClosings,
@@ -166,9 +167,7 @@ const ReportsPanel = ({ transactions, categories }: Props) => {
     try {
       await work();
     } catch (caught) {
-      window.alert(
-        `Could not generate the report: ${caught instanceof Error ? caught.message : "unknown error"}`,
-      );
+      window.alert(`Could not generate the report: ${errorMessage(caught)}`);
     } finally {
       setBusy(false);
     }
@@ -227,11 +226,13 @@ const ReportsPanel = ({ transactions, categories }: Props) => {
 
         <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-5">
           <Field id="rp-preset" label="Preset">
+            {/* A command menu, not a value holder: always shows the prompt,
+                React snaps it back after each pick — no DOM mutation. */}
             <select
               id="rp-preset"
               className={inputClass()}
-              defaultValue=""
-              onChange={(e) => { applyPreset(e.target.value); e.target.value = ""; }}
+              value=""
+              onChange={(e) => applyPreset(e.target.value)}
             >
               <option value="">Pick a period…</option>
               <option value="all">All time</option>

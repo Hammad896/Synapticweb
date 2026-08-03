@@ -1,4 +1,5 @@
-import { breakdown, pkr, totalsOf, type PeriodClosing } from "./calc";
+import { accountCodeOf, breakdown, pkr, round2, totalsOf, type PeriodClosing } from "./calc";
+import { downloadFile } from "@/lib/utils";
 import {
   netPay,
   type FinanceCategory,
@@ -47,13 +48,7 @@ export const payrollToCsv = (items: PayrollItem[]): string => {
 
 export const downloadCsv = (filename: string, content: string) => {
   // BOM so Excel opens it as UTF-8 instead of mangling anything non-ASCII.
-  const blob = new Blob(["\uFEFF" + content], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  downloadFile(filename, "\uFEFF" + content, "text/csv;charset=utf-8;");
 };
 
 /** Monthly or yearly closing table, exactly as shown in Reports. */
@@ -120,13 +115,6 @@ export const generalLedgerToCsv = (
   categories: FinanceCategory[],
   scopeLabel: string,
 ): string => {
-  const codeOf = (t: Transaction) =>
-    categories.find(
-      (c) =>
-        c.kind === (t.type === "income" ? "income_source" : "expense_category") &&
-        c.name.toLowerCase() === t.category.toLowerCase(),
-    )?.accountCode ?? "";
-
   const lines: string[] = [];
   const row = (...cells: Array<string | number>) => lines.push(cells.map(escape).join(","));
 
@@ -140,19 +128,19 @@ export const generalLedgerToCsv = (
     accounts.set(key, [...(accounts.get(key) ?? []), t]);
   }
   const sortedAccounts = [...accounts.entries()].sort((a, b) => {
-    const codeA = codeOf(a[1][0]);
-    const codeB = codeOf(b[1][0]);
+    const codeA = accountCodeOf(categories, a[1][0].type, a[1][0].category);
+    const codeB = accountCodeOf(categories, b[1][0].type, b[1][0].category);
     return (codeA || "9999").localeCompare(codeB || "9999") || a[0].localeCompare(b[0]);
   });
 
   for (const [key, items] of sortedAccounts) {
     const [type, category] = key.split("|");
-    const code = codeOf(items[0]);
+    const code = accountCodeOf(categories, items[0].type, items[0].category);
     row(`ACCOUNT ${code || "—"} · ${category} (${type})`);
     row("no", "date", "description", "amount", "running total");
     let running = 0;
     for (const t of [...items].sort((a, b) => a.date.localeCompare(b.date))) {
-      running = Math.round((running + t.amount) * 100) / 100;
+      running = round2(running + t.amount);
       row(t.txnNo || t.legacyId || t.id, t.date, t.description, t.amount, running);
     }
     row("TOTAL", "", "", running, "");
@@ -180,9 +168,7 @@ export const trialBalanceToCsv = (
   const seen = new Map<string, { code: string; name: string; debit: number; credit: number }>();
   for (const t of transactions) {
     const kind = t.type === "income" ? "income_source" : "expense_category";
-    const code =
-      categories.find((c) => c.kind === kind && c.name.toLowerCase() === t.category.toLowerCase())
-        ?.accountCode ?? "";
+    const code = accountCodeOf(categories, t.type, t.category);
     const key = `${kind}:${t.category}`;
     const entry = seen.get(key) ?? { code, name: t.category, debit: 0, credit: 0 };
     if (t.type === "expense") { entry.debit += t.amount; debits += t.amount; }
@@ -190,12 +176,11 @@ export const trialBalanceToCsv = (
     seen.set(key, entry);
   }
   for (const entry of [...seen.values()].sort((a, b) => (a.code || "9999").localeCompare(b.code || "9999"))) {
-    row(entry.code || "—", entry.name, Math.round(entry.debit * 100) / 100, Math.round(entry.credit * 100) / 100);
+    row(entry.code || "—", entry.name, round2(entry.debit), round2(entry.credit));
   }
   row("");
-  const r2 = (n: number) => Math.round(n * 100) / 100;
-  row("", "TOTALS", r2(debits), r2(credits));
-  row("", "NET (cash movement)", "", r2(credits - debits));
+  row("", "TOTALS", round2(debits), round2(credits));
+  row("", "NET (cash movement)", "", round2(credits - debits));
   return lines.join("\n");
 };
 

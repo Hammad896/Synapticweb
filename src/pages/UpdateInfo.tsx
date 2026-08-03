@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Clock, Loader2 } from "lucide-react";
 import Logo from "@/components/Logo";
 import { Button, Field, inputClass } from "@/components/kit";
+import { BLOOD_GROUPS } from "@/admin/types";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -30,8 +31,6 @@ interface RequestInfo {
   bank_name?: string;
   bank_iban?: string;
 }
-
-const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
 /** Everything required except NTN — non-filers genuinely don't have one. */
 const FIELDS: Array<{

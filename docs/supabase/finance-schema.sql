@@ -21,6 +21,17 @@ alter table employees add column if not exists staff_type text not null default 
 -- increased in the app; editable in the employee form.
 alter table employees add column if not exists last_raise_at date;
 
+-- The delete rule, enforced at depth: a person with payroll rows or issued
+-- documents cannot be deleted by ANY access path — app, SQL editor, script.
+-- The app blocks first with a friendly message listing what's linked; these
+-- constraints are the guarantee behind it.
+alter table payroll_items drop constraint if exists payroll_items_employee_id_fkey;
+alter table payroll_items add constraint payroll_items_employee_id_fkey
+  foreign key (employee_id) references employees(id) on delete restrict;
+alter table documents drop constraint if exists documents_employee_id_fkey;
+alter table documents add constraint documents_employee_id_fkey
+  foreign key (employee_id) references employees(id) on delete restrict;
+
 -- Tier-1 HR record fields (2026-08): identity + payment details. Bank fields
 -- feed the salary slips; blood group feeds the ID card; NTN feeds the salary
 -- certificates. All fillable by the employee through a self-service link.

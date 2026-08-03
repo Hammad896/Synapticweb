@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { Employee } from "@/admin/types";
-import { loadLayout } from "@/hr/layout";
+import { ink, line, muted, openLetterhead } from "@/hr/letterhead";
 import { wrap } from "@/hr/pdf";
 import { pkr } from "./calc";
 import { DEFAULT_SLIP_NOTE, netPay, type PayrollItem } from "./types";
@@ -26,10 +26,6 @@ const COMPANY = {
   phone: "+92-313-9676896",
   signatory: "Hammad — CEO, Synaptic Lab",
 };
-
-const ink = rgb(0.08, 0.08, 0.1);
-const muted = rgb(0.42, 0.42, 0.47);
-const line = rgb(0.8, 0.8, 0.84);
 
 interface Frame {
   page: PDFPage;
@@ -213,41 +209,23 @@ export const renderSalarySlip = async (
   employee: Employee | null,
   noteText: string = DEFAULT_SLIP_NOTE,
 ): Promise<Uint8Array> => {
-  let letterhead: ArrayBuffer | null = null;
-  try {
-    const response = await fetch("/letterhead.pdf");
-    if (response.ok) letterhead = await response.arrayBuffer();
-  } catch {
-    letterhead = null;
-  }
-  if (!letterhead) return renderPlain(item, employee, noteText);
+  const doc = await openLetterhead();
+  // Without the artwork the slip draws its own company header + signature.
+  if (!doc.hasArtwork) return renderPlain(item, employee, noteText);
 
-  const pdf = await PDFDocument.load(letterhead);
-  const page = pdf.getPages()[0];
-  const { width } = page.getSize();
-  const font = await pdf.embedStandardFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedStandardFont(StandardFonts.HelveticaBold);
-
-  // Left/right come from the letters' calibrated text box, but the slip uses
-  // its own top offset: the letter margin (≈210pt) is sized for long prose and
-  // left a wide empty band under the header artwork. The blue band ends
-  // ≈121pt from the top; 148 starts the slip just below it with breathing
-  // room, and the compact body still finishes well clear of the signature.
-  const layout = loadLayout();
-  const slipTop = Math.min(layout.marginTop, 148);
   drawSlipBody(
     {
-      page,
-      font,
-      bold,
-      left: layout.marginLeft,
-      right: width - layout.marginRight,
-      y: page.getSize().height - slipTop,
+      page: doc.page,
+      font: doc.font,
+      bold: doc.bold,
+      left: doc.left,
+      right: doc.right,
+      y: doc.top,
     },
     item,
     employee,
     noteText,
   );
 
-  return pdf.save();
+  return doc.pdf.save();
 };

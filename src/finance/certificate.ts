@@ -1,9 +1,8 @@
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import type { Employee } from "@/admin/types";
-import { loadLayout } from "@/hr/layout";
+import { ink, line, muted, openLetterhead } from "@/hr/letterhead";
 import { wrap } from "@/hr/pdf";
-import { fiscalYearRange, monthLabel, pkr, round2 } from "./calc";
-import { netPay, type PayrollItem, type Transaction } from "./types";
+import { fiscalYearRange, monthLabel, nameNeedle, pkr, round2 } from "./calc";
+import { earnedMonthOf, netPay, type PayrollItem, type Transaction } from "./types";
 
 /**
  * The annual salary certificate — what an employee attaches to their FBR
@@ -23,16 +22,6 @@ export interface CertificateParams {
   transactions: Transaction[];
   taxNote: string;
 }
-
-const ink = rgb(0.08, 0.08, 0.1);
-const muted = rgb(0.42, 0.42, 0.47);
-const line = rgb(0.8, 0.8, 0.84);
-
-/** First meaningful token of a name — "M. Farhan" → "farhan". */
-const nameNeedle = (fullName: string): string => {
-  const tokens = fullName.toLowerCase().replace(/\./g, "").split(/\s+/).filter((t) => t.length > 2);
-  return tokens[0] ?? fullName.toLowerCase();
-};
 
 export const monthlySalaries = (
   params: Pick<CertificateParams, "employee" | "fiscalYear" | "payroll" | "transactions">,
@@ -59,9 +48,7 @@ export const monthlySalaries = (
     if (!t.description.toLowerCase().includes(needle)) continue;
     // Salaries are paid the month AFTER they are earned; attribute the ledger
     // entry to the previous month so it lines up with the payroll register.
-    const paid = new Date(t.date + "T00:00:00");
-    paid.setMonth(paid.getMonth() - 1);
-    const earnedMonth = paid.toISOString().slice(0, 7);
+    const earnedMonth = earnedMonthOf(t.date);
     if (byMonth.has(earnedMonth)) continue; // register already covers it
     byMonth.set(earnedMonth, (byMonth.get(earnedMonth) ?? 0) + t.amount);
   }
@@ -79,25 +66,9 @@ export const renderSalaryCertificate = async (
   const total = round2(rows.reduce((sum, r) => sum + r.amount, 0));
   const [from, to] = fiscalYearRange(fiscalYear);
 
-  let base: ArrayBuffer | null = null;
-  try {
-    const response = await fetch("/letterhead.pdf");
-    if (response.ok) base = await response.arrayBuffer();
-  } catch {
-    base = null;
-  }
-
-  const pdf = base ? await PDFDocument.load(base) : await PDFDocument.create();
-  const page = base ? pdf.getPages()[0] : pdf.addPage([595.28, 841.89]);
-  const font = await pdf.embedStandardFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedStandardFont(StandardFonts.HelveticaBold);
-
-  const layout = loadLayout();
-  const { width, height } = page.getSize();
-  const left = layout.marginLeft;
-  const right = width - layout.marginRight;
+  const { pdf, page, font, bold, left, right, top } = await openLetterhead(90);
   const contentWidth = right - left;
-  let y = height - (base ? Math.min(layout.marginTop, 148) : 90);
+  let y = top;
 
   const title = "SALARY CERTIFICATE";
   page.drawText(title, {

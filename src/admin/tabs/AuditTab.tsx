@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Bug, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { Button, EmptyState, inputClass } from "@/components/kit";
+import { downloadFile } from "@/lib/utils";
 import type { AuditEntry } from "../repository";
 
 /**
@@ -70,13 +71,11 @@ const AuditTab = ({ audit }: { audit: AuditEntry[] }) => {
         .slice(0, 100)
         .map((e) => ({ at: e.createdAt, actor: e.actor, action: e.action, target: e.target })),
     };
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `synaptic-bug-report-${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    downloadFile(
+      `synaptic-bug-report-${new Date().toISOString().slice(0, 10)}.json`,
+      JSON.stringify(report, null, 2),
+      "application/json",
+    );
   };
 
   return (

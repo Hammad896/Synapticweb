@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/auth";
 import { joinerAnnouncement } from "@/hr/automations";
 import { getFinanceRepository } from "@/finance/repository";
+import { nameNeedle } from "@/finance/calc";
 import {
   getRepository,
   type Announcement,
@@ -165,11 +166,8 @@ export const useHrData = () => {
           finance.listPayroll().catch(() => []),
           finance.listTransactions().catch(() => []),
         ]);
-        const needle = employee.fullName
-          .toLowerCase()
-          .replace(/\./g, "")
-          .split(/\s+/)
-          .filter((t) => t.length > 2)[0] ?? employee.fullName.toLowerCase();
+        // The same matching rule the certificate and reconciliation use.
+        const needle = nameNeedle(employee.fullName);
 
         const linkedPayroll = payrollRows.filter(
           (p) => p.employeeId === id || p.employeeName.toLowerCase().includes(needle),

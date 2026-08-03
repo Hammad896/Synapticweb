@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Award, CheckCircle2, Download, FileDown, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Badge, Button, EmptyState, Field, inputClass } from "@/components/kit";
-import { SortTh, type SortState } from "@/lib/useSort";
+import { SortTh, cycleSort, sortItems, type SortState } from "@/lib/useSort";
+import { errorMessage } from "@/lib/utils";
 import type { Employee } from "@/admin/types";
 import { openPdf } from "@/hr/pdf";
 import { fiscalYearOf, monthLabel, pkr } from "../calc";
@@ -28,6 +29,17 @@ interface Props {
   onDeleteItem: (item: PayrollItem) => Promise<void>;
   onDeleteItems: (items: PayrollItem[]) => Promise<void>;
 }
+
+const ROW_ACCESSORS: Record<string, (i: PayrollItem) => string | number> = {
+  slip: (i) => i.slipNo,
+  employee: (i) => i.employeeName.toLowerCase(),
+  basic: (i) => i.basic,
+  bonus: (i) => i.bonus,
+  deduction: (i) => i.deduction,
+  net: (i) => netPay(i),
+  payDate: (i) => i.payDate,
+  status: (i) => i.status,
+};
 
 const PayrollPanel = ({
   payroll,
@@ -145,38 +157,8 @@ const PayrollPanel = ({
 
   /* One sort state shared by every month's table — consistent columns. */
   const [rowSort, setRowSort] = useState<SortState | null>(null);
-  const toggleRowSort = (key: string) =>
-    setRowSort((current) =>
-      current?.key !== key
-        ? { key, dir: "asc" }
-        : current.dir === "asc"
-          ? { key, dir: "desc" }
-          : null,
-    );
-  const sortRows = (items: PayrollItem[]) => {
-    if (!rowSort) return items;
-    const accessors: Record<string, (i: PayrollItem) => string | number> = {
-      slip: (i) => i.slipNo,
-      employee: (i) => i.employeeName.toLowerCase(),
-      basic: (i) => i.basic,
-      bonus: (i) => i.bonus,
-      deduction: (i) => i.deduction,
-      net: (i) => netPay(i),
-      payDate: (i) => i.payDate,
-      status: (i) => i.status,
-    };
-    const accessor = accessors[rowSort.key];
-    if (!accessor) return items;
-    return [...items].sort((a, b) => {
-      const va = accessor(a);
-      const vb = accessor(b);
-      const cmp =
-        typeof va === "number" && typeof vb === "number"
-          ? va - vb
-          : String(va).localeCompare(String(vb));
-      return rowSort.dir === "asc" ? cmp : -cmp;
-    });
-  };
+  const toggleRowSort = (key: string) => setRowSort((current) => cycleSort(current, key));
+  const sortRows = (items: PayrollItem[]) => sortItems(items, ROW_ACCESSORS, rowSort);
 
   const removeSelected = async () => {
     const confirmed = selectedRows.filter((i) => i.status === "confirmed" && i.transactionId);
@@ -227,9 +209,7 @@ const PayrollPanel = ({
       openPdf(await renderSalarySlip(item, employee, settings.slipNote), `${item.slipNo}.pdf`);
     } catch (caught) {
       // A silent failure reads as "the button does nothing" — say what broke.
-      window.alert(
-        `Could not generate the salary slip: ${caught instanceof Error ? caught.message : "unknown error"}`,
-      );
+      window.alert(`Could not generate the salary slip: ${errorMessage(caught)}`);
     }
   };
 
@@ -276,9 +256,7 @@ const PayrollPanel = ({
         `salary-certificate-${person.fullName.replace(/\s+/g, "-")}-FY${fy}.pdf`,
       );
     } catch (caught) {
-      window.alert(
-        `Could not generate the certificate: ${caught instanceof Error ? caught.message : "unknown error"}`,
-      );
+      window.alert(`Could not generate the certificate: ${errorMessage(caught)}`);
     } finally {
       setCertBusy(false);
     }
@@ -515,6 +493,8 @@ const PayrollPanel = ({
         </div>
       ) : (
         byMonth.map(([key, items]) => {
+          // Sorted once, rendered twice (mobile cards + desktop table).
+          const rows = sortRows(items);
           // Draft count from the FULL month, not the filtered view — Confirm
           // posts every draft in the month, so the button must say so.
           const drafts = payroll.filter(
@@ -544,7 +524,7 @@ const PayrollPanel = ({
 
               {/* Mobile: cards — a 56rem table on a phone is a scroll puzzle. */}
               <ul className="mt-3 flex flex-col gap-2 md:hidden">
-                {sortRows(items).map((item) => (
+                {rows.map((item) => (
                   <li key={item.id} className="surface p-4">
                     <div className="flex items-start gap-3">
                       <input
@@ -630,7 +610,7 @@ const PayrollPanel = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {sortRows(items).map((item) => (
+                    {rows.map((item) => (
                       <tr
                         key={item.id}
                         className={`border-b border-border last:border-b-0 ${selected.has(item.id) ? "bg-accent/5" : ""}`}

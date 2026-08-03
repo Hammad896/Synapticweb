@@ -12,38 +12,48 @@ export interface SortState {
   dir: "asc" | "desc";
 }
 
+/** asc → desc → back to natural order. */
+export const cycleSort = (current: SortState | null, key: string): SortState | null =>
+  current?.key !== key
+    ? { key, dir: "asc" }
+    : current.dir === "asc"
+      ? { key, dir: "desc" }
+      : null;
+
+/** The one comparator every sortable table shares. */
+export function sortItems<T>(
+  items: T[],
+  accessors: Record<string, (item: T) => string | number>,
+  sort: SortState | null,
+): T[] {
+  if (!sort) return items;
+  const accessor = accessors[sort.key];
+  if (!accessor) return items;
+  return [...items].sort((a, b) => {
+    const va = accessor(a);
+    const vb = accessor(b);
+    const cmp =
+      typeof va === "number" && typeof vb === "number"
+        ? va - vb
+        : String(va).localeCompare(String(vb));
+    return sort.dir === "asc" ? cmp : -cmp;
+  });
+}
+
 export function useSort<T>(
   items: T[],
   accessors: Record<string, (item: T) => string | number>,
 ) {
   const [sort, setSort] = useState<SortState | null>(null);
 
-  const sorted = useMemo(() => {
-    if (!sort) return items;
-    const accessor = accessors[sort.key];
-    if (!accessor) return items;
-    const copy = [...items].sort((a, b) => {
-      const va = accessor(a);
-      const vb = accessor(b);
-      const cmp =
-        typeof va === "number" && typeof vb === "number"
-          ? va - vb
-          : String(va).localeCompare(String(vb));
-      return sort.dir === "asc" ? cmp : -cmp;
-    });
-    return copy;
-    // accessors is a fresh object literal each render by design; key it by sort only.
+  const sorted = useMemo(
+    () => sortItems(items, accessors, sort),
+    // accessors is a fresh object literal each render by design; key by sort only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, sort]);
+    [items, sort],
+  );
 
-  const toggle = (key: string) =>
-    setSort((current) =>
-      current?.key !== key
-        ? { key, dir: "asc" }
-        : current.dir === "asc"
-          ? { key, dir: "desc" }
-          : null,
-    );
+  const toggle = (key: string) => setSort((current) => cycleSort(current, key));
 
   return { sorted, sort, toggle };
 }
