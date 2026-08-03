@@ -32,14 +32,19 @@ synapticlab/
 │   ├── ADMIN.md                     ← The panel and who may open it.
 │   ├── HR_MODULE.md                 ← Letters, ID cards, verification, automations.
 │   ├── CONTENT.md                   ← Editing the site's words without code.
-│   ├── 00_MASTER_PROMPT.md          ← Governing spec: brand, verified data, what we never claim.
-│   └── supabase/schema.sql          ← ★ The database AND the security model.
+│   ├── FINANCE.md                   ← Ledger, payroll, reports, the Excel import.
+│   ├── spec/                        ← The original build spec (00_MASTER_PROMPT + sections).
+│   └── supabase/                    ← ★ schema.sql, finance-schema.sql, self-service.sql.
+│
+├── assets/                          ← Source artwork, never served.
+│   ├── Letterhead.pdf               ← Original letterhead artwork (pre-cleanup master).
+│   └── synptic.png                  ← The brand-color source image.
 │
 ├── public/                          ← Served verbatim.
 │   ├── logo-light.png               ← Black wordmark. For LIGHT backgrounds.
 │   ├── logo-dark.png                ← White wordmark + prism. For DARK backgrounds.
 │   ├── favicon.png · og-image.png · sitemap.xml · robots.txt
-│   └── Letterhead.pdf               ← ★ The real letterhead. Letters render onto this file.
+│   └── letterhead.pdf               ← ★ The served letterhead. Letters + slips render onto it.
 │
 ├── src/
 │   ├── data/

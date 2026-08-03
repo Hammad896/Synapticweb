@@ -1,6 +1,6 @@
 # Synaptic Lab — Style Guide
 
-> The working reference for building and maintaining this site. [`00_MASTER_PROMPT.md`](./00_MASTER_PROMPT.md)
+> The working reference for building and maintaining this site. [`spec/00_MASTER_PROMPT.md`](./spec/00_MASTER_PROMPT.md)
 > says *what* to build and *why*; this file says *how*, concretely, with the class names to use.
 >
 > **The rule that governs all others: never hardcode a color, and never invent a spacing
