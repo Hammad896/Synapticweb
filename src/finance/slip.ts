@@ -225,9 +225,13 @@ export const renderSalarySlip = async (
   const font = await pdf.embedStandardFont(StandardFonts.Helvetica);
   const bold = await pdf.embedStandardFont(StandardFonts.HelveticaBold);
 
-  // The same calibrated geometry the letters use: the body stays inside the
-  // text box, clear of the logo block above and the signature + stamp below.
+  // Left/right come from the letters' calibrated text box, but the slip uses
+  // its own top offset: the letter margin (≈210pt) is sized for long prose and
+  // left a wide empty band under the header artwork. The blue band ends
+  // ≈121pt from the top; 148 starts the slip just below it with breathing
+  // room, and the compact body still finishes well clear of the signature.
   const layout = loadLayout();
+  const slipTop = Math.min(layout.marginTop, 148);
   drawSlipBody(
     {
       page,
@@ -235,7 +239,7 @@ export const renderSalarySlip = async (
       bold,
       left: layout.marginLeft,
       right: width - layout.marginRight,
-      y: page.getSize().height - layout.marginTop,
+      y: page.getSize().height - slipTop,
     },
     item,
     employee,
