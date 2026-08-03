@@ -190,16 +190,19 @@ export const useFinanceData = () => {
   const generateRun = useCallback(
     async (payMonth: string, employees: Employee[]) => {
       const eligible = employees.filter(isPayrollEligible);
-      const already = new Set(
-        payroll
-          .filter((p) => p.payMonth.slice(0, 7) === payMonth.slice(0, 7))
-          .map((p) => p.employeeName.trim().toLowerCase()),
+      // Dedupe by person id AND name: a renamed employee ("Hammad" → "Hammad
+      // Sohail") must not get a second row in a month that already has one.
+      const monthRows = payroll.filter(
+        (p) => p.payMonth.slice(0, 7) === payMonth.slice(0, 7),
       );
+      const alreadyIds = new Set(monthRows.map((p) => p.employeeId).filter(Boolean));
+      const alreadyNames = new Set(monthRows.map((p) => p.employeeName.trim().toLowerCase()));
 
       const existing = [...payroll];
       let created = 0;
       for (const person of eligible) {
-        if (already.has(person.fullName.trim().toLowerCase())) continue;
+        if (alreadyIds.has(person.id) || alreadyNames.has(person.fullName.trim().toLowerCase()))
+          continue;
         const slipNo = nextSlipNo(existing, payMonth);
         const item = await finance.createPayrollItem({
           payMonth,

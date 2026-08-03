@@ -40,20 +40,37 @@ const PayrollPanel = ({
   const [editing, setEditing] = useState<PayrollItem | null>(null);
   const [patch, setPatch] = useState<Partial<PayrollItem>>({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [monthFilter, setMonthFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [search, setSearch] = useState("");
 
   // The same predicate generateRun uses — the caption can never lie about
   // who a run will include.
   const eligible = useMemo(() => employees.filter(isPayrollEligible), [employees]);
 
-  /** Newest month first, rows grouped. */
+  const allMonths = useMemo(
+    () => [...new Set(payroll.map((p) => p.payMonth.slice(0, 7)))].sort().reverse(),
+    [payroll],
+  );
+
+  /** Newest month first, rows grouped, filters applied; empty groups drop out. */
   const byMonth = useMemo(() => {
+    const needle = search.trim().toLowerCase();
     const groups = new Map<string, PayrollItem[]>();
     for (const item of payroll) {
       const key = item.payMonth.slice(0, 7);
+      if (monthFilter && key !== monthFilter) continue;
+      if (statusFilter && item.status !== statusFilter) continue;
+      if (
+        needle &&
+        !item.employeeName.toLowerCase().includes(needle) &&
+        !item.slipNo.toLowerCase().includes(needle)
+      )
+        continue;
       groups.set(key, [...(groups.get(key) ?? []), item]);
     }
     return [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0]));
-  }, [payroll]);
+  }, [payroll, monthFilter, statusFilter, search]);
 
   const generate = async () => {
     if (!month) return;
@@ -297,6 +314,41 @@ const PayrollPanel = ({
         </div>
       )}
 
+      {/* ── Filters ───────────────────────────────────────────────────────── */}
+      {payroll.length > 0 && (
+        <div className="surface mt-4 grid grid-cols-2 gap-3 p-4 sm:grid-cols-4 sm:p-5">
+          <select
+            aria-label="Filter by pay month"
+            className={inputClass()}
+            value={monthFilter}
+            onChange={(e) => setMonthFilter(e.target.value)}
+          >
+            <option value="">All months</option>
+            {allMonths.map((m) => (
+              <option key={m} value={m}>{monthLabel(m)}</option>
+            ))}
+          </select>
+          <select
+            aria-label="Filter by status"
+            className={inputClass()}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="">Draft + confirmed</option>
+            <option value="draft">Draft only</option>
+            <option value="confirmed">Confirmed only</option>
+          </select>
+          <input
+            type="search"
+            aria-label="Search payroll"
+            placeholder="Employee or slip no…"
+            className={inputClass("col-span-2")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+      )}
+
       {/* ── Bulk selection bar ────────────────────────────────────────────── */}
       {selected.size > 0 && (
         <div className="surface mt-4 flex flex-wrap items-center gap-3 border-accent/40 p-3 sm:px-5">
@@ -327,13 +379,21 @@ const PayrollPanel = ({
       {byMonth.length === 0 ? (
         <div className="mt-6">
           <EmptyState
-            title="No payroll runs yet"
-            description="Pick a month above and generate the first run, or import the Excel history from Settings."
+            title={payroll.length === 0 ? "No payroll runs yet" : "Nothing matches these filters"}
+            description={
+              payroll.length === 0
+                ? "Pick a month above and generate the first run, or import the Excel history from Settings."
+                : "Loosen a filter to see more."
+            }
           />
         </div>
       ) : (
         byMonth.map(([key, items]) => {
-          const drafts = items.filter((i) => i.status === "draft");
+          // Draft count from the FULL month, not the filtered view — Confirm
+          // posts every draft in the month, so the button must say so.
+          const drafts = payroll.filter(
+            (p) => p.status === "draft" && p.payMonth.slice(0, 7) === key,
+          );
           const total = items.reduce((sum, i) => sum + netPay(i), 0);
           return (
             <section key={key} className="mt-6">

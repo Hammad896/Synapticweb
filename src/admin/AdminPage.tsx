@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Database, LogOut, TrendingUp, TriangleAlert, Undo2, X } from "lucide-react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Badge, Button } from "@/components/kit";
@@ -168,6 +169,7 @@ const AdminPage = () => {
         )}
 
         <AnimatePresence mode="wait">
+          {/* keyed by tab: a crash in one section resets when you switch away */}
           <motion.div
             key={tab}
             initial={{ opacity: 0, y: 8 }}
@@ -175,6 +177,7 @@ const AdminPage = () => {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           >
+          <ErrorBoundary>
             {tab === "overview" && (
               <OverviewTab
                 employees={data.employees}
@@ -272,6 +275,7 @@ const AdminPage = () => {
             )}
 
             {tab === "audit" && <AuditTab audit={data.audit} />}
+          </ErrorBoundary>
           </motion.div>
         </AnimatePresence>
         </div>

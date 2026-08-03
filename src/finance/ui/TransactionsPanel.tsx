@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from "react";
-import { Download, Pencil, Plus, StickyNote, Trash2, Upload, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Download, Pencil, Plus, StickyNote, Trash2, Upload, X } from "lucide-react";
 import { Badge, Button, EmptyState, Field, inputClass } from "@/components/kit";
 import { shortDate } from "@/admin/format";
 import { applyFilter, EMPTY_FILTER, pkr, totalsOf, yearsOf, type TransactionFilter } from "../calc";
@@ -56,6 +56,48 @@ const TransactionsPanel = ({
     [transactions, filter],
   );
   const totals = useMemo(() => totalsOf(filtered), [filtered]);
+
+  /* ── Pagination — totals above always cover the WHOLE filtered set ─────── */
+  const PAGE_SIZE = 50;
+  const [page, setPage] = useState(0);
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount - 1);
+  const paged = useMemo(
+    () => filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE),
+    [filtered, currentPage],
+  );
+  // Changing any filter jumps back to the first page of the new result set.
+  useEffect(() => setPage(0), [filter]);
+
+  const pager = pageCount > 1 && (
+    <div className="mt-3 flex items-center justify-between gap-3">
+      <span className="text-xs tabular-nums text-muted-foreground">
+        {currentPage * PAGE_SIZE + 1}–{Math.min((currentPage + 1) * PAGE_SIZE, filtered.length)} of{" "}
+        {filtered.length}
+      </span>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="secondary"
+          className="px-3 py-1.5 text-xs"
+          disabled={currentPage === 0}
+          onClick={() => setPage(currentPage - 1)}
+        >
+          <ChevronLeft size={13} aria-hidden="true" /> Prev
+        </Button>
+        <span className="text-xs tabular-nums text-muted-foreground">
+          {currentPage + 1} / {pageCount}
+        </span>
+        <Button
+          variant="secondary"
+          className="px-3 py-1.5 text-xs"
+          disabled={currentPage >= pageCount - 1}
+          onClick={() => setPage(currentPage + 1)}
+        >
+          Next <ChevronRight size={13} aria-hidden="true" />
+        </Button>
+      </div>
+    </div>
+  );
 
   /** The type→category coupling, in one place — form and filter both use it. */
   const categoriesFor = (type: string) =>
@@ -133,16 +175,16 @@ const TransactionsPanel = ({
     });
 
   const allVisibleSelected =
-    filtered.length > 0 && filtered.every((t) => selected.has(t.id));
+    paged.length > 0 && paged.every((t) => selected.has(t.id));
 
   const toggleAllVisible = () =>
     setSelected((prev) => {
       if (allVisibleSelected) {
         const next = new Set(prev);
-        for (const t of filtered) next.delete(t.id);
+        for (const t of paged) next.delete(t.id);
         return next;
       }
-      return new Set([...prev, ...filtered.map((t) => t.id)]);
+      return new Set([...prev, ...paged.map((t) => t.id)]);
     });
 
   const selectedRows = useMemo(
@@ -488,7 +530,7 @@ const TransactionsPanel = ({
         <>
           {/* Mobile: cards */}
           <ul className="mt-4 flex flex-col gap-2 md:hidden">
-            {filtered.map((t) => (
+            {paged.map((t) => (
               <li key={t.id} className="surface p-4">
                 <div className="flex items-start justify-between gap-3">
                   <input
@@ -542,6 +584,7 @@ const TransactionsPanel = ({
               </li>
             ))}
           </ul>
+          <div className="md:hidden">{pager}</div>
 
           {/* Desktop: table */}
           <div className="surface mt-4 hidden overflow-x-auto md:block">
@@ -569,7 +612,7 @@ const TransactionsPanel = ({
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((t) => (
+                {paged.map((t) => (
                   <tr
                     key={t.id}
                     className={`border-b border-border last:border-b-0 ${selected.has(t.id) ? "bg-accent/5" : ""}`}
@@ -639,6 +682,7 @@ const TransactionsPanel = ({
               </tbody>
             </table>
           </div>
+          <div className="hidden md:block">{pager}</div>
         </>
       )}
     </div>
