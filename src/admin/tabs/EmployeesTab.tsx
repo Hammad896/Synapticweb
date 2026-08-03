@@ -22,7 +22,7 @@ import { ActionSheet, Drawer, SheetAction } from "../Sheet";
 import { initialsOf, money, shortDate } from "../format";
 import type { Employee, EmployeeDraft } from "../types";
 import type { UpdateRequest } from "../repository";
-import { cn } from "@/lib/utils";
+import { cn, errorMessage } from "@/lib/utils";
 
 type Filter = "all" | "active" | "inactive";
 
@@ -136,7 +136,12 @@ const EmployeesTab = ({
         `Update link for ${employee.fullName} — copied to your clipboard, valid 24 hours:\n\n${url}\n\nSend it by WhatsApp or email. Their submission appears here for your approval.`,
       );
     } catch (caught) {
-      window.alert(caught instanceof Error ? caught.message : "Could not create the link.");
+      const message = errorMessage(caught, "Could not create the link.");
+      window.alert(
+        message.includes("employee_update_requests")
+          ? "The self-service table isn't in the database yet — run docs/supabase/self-service.sql in the Supabase SQL editor first."
+          : `Could not create the link: ${message}`,
+      );
     }
   };
 
