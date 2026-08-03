@@ -44,8 +44,8 @@ closing reports, all admin-only behind the same RLS allowlist as HR.
 | Screen | What it does |
 |---|---|
 | **Finance → Dashboard** | All-time / per-year totals, available-after-reserve, monthly income-vs-expense chart, breakdowns by category and source. |
-| **Finance → Transactions** | The ledger. Add/edit/delete with date, type, category, description, amount, and a free **notes** field for reminders (note icon in the list). Every row carries a system number **NNN-YYYY** (001-2026…), assigned on create, restarting each year, permanent through edits, searchable. Multi-select checkboxes with bulk delete (deleting a payroll-linked salary expense reverts that payroll row to draft). Filter by year, month, type, category, and text. |
-| **Finance → Payroll** | Generate a month's run — one editable row per **Active · Internal** employee, pre-filled from their current salary. Confirming posts one `Salary` expense per row to the ledger and links it. Editing or deleting a confirmed row keeps that ledger entry in sync. Slip PDF per row (`SYN-SS-YYYYMM-NNN`), rendered on the REAL letterhead — the same `/letterhead.pdf` artwork (signature + stamp) and calibrated layout the letters use, with the editable note from Settings printed verbatim. |
+| **Finance → Transactions** | The ledger, paginated at 50 rows. Add/edit/delete with date, type, category, description, amount, and a free **notes** field for reminders (note icon in the list). Every row carries a system number **NNN-YYYY** (001-2026…), assigned on create, restarting each year, permanent through edits, searchable. Multi-select checkboxes with bulk delete (deleting a payroll-linked salary expense reverts that payroll row to draft). Filter by year, month, type, category, and text — totals and CSV export always cover the whole filtered set, not just the visible page. |
+| **Finance → Payroll** | Generate a month's run — one editable row per **Active · Internal** employee, pre-filled from their current salary (deduped by employee id, so renames never create doubles). Filter runs by month, draft/confirmed status, or employee/slip search; multi-select with bulk delete. Confirming posts one `Salary` expense per row to the ledger and links it. Editing or deleting a confirmed row keeps that ledger entry in sync. Slip PDF per row (`SYN-SS-YYYYMM-NNN`), rendered on the REAL letterhead — the same `/letterhead.pdf` artwork (signature + stamp) the letters use, with the editable note from Settings printed verbatim. |
 | **Finance → Reports** | Monthly and yearly closing tables (opening carried forward, same math as the Excel sheet) plus **downloads**: financial report (totals + income by source + expenses by category, each line with its account code), yearly closings, monthly closings, and the scoped transaction list — all CSV, scoped by the year picker. |
 | **Finance → Settings** | Editable income-source and expense-category lists with **chart-of-accounts codes** (Salary 2998, Legal 6500, Accessories 6550, Subscription 6551, customers 0001…) — add / rename / recode / retire / delete. The reserve amount, the **salary slip note** (default: the FBR self-filing text), and the import button. |
 | **Employees** | Now defaults to **Active**; a Former filter reveals history. Each person has a payroll type: **Internal** (monthly payroll) or **Outsource** (paid per project through the ledger). Marking someone Former removes them from future runs and keeps everything they ever had. |
@@ -95,3 +95,26 @@ hand-edited — by `node scripts/build-finance-seed.mjs`, which parses
 `finance-data-for-import/` and refuses to write unless the parse reconciles.
 Both are gitignored (PII in a public repo); a fresh clone without them still
 builds and deploys — only the import button and `finance.test.ts` need them.
+
+## Syncing from the Excel workbook
+
+When the owner updates `finance-data-for-import/Synaptic Lab - Finance
+Manager.xlsx`, run:
+
+```bash
+SB_EMAIL=... SB_PASS=... node scripts/sync-from-excel-live.mjs         # dry run
+SB_EMAIL=... SB_PASS=... node scripts/sync-from-excel-live.mjs --apply
+```
+
+(after dumping the sheets to `graphify-out/.excel_dump.json` with openpyxl —
+see the script header). It multiset-diffs transactions (inserts numbered rows,
+reports extras but **never auto-deletes**), token-matches team members so
+renames don't duplicate people, and inserts missing payroll rows by slip
+number. Follow with `scripts/reconcile-payroll-live.mjs --apply` to relink
+payroll rows to their salary expenses. Both are idempotent.
+
+## Failure containment
+
+Every admin section renders inside an ErrorBoundary: a display error shows a
+"try again" card for that section instead of blanking the whole back office,
+and never writes anything.
