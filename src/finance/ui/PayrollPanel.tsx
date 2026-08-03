@@ -542,7 +542,70 @@ const PayrollPanel = ({
                 )}
               </div>
 
-              <div className="surface mt-3 overflow-x-auto">
+              {/* Mobile: cards — a 56rem table on a phone is a scroll puzzle. */}
+              <ul className="mt-3 flex flex-col gap-2 md:hidden">
+                {sortRows(items).map((item) => (
+                  <li key={item.id} className="surface p-4">
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${item.slipNo}`}
+                        className="mt-1 h-4 w-4 shrink-0 accent-current"
+                        checked={selected.has(item.id)}
+                        onChange={() => toggleSelected(item.id)}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">
+                          {item.employeeName}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                          <span className="tabular-nums text-accent">{item.slipNo}</span>
+                          {item.payDate && ` · pays ${item.payDate}`}
+                        </p>
+                        <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+                          {pkr(item.basic)} basic
+                          {item.bonus > 0 && ` + ${pkr(item.bonus)} bonus`}
+                          {item.deduction > 0 && ` − ${pkr(item.deduction)} ded.`}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1.5">
+                        <p className="text-sm font-medium tabular-nums text-foreground">
+                          {pkr(netPay(item))}
+                        </p>
+                        <Badge tone={item.status === "confirmed" ? "success" : "warning"} dot>
+                          {item.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex gap-2">
+                      <Button
+                        variant="secondary"
+                        className="flex-1 py-1.5 text-xs"
+                        onClick={() => void slip(item)}
+                      >
+                        <FileDown size={12} aria-hidden="true" /> Slip
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        className="flex-1 py-1.5 text-xs"
+                        onClick={() => startEdit(item)}
+                      >
+                        <Pencil size={12} aria-hidden="true" /> Edit
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        className="flex-1 py-1.5 text-xs text-red-500"
+                        onClick={() => void remove(item)}
+                      >
+                        <Trash2 size={12} aria-hidden="true" /> Delete
+                      </Button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Desktop: the full table */}
+              <div className="surface mt-3 hidden overflow-x-auto md:block">
                 <table className="w-full min-w-[56rem] border-collapse text-left">
                   <thead>
                     <tr className="border-b border-border">

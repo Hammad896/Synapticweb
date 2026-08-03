@@ -250,7 +250,11 @@ export const Stat = ({
       <Label>{label}</Label>
       {Icon && <Icon size={16} aria-hidden="true" className="shrink-0 text-accent" />}
     </div>
-    <p className="type-display mt-4 text-3xl tabular-nums text-foreground">{value}</p>
+    {/* Clamped + wrappable: a 13-digit PKR figure must shrink on a phone,
+        never overflow the tile. */}
+    <p className="type-display mt-4 break-all text-2xl tabular-nums text-foreground sm:text-3xl">
+      {value}
+    </p>
     {detail && <p className="mt-2 text-xs text-muted-foreground">{detail}</p>}
   </div>
 );
