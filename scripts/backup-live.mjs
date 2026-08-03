@@ -14,12 +14,20 @@ const db = createClient(
   "sb_publishable_V1IN3-d-DJCCv6uP5puzLg_YBi4LfcA",
 );
 
+if (!process.env.SB_EMAIL || !process.env.SB_PASS) {
+  console.error(
+    "SB_EMAIL / SB_PASS are not set. Add them as repository secrets: " +
+      "GitHub → Settings → Secrets and variables → Actions → New repository secret.",
+  );
+  process.exit(1);
+}
+
 const { error: auth } = await db.auth.signInWithPassword({
   email: process.env.SB_EMAIL,
   password: process.env.SB_PASS,
 });
 if (auth) {
-  console.error("sign-in failed:", auth.message);
+  console.error("sign-in failed:", auth.message, "— check the SB_EMAIL / SB_PASS secrets.");
   process.exit(1);
 }
 
