@@ -31,21 +31,31 @@ interface RequestInfo {
   bank_iban?: string;
 }
 
-const FIELDS: Array<{ key: string; label: string; type?: string; hint?: string }> = [
-  { key: "full_name", label: "Full name", hint: "As written on your CNIC" },
-  { key: "phone", label: "Phone number" },
-  { key: "cnic", label: "CNIC", hint: "e.g. 37405-1234567-1" },
-  { key: "father_name", label: "Father / guardian name" },
-  { key: "date_of_birth", label: "Date of birth", type: "date" },
-  { key: "blood_group", label: "Blood group", hint: "e.g. B+" },
-  { key: "email", label: "Email" },
-  { key: "address", label: "City / address" },
-  { key: "ntn", label: "NTN (if you are an FBR filer)", hint: "Leave empty if you don't have one" },
-  { key: "bank_name", label: "Bank name", hint: "Where your salary should go" },
-  { key: "bank_iban", label: "IBAN / account number" },
-  { key: "emergency_name", label: "Emergency contact — name" },
-  { key: "emergency_relationship", label: "Emergency contact — relationship" },
-  { key: "emergency_phone", label: "Emergency contact — phone" },
+const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
+
+/** Everything required except NTN — non-filers genuinely don't have one. */
+const FIELDS: Array<{
+  key: string;
+  label: string;
+  type?: string;
+  hint?: string;
+  required?: boolean;
+  options?: string[];
+}> = [
+  { key: "full_name", label: "Full name", hint: "As written on your CNIC", required: true },
+  { key: "phone", label: "Phone number", required: true },
+  { key: "cnic", label: "CNIC", hint: "e.g. 37405-1234567-1", required: true },
+  { key: "father_name", label: "Father / guardian name", required: true },
+  { key: "date_of_birth", label: "Date of birth", type: "date", required: true },
+  { key: "blood_group", label: "Blood group", required: true, options: BLOOD_GROUPS },
+  { key: "email", label: "Email", type: "email", required: true },
+  { key: "address", label: "City / address", required: true },
+  { key: "ntn", label: "NTN — only if you are an FBR filer", hint: "Leave empty if you don't have one" },
+  { key: "bank_name", label: "Bank name", hint: "Where your salary should go", required: true },
+  { key: "bank_iban", label: "IBAN / account number", required: true },
+  { key: "emergency_name", label: "Emergency contact — name", required: true },
+  { key: "emergency_relationship", label: "Emergency contact — relationship", required: true },
+  { key: "emergency_phone", label: "Emergency contact — phone", required: true },
 ];
 
 const UpdateInfo = () => {
@@ -83,6 +93,12 @@ const UpdateInfo = () => {
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!supabase) return;
+    // Belt and braces on top of the browser's `required` handling.
+    const missing = FIELDS.filter((f) => f.required && !values[f.key]?.trim());
+    if (missing.length > 0) {
+      window.alert(`Please fill in: ${missing.map((f) => f.label).join(", ")}`);
+      return;
+    }
     setSubmitting(true);
     try {
       const { data, error } = await supabase.rpc("submit_update_request", {
@@ -164,16 +180,39 @@ const UpdateInfo = () => {
 
               <form onSubmit={submit} className="surface mt-6 flex flex-col gap-5 p-6">
                 {FIELDS.map((field) => (
-                  <Field key={field.key} id={`u-${field.key}`} label={field.label} hint={field.hint}>
-                    <input
-                      id={`u-${field.key}`}
-                      type={field.type ?? "text"}
-                      value={values[field.key] ?? ""}
-                      onChange={(e) =>
-                        setValues((v) => ({ ...v, [field.key]: e.target.value }))
-                      }
-                      className={inputClass()}
-                    />
+                  <Field
+                    key={field.key}
+                    id={`u-${field.key}`}
+                    label={field.required ? `${field.label} *` : field.label}
+                    hint={field.hint}
+                  >
+                    {field.options ? (
+                      <select
+                        id={`u-${field.key}`}
+                        required={field.required}
+                        value={values[field.key] ?? ""}
+                        onChange={(e) =>
+                          setValues((v) => ({ ...v, [field.key]: e.target.value }))
+                        }
+                        className={inputClass()}
+                      >
+                        <option value="">Select…</option>
+                        {field.options.map((option) => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        id={`u-${field.key}`}
+                        type={field.type ?? "text"}
+                        required={field.required}
+                        value={values[field.key] ?? ""}
+                        onChange={(e) =>
+                          setValues((v) => ({ ...v, [field.key]: e.target.value }))
+                        }
+                        className={inputClass()}
+                      />
+                    )}
                   </Field>
                 ))}
 
@@ -182,7 +221,8 @@ const UpdateInfo = () => {
                   {submitting ? "Sending…" : "Submit my details"}
                 </Button>
                 <p className="text-center text-xs text-muted-foreground">
-                  This link works once and expires 24 hours after it was issued.
+                  Fields marked * are required. This link works once and expires
+                  24 hours after it was issued.
                 </p>
               </form>
             </>
