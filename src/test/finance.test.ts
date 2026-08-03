@@ -7,7 +7,14 @@ import {
   totalsOf,
   yearlyClosings,
 } from "@/finance/calc";
-import { defaultPayDate, netPay, nextSlipNo, type PayrollItem, type Transaction } from "@/finance/types";
+import {
+  defaultPayDate,
+  netPay,
+  nextSlipNo,
+  nextTransactionNo,
+  type PayrollItem,
+  type Transaction,
+} from "@/finance/types";
 import { parseTransactionsCsv, transactionsToCsv } from "@/finance/csv";
 import seed from "@/finance/seed/finance-seed.json";
 
@@ -21,6 +28,7 @@ import seed from "@/finance/seed/finance-seed.json";
 const ledger: Transaction[] = seed.transactions.map((t, i) => ({
   id: String(i),
   legacyId: t.legacyId,
+  txnNo: "",
   date: t.date,
   type: t.type as Transaction["type"],
   category: t.category,
@@ -142,6 +150,16 @@ describe("payroll rules", () => {
   });
 });
 
+describe("transaction numbering", () => {
+  it("continues within a year and restarts for a new one", () => {
+    const existing = [{ txnNo: "001-2026" }, { txnNo: "014-2026" }, { txnNo: "260-2025" }];
+    expect(nextTransactionNo(existing, "2026-08-04")).toBe("015-2026");
+    expect(nextTransactionNo(existing, "2025-12-31")).toBe("261-2025");
+    expect(nextTransactionNo(existing, "2027-01-01")).toBe("001-2027");
+    expect(nextTransactionNo([], "2026-01-01")).toBe("001-2026");
+  });
+});
+
 describe("CSV backup round trip", () => {
   it("export → parse returns the whole ledger unchanged", () => {
     const csv = transactionsToCsv(ledger);
@@ -166,6 +184,7 @@ describe("CSV backup round trip", () => {
     expect(drafts).toEqual([
       {
         legacyId: "",
+        txnNo: "",
         date: "2026-08-05",
         type: "expense",
         category: "Subscription",
@@ -175,6 +194,7 @@ describe("CSV backup round trip", () => {
       },
       {
         legacyId: "",
+        txnNo: "",
         date: "2026-08-05",
         type: "income",
         category: "Qamar",

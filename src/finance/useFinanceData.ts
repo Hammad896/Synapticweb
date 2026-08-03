@@ -6,9 +6,11 @@ import { getFinanceRepository } from "./repository";
 import { importFinanceSeed, type ImportReport } from "./importSeed";
 import { monthLabel } from "./calc";
 import {
+  DEFAULT_SLIP_NOTE,
   defaultPayDate,
   netPay,
   nextSlipNo,
+  nextTransactionNo,
   type CategoryKind,
   type FinanceCategory,
   type FinanceSettings,
@@ -33,7 +35,10 @@ export const useFinanceData = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [payroll, setPayroll] = useState<PayrollItem[]>([]);
-  const [settings, setSettings] = useState<FinanceSettings>({ reserve: 100000 });
+  const [settings, setSettings] = useState<FinanceSettings>({
+    reserve: 100000,
+    slipNote: DEFAULT_SLIP_NOTE,
+  });
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -70,21 +75,46 @@ export const useFinanceData = () => {
   const saveTransaction = useCallback(
     async (draft: TransactionDraft, editing: Transaction | null) => {
       if (editing) {
-        await finance.updateTransaction(editing.id, draft);
+        // The number is permanent — editing (even the date) never renumbers.
+        await finance.updateTransaction(editing.id, { ...draft, txnNo: editing.txnNo });
         await hr.audit(actor, "finance.transaction.update", draft.description || draft.category, {
           amount: draft.amount,
           date: draft.date,
         });
       } else {
-        await finance.createTransaction(draft);
+        const txnNo = nextTransactionNo(transactions, draft.date);
+        await finance.createTransaction({ ...draft, txnNo });
         await hr.audit(actor, "finance.transaction.create", draft.description || draft.category, {
           amount: draft.amount,
           type: draft.type,
+          txnNo,
         });
       }
       await refresh();
     },
-    [finance, hr, actor, refresh],
+    [finance, hr, actor, transactions, refresh],
+  );
+
+  /**
+   * Deleting a Salary expense that a payroll row created must not strand that
+   * row as "confirmed but paying nothing": the row reverts to draft, so one
+   * press of "Confirm & post to ledger" recreates the expense. Returns how
+   * many rows were reverted so the UI can say so.
+   */
+  const revertPayrollLinkedTo = useCallback(
+    async (transactionIds: Set<string>): Promise<number> => {
+      const linked = payroll.filter(
+        (p) => p.transactionId && transactionIds.has(p.transactionId),
+      );
+      for (const item of linked) {
+        await finance.updatePayrollItem(item.id, { status: "draft", transactionId: null });
+        await hr.audit(actor, "finance.payroll.revert-to-draft", item.slipNo, {
+          reason: "linked salary transaction deleted",
+        });
+      }
+      return linked.length;
+    },
+    [finance, hr, actor, payroll],
   );
 
   const deleteTransaction = useCallback(
@@ -94,9 +124,11 @@ export const useFinanceData = () => {
         amount: transaction.amount,
         date: transaction.date,
       });
+      const reverted = await revertPayrollLinkedTo(new Set([transaction.id]));
       await refresh();
+      return reverted;
     },
-    [finance, hr, actor, refresh],
+    [finance, hr, actor, refresh, revertPayrollLinkedTo],
   );
 
   const deleteTransactions = useCallback(
@@ -106,17 +138,21 @@ export const useFinanceData = () => {
         total: selected.reduce((sum, t) => sum + t.amount, 0),
         ids: selected.map((t) => t.legacyId || t.id),
       });
+      const reverted = await revertPayrollLinkedTo(new Set(selected.map((t) => t.id)));
       await refresh();
+      return reverted;
     },
-    [finance, hr, actor, refresh],
+    [finance, hr, actor, refresh, revertPayrollLinkedTo],
   );
 
   /* ── Categories ────────────────────────────────────────────────────────── */
 
   const saveCategory = useCallback(
-    async (kind: CategoryKind, name: string, id?: string) => {
-      await finance.saveCategory(kind, name, id);
-      await hr.audit(actor, id ? "finance.category.rename" : "finance.category.create", name);
+    async (kind: CategoryKind, name: string, accountCode: string, id?: string) => {
+      await finance.saveCategory(kind, name, accountCode, id);
+      await hr.audit(actor, id ? "finance.category.update" : "finance.category.create", name, {
+        accountCode,
+      });
       await refresh();
     },
     [finance, hr, actor, refresh],
@@ -209,6 +245,7 @@ export const useFinanceData = () => {
         const linked = transactions.find((t) => t.id === item.transactionId);
         await finance.updateTransaction(item.transactionId, {
           legacyId: linked?.legacyId ?? "",
+          txnNo: linked?.txnNo ?? "",
           date: next.payDate || next.payMonth,
           type: "expense",
           category: "Salary",
@@ -230,16 +267,20 @@ export const useFinanceData = () => {
       const drafts = payroll.filter(
         (p) => p.status === "draft" && p.payMonth.slice(0, 7) === payMonth.slice(0, 7),
       );
+      const createdThisRun: Array<Pick<Transaction, "txnNo">> = [];
       for (const item of drafts) {
+        const date = item.payDate || defaultPayDate(item.payMonth);
         const transaction = await finance.createTransaction({
           legacyId: "",
-          date: item.payDate || defaultPayDate(item.payMonth),
+          txnNo: nextTransactionNo([...transactions, ...createdThisRun], date),
+          date,
           type: "expense",
           category: "Salary",
           description: salaryDescription(item),
           notes: "",
           amount: netPay(item),
         });
+        createdThisRun.push({ txnNo: transaction.txnNo });
         await finance.updatePayrollItem(item.id, {
           status: "confirmed",
           transactionId: transaction.id,
@@ -251,7 +292,7 @@ export const useFinanceData = () => {
       await refresh();
       return drafts.length;
     },
-    [finance, hr, actor, payroll, refresh],
+    [finance, hr, actor, payroll, transactions, refresh],
   );
 
   const deletePayrollItem = useCallback(
@@ -293,8 +334,21 @@ export const useFinanceData = () => {
       if (newIncome.length) await finance.ensureCategories("income_source", newIncome);
       if (newExpense.length) await finance.ensureCategories("expense_category", newExpense);
 
-      const withKey = drafts.filter((d) => d.legacyId);
-      const withoutKey = drafts.filter((d) => !d.legacyId);
+      // Assign system numbers up front, continuing each year's sequence. A
+      // number from the file is honoured only on rows that also carry a backup
+      // id (a restore); anything else gets a fresh number, so hand-made CSVs
+      // can never collide with the sequence.
+      const numbered: TransactionDraft[] = [];
+      const pool: Array<Pick<Transaction, "txnNo">> = [...transactions];
+      for (const draft of drafts) {
+        const txnNo =
+          draft.legacyId && draft.txnNo ? draft.txnNo : nextTransactionNo(pool, draft.date);
+        pool.push({ txnNo });
+        numbered.push({ ...draft, txnNo });
+      }
+
+      const withKey = numbered.filter((d) => d.legacyId);
+      const withoutKey = numbered.filter((d) => !d.legacyId);
       const addedWithKey = withKey.length ? await finance.insertTransactions(withKey) : 0;
       const addedPlain = withoutKey.length ? await finance.createTransactions(withoutKey) : 0;
 
@@ -310,7 +364,7 @@ export const useFinanceData = () => {
         newCategories: [...newIncome, ...newExpense],
       };
     },
-    [finance, hr, actor, categories, refresh],
+    [finance, hr, actor, categories, transactions, refresh],
   );
 
   /* ── Settings & import ─────────────────────────────────────────────────── */

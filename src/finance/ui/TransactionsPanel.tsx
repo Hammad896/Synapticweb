@@ -22,8 +22,9 @@ interface Props {
   incomeSources: FinanceCategory[];
   expenseCategories: FinanceCategory[];
   onSave: (draft: TransactionDraft, editing: Transaction | null) => Promise<void>;
-  onDelete: (transaction: Transaction) => Promise<void>;
-  onDeleteMany: (transactions: Transaction[]) => Promise<void>;
+  /** Both return how many payroll rows were reverted to draft (salary links). */
+  onDelete: (transaction: Transaction) => Promise<number>;
+  onDeleteMany: (transactions: Transaction[]) => Promise<number>;
   onImportCsv: (drafts: TransactionDraft[]) => Promise<{
     added: number;
     skipped: number;
@@ -77,6 +78,7 @@ const TransactionsPanel = ({
     setEditing(transaction);
     setDraft({
       legacyId: transaction.legacyId,
+      txnNo: transaction.txnNo,
       date: transaction.date,
       type: transaction.type,
       category: transaction.category,
@@ -104,6 +106,14 @@ const TransactionsPanel = ({
     }
   };
 
+  const notifyReverted = (reverted: number) => {
+    if (reverted > 0) {
+      window.alert(
+        `${reverted} payroll row${reverted === 1 ? " was" : "s were"} linked to the deleted salary expense${reverted === 1 ? "" : "s"} and reverted to draft.\n\nGo to Payroll and press "Confirm & post to ledger" to repost — or edit the rows first.`,
+      );
+    }
+  };
+
   const remove = async (transaction: Transaction) => {
     const label = transaction.description || transaction.category;
     if (
@@ -111,12 +121,13 @@ const TransactionsPanel = ({
         `Delete this ${transaction.type} of PKR ${pkr(transaction.amount)} (${label})?\n\nThis cannot be undone.`,
       )
     ) {
-      await onDelete(transaction);
+      const reverted = await onDelete(transaction);
       setSelected((prev) => {
         const next = new Set(prev);
         next.delete(transaction.id);
         return next;
       });
+      notifyReverted(reverted);
     }
   };
 
@@ -155,8 +166,9 @@ const TransactionsPanel = ({
         `Delete ${selectedRows.length} selected transaction${selectedRows.length === 1 ? "" : "s"} (PKR ${pkr(total)} in total)?\n\nThis cannot be undone.`,
       )
     ) {
-      await onDeleteMany(selectedRows);
+      const reverted = await onDeleteMany(selectedRows);
       setSelected(new Set());
+      notifyReverted(reverted);
     }
   };
 
@@ -505,6 +517,9 @@ const TransactionsPanel = ({
                       {t.description || t.category}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
+                      {(t.txnNo || t.legacyId) && (
+                        <span className="tabular-nums text-accent">{t.txnNo || t.legacyId} · </span>
+                      )}
                       {shortDate(t.date)} · {t.category}
                     </p>
                     {t.notes && (
@@ -556,7 +571,7 @@ const TransactionsPanel = ({
                       onChange={toggleAllVisible}
                     />
                   </th>
-                  {["Date", "Type", "Category", "Description", "Amount", ""].map((h) => (
+                  {["No.", "Date", "Type", "Category", "Description", "Amount", ""].map((h) => (
                     <th
                       key={h}
                       scope="col"
@@ -581,6 +596,9 @@ const TransactionsPanel = ({
                         checked={selected.has(t.id)}
                         onChange={() => toggleSelected(t.id)}
                       />
+                    </td>
+                    <td className="whitespace-nowrap px-4 py-3 text-xs tabular-nums text-accent">
+                      {t.txnNo || t.legacyId || "—"}
                     </td>
                     <td className="whitespace-nowrap px-5 py-3 text-sm tabular-nums text-muted-foreground">
                       {shortDate(t.date)}
@@ -610,23 +628,25 @@ const TransactionsPanel = ({
                     >
                       {t.type === "income" ? "+" : "−"}{pkr(t.amount)}
                     </td>
-                    <td className="whitespace-nowrap px-5 py-3 text-right">
-                      <Button
-                        variant="ghost"
-                        aria-label={`Edit ${t.description || t.category}`}
-                        className="px-2 py-1 text-xs"
-                        onClick={() => startEdit(t)}
-                      >
-                        <Pencil size={13} aria-hidden="true" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        aria-label={`Delete ${t.description || t.category}`}
-                        className="px-2 py-1 text-xs text-red-500"
-                        onClick={() => void remove(t)}
-                      >
-                        <Trash2 size={13} aria-hidden="true" />
-                      </Button>
+                    <td className="w-20 px-4 py-3">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          aria-label={`Edit ${t.description || t.category}`}
+                          className="tap rounded-full text-muted-foreground transition-colors hover:text-accent"
+                          onClick={() => startEdit(t)}
+                        >
+                          <Pencil size={15} aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Delete ${t.description || t.category}`}
+                          className="tap rounded-full text-muted-foreground transition-colors hover:text-red-500"
+                          onClick={() => void remove(t)}
+                        >
+                          <Trash2 size={15} aria-hidden="true" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

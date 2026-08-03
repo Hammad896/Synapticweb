@@ -1,12 +1,13 @@
 import { supabase } from "@/lib/supabase";
-import type {
-  CategoryKind,
-  FinanceCategory,
-  FinanceSettings,
-  PayrollDraft,
-  PayrollItem,
-  Transaction,
-  TransactionDraft,
+import {
+  DEFAULT_SLIP_NOTE,
+  type CategoryKind,
+  type FinanceCategory,
+  type FinanceSettings,
+  type PayrollDraft,
+  type PayrollItem,
+  type Transaction,
+  type TransactionDraft,
 } from "./types";
 
 /**
@@ -27,7 +28,7 @@ export interface FinanceRepository {
   createTransactions(drafts: TransactionDraft[]): Promise<number>;
 
   listCategories(): Promise<FinanceCategory[]>;
-  saveCategory(kind: CategoryKind, name: string, id?: string): Promise<void>;
+  saveCategory(kind: CategoryKind, name: string, accountCode: string, id?: string): Promise<void>;
   toggleCategory(id: string, isActive: boolean): Promise<void>;
   removeCategory(id: string): Promise<void>;
   /** Seeds any of the given names that are missing. Never deletes. */
@@ -60,6 +61,7 @@ const bool = (value: unknown, fallback = false): boolean =>
 const toTransaction = (row: Row): Transaction => ({
   id: str(row.id),
   legacyId: str(row.legacy_id),
+  txnNo: str(row.txn_no),
   date: str(row.date),
   type: str(row.type, "expense") as Transaction["type"],
   category: str(row.category),
@@ -71,6 +73,7 @@ const toTransaction = (row: Row): Transaction => ({
 
 const toTransactionRow = (draft: TransactionDraft) => ({
   legacy_id: draft.legacyId || null,
+  txn_no: draft.txnNo || null,
   date: draft.date,
   type: draft.type,
   category: draft.category,
@@ -208,15 +211,26 @@ class SupabaseFinanceRepository implements FinanceRepository {
       id: str(row.id),
       kind: str(row.kind, "expense_category") as FinanceCategory["kind"],
       name: str(row.name),
+      accountCode: str(row.account_code),
       sortOrder: num(row.sort_order, 100),
       isActive: bool(row.is_active, true),
     }));
   }
 
-  async saveCategory(kind: CategoryKind, name: string, id?: string): Promise<void> {
+  async saveCategory(
+    kind: CategoryKind,
+    name: string,
+    accountCode: string,
+    id?: string,
+  ): Promise<void> {
     const { error } = id
-      ? await this.db.from("finance_categories").update({ name }).eq("id", id)
-      : await this.db.from("finance_categories").insert({ kind, name });
+      ? await this.db
+          .from("finance_categories")
+          .update({ name, account_code: accountCode })
+          .eq("id", id)
+      : await this.db
+          .from("finance_categories")
+          .insert({ kind, name, account_code: accountCode });
     if (error) throw error;
   }
 
@@ -300,16 +314,22 @@ class SupabaseFinanceRepository implements FinanceRepository {
   async getSettings(): Promise<FinanceSettings> {
     const { data } = await this.db
       .from("finance_settings")
-      .select("reserve")
+      .select("*")
       .eq("id", "main")
       .maybeSingle();
-    return { reserve: num(data?.reserve, 100000) };
+    return {
+      reserve: num(data?.reserve, 100000),
+      slipNote: str(data?.slip_note) || DEFAULT_SLIP_NOTE,
+    };
   }
 
   async saveSettings(settings: FinanceSettings): Promise<void> {
-    const { error } = await this.db
-      .from("finance_settings")
-      .upsert({ id: "main", reserve: settings.reserve, updated_at: new Date().toISOString() });
+    const { error } = await this.db.from("finance_settings").upsert({
+      id: "main",
+      reserve: settings.reserve,
+      slip_note: settings.slipNote,
+      updated_at: new Date().toISOString(),
+    });
     if (error) throw error;
   }
 }
@@ -335,9 +355,9 @@ const write = <T,>(key: string, value: T[]) =>
 
 class LocalFinanceRepository implements FinanceRepository {
   async listTransactions() {
-    // Older local records predate notes.
+    // Older local records predate notes and txn numbers.
     return read<Transaction>(KEY.transactions)
-      .map((t) => ({ ...t, notes: t.notes ?? "" }))
+      .map((t) => ({ ...t, notes: t.notes ?? "", txnNo: t.txnNo ?? "" }))
       .sort(
         (a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt),
       );
@@ -402,17 +422,22 @@ class LocalFinanceRepository implements FinanceRepository {
   }
 
   async listCategories() {
-    return read<FinanceCategory>(KEY.categories).sort((a, b) => a.sortOrder - b.sortOrder);
+    return read<FinanceCategory>(KEY.categories)
+      .map((c) => ({ ...c, accountCode: c.accountCode ?? "" }))
+      .sort((a, b) => a.sortOrder - b.sortOrder);
   }
 
-  async saveCategory(kind: CategoryKind, name: string, id?: string) {
+  async saveCategory(kind: CategoryKind, name: string, accountCode: string, id?: string) {
     const all = read<FinanceCategory>(KEY.categories);
     if (id) {
-      write(KEY.categories, all.map((c) => (c.id === id ? { ...c, name } : c)));
+      write(
+        KEY.categories,
+        all.map((c) => (c.id === id ? { ...c, name, accountCode } : c)),
+      );
     } else {
       write(KEY.categories, [
         ...all,
-        { id: crypto.randomUUID(), kind, name, sortOrder: 1000, isActive: true },
+        { id: crypto.randomUUID(), kind, name, accountCode, sortOrder: 1000, isActive: true },
       ]);
     }
   }
@@ -444,6 +469,7 @@ class LocalFinanceRepository implements FinanceRepository {
         id: crypto.randomUUID(),
         kind,
         name,
+        accountCode: "",
         sortOrder: (i + 1) * 10,
         isActive: true,
       }));
@@ -497,10 +523,13 @@ class LocalFinanceRepository implements FinanceRepository {
   async getSettings(): Promise<FinanceSettings> {
     try {
       const raw = localStorage.getItem(KEY.settings);
-      const parsed = raw ? (JSON.parse(raw) as FinanceSettings) : null;
-      return { reserve: parsed?.reserve ?? 100000 };
+      const parsed = raw ? (JSON.parse(raw) as Partial<FinanceSettings>) : null;
+      return {
+        reserve: parsed?.reserve ?? 100000,
+        slipNote: parsed?.slipNote || DEFAULT_SLIP_NOTE,
+      };
     } catch {
-      return { reserve: 100000 };
+      return { reserve: 100000, slipNote: DEFAULT_SLIP_NOTE };
     }
   }
 

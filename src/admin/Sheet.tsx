@@ -7,10 +7,16 @@ import { cn } from "@/lib/utils";
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 /** Locks the page behind an overlay. Without this the body scrolls underneath a
- *  sheet, which instantly breaks the illusion of a native surface. */
+ *  sheet, which instantly breaks the illusion of a native surface.
+ *
+ *  Mobile only: these surfaces are `md:hidden`, but this hook used to run on
+ *  desktop too — freezing page scroll behind an invisible drawer whenever the
+ *  employee editor was open. The editor is inline on desktop; nothing needs a
+ *  lock there. */
 const useScrollLock = (active: boolean) => {
   useEffect(() => {
     if (!active) return;
+    if (window.matchMedia("(min-width: 768px)").matches) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {

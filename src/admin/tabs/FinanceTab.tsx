@@ -105,6 +105,7 @@ const FinanceTab = ({
               <PayrollPanel
                 payroll={data.payroll}
                 employees={employees}
+                settings={data.settings}
                 onGenerate={data.generateRun}
                 onConfirm={data.confirmRun}
                 onSaveItem={data.savePayrollItem}
@@ -112,7 +113,9 @@ const FinanceTab = ({
               />
             )}
 
-            {panel === "reports" && <ReportsPanel transactions={data.transactions} />}
+            {panel === "reports" && (
+              <ReportsPanel transactions={data.transactions} categories={data.categories} />
+            )}
 
             {panel === "settings" && (
               <SettingsPanel

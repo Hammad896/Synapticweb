@@ -151,7 +151,10 @@ export const applyFilter = (
     if (
       needle &&
       !t.description.toLowerCase().includes(needle) &&
-      !t.category.toLowerCase().includes(needle)
+      !t.category.toLowerCase().includes(needle) &&
+      !t.txnNo.toLowerCase().includes(needle) &&
+      !t.legacyId.toLowerCase().includes(needle) &&
+      !t.notes.toLowerCase().includes(needle)
     )
       return false;
     return true;

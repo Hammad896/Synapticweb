@@ -149,10 +149,24 @@ export const importFinanceSeed = async (
     }
   }
 
-  /* 3 — the ledger, verbatim, deduped on export ID */
+  /* 3 — the ledger, verbatim, deduped on export ID. System numbers (NNN-YYYY)
+         are assigned chronologically so the history reads in order. */
+  const counters = new Map<string, number>();
+  const numberFor = (date: string) => {
+    const year = date.slice(0, 4);
+    const n = (counters.get(year) ?? 0) + 1;
+    counters.set(year, n);
+    return `${String(n).padStart(3, "0")}-${year}`;
+  };
+  const chronological = [...seed.transactions].sort(
+    (a, b) => a.date.localeCompare(b.date) || a.legacyId.localeCompare(b.legacyId),
+  );
+  const numbers = new Map(chronological.map((t) => [t.legacyId, numberFor(t.date)]));
+
   const transactionsAdded = await finance.insertTransactions(
     seed.transactions.map((t) => ({
       legacyId: t.legacyId,
+      txnNo: numbers.get(t.legacyId) ?? "",
       date: t.date,
       type: t.type,
       category: t.category,

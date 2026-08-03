@@ -4,12 +4,13 @@ import { Badge, Button, EmptyState, Field, inputClass } from "@/components/kit";
 import type { Employee } from "@/admin/types";
 import { monthLabel, pkr } from "../calc";
 import { downloadCsv, payrollToCsv } from "../csv";
-import { netPay, type PayrollItem } from "../types";
+import { netPay, type FinanceSettings, type PayrollItem } from "../types";
 import { downloadSlip, renderSalarySlip } from "../slip";
 
 interface Props {
   payroll: PayrollItem[];
   employees: Employee[];
+  settings: FinanceSettings;
   onGenerate: (payMonth: string, employees: Employee[]) => Promise<number>;
   onConfirm: (payMonth: string) => Promise<number>;
   onSaveItem: (item: PayrollItem, patch: Partial<PayrollItem>) => Promise<void>;
@@ -27,6 +28,7 @@ const suggestedMonth = () => {
 const PayrollPanel = ({
   payroll,
   employees,
+  settings,
   onGenerate,
   onConfirm,
   onSaveItem,
@@ -59,7 +61,7 @@ const PayrollPanel = ({
       const created = await onGenerate(`${month}-01`, employees);
       if (created === 0) {
         window.alert(
-          "No rows to add — every Active internal employee already has a row for this month.",
+          `No rows to add — every Active internal employee already has a payroll row for ${monthLabel(month)}.\n\nManage the existing rows below instead: draft rows can be edited and confirmed to post salaries to the ledger; or delete rows here first if you want to regenerate them.`,
         );
       }
     } finally {
@@ -108,13 +110,20 @@ const PayrollPanel = ({
   };
 
   const slip = async (item: PayrollItem) => {
-    const employee =
-      employees.find((e) => e.id === item.employeeId) ??
-      employees.find(
-        (e) => e.fullName.trim().toLowerCase() === item.employeeName.trim().toLowerCase(),
-      ) ??
-      null;
-    downloadSlip(await renderSalarySlip(item, employee), item.slipNo);
+    try {
+      const employee =
+        employees.find((e) => e.id === item.employeeId) ??
+        employees.find(
+          (e) => e.fullName.trim().toLowerCase() === item.employeeName.trim().toLowerCase(),
+        ) ??
+        null;
+      downloadSlip(await renderSalarySlip(item, employee, settings.slipNote), item.slipNo);
+    } catch (caught) {
+      // A silent failure reads as "the button does nothing" — say what broke.
+      window.alert(
+        `Could not generate the salary slip: ${caught instanceof Error ? caught.message : "unknown error"}`,
+      );
+    }
   };
 
   const editNet = netPay({
@@ -310,32 +319,34 @@ const PayrollPanel = ({
                             {item.status}
                           </Badge>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3 text-right">
-                          <Button
-                            variant="ghost"
-                            aria-label={`Salary slip for ${item.employeeName}`}
-                            title="Download salary slip (PDF)"
-                            className="px-2 py-1 text-xs"
-                            onClick={() => void slip(item)}
-                          >
-                            <FileDown size={13} aria-hidden="true" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            aria-label={`Edit ${item.slipNo}`}
-                            className="px-2 py-1 text-xs"
-                            onClick={() => startEdit(item)}
-                          >
-                            <Pencil size={13} aria-hidden="true" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            aria-label={`Delete ${item.slipNo}`}
-                            className="px-2 py-1 text-xs text-red-500"
-                            onClick={() => void remove(item)}
-                          >
-                            <Trash2 size={13} aria-hidden="true" />
-                          </Button>
+                        <td className="w-24 px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              aria-label={`Salary slip for ${item.employeeName}`}
+                              title="Download salary slip (PDF)"
+                              className="tap rounded-full text-muted-foreground transition-colors hover:text-accent"
+                              onClick={() => void slip(item)}
+                            >
+                              <FileDown size={15} aria-hidden="true" />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Edit ${item.slipNo}`}
+                              className="tap rounded-full text-muted-foreground transition-colors hover:text-accent"
+                              onClick={() => startEdit(item)}
+                            >
+                              <Pencil size={15} aria-hidden="true" />
+                            </button>
+                            <button
+                              type="button"
+                              aria-label={`Delete ${item.slipNo}`}
+                              className="tap rounded-full text-muted-foreground transition-colors hover:text-red-500"
+                              onClick={() => void remove(item)}
+                            >
+                              <Trash2 size={15} aria-hidden="true" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

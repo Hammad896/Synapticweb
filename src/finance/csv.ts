@@ -1,4 +1,11 @@
-import { netPay, type PayrollItem, type Transaction, type TransactionDraft } from "./types";
+import { breakdown, pkr, totalsOf, type PeriodClosing } from "./calc";
+import {
+  netPay,
+  type FinanceCategory,
+  type PayrollItem,
+  type Transaction,
+  type TransactionDraft,
+} from "./types";
 
 /**
  * CSV backup and bulk upload for the ledger. The export is the backup format:
@@ -9,11 +16,11 @@ import { netPay, type PayrollItem, type Transaction, type TransactionDraft } fro
 const escape = (value: string | number): string =>
   `"${String(value).replace(/"/g, '""')}"`;
 
-/** id,date,type,category,description,amount,notes — the id doubles as the dedupe key. */
+/** id,no,date,… — the id doubles as the dedupe key; no is the system NNN-YYYY. */
 export const transactionsToCsv = (transactions: Transaction[]): string => {
-  const header = ["id", "date", "type", "category", "description", "amount", "notes"];
+  const header = ["id", "no", "date", "type", "category", "description", "amount", "notes"];
   const rows = transactions.map((t) =>
-    [t.legacyId || t.id, t.date, t.type === "income" ? "Income" : "Expense", t.category, t.description, t.amount, t.notes]
+    [t.legacyId || t.id, t.txnNo, t.date, t.type === "income" ? "Income" : "Expense", t.category, t.description, t.amount, t.notes]
       .map(escape)
       .join(","),
   );
@@ -47,6 +54,61 @@ export const downloadCsv = (filename: string, content: string) => {
   link.download = filename;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+};
+
+/** Monthly or yearly closing table, exactly as shown in Reports. */
+export const closingsToCsv = (
+  rows: PeriodClosing[],
+  labelOf: (period: string) => string,
+): string => {
+  const header = ["period", "opening", "income", "expenses", "net", "closing"];
+  const lines = rows.map((r) =>
+    [labelOf(r.period), r.opening, r.income, r.expenses, r.net, r.closing].map(escape).join(","),
+  );
+  return [header.map(escape).join(","), ...lines].join("\n");
+};
+
+/**
+ * The financial report: totals, then income by source and expenses by
+ * category, each line carrying its chart-of-accounts code. One file an
+ * accountant can open and read top to bottom.
+ */
+export const financialReportToCsv = (
+  transactions: Transaction[],
+  categories: FinanceCategory[],
+  scopeLabel: string,
+): string => {
+  const codeOf = (kind: FinanceCategory["kind"], name: string) =>
+    categories.find(
+      (c) => c.kind === kind && c.name.toLowerCase() === name.toLowerCase(),
+    )?.accountCode ?? "";
+
+  const totals = totalsOf(transactions);
+  const lines: string[] = [];
+  const row = (...cells: Array<string | number>) => lines.push(cells.map(escape).join(","));
+
+  row("SYNAPTIC LAB — FINANCIAL REPORT");
+  row("Scope", scopeLabel);
+  row("Transactions", totals.count);
+  row("Total income (PKR)", pkr(totals.income));
+  row("Total expenses (PKR)", pkr(totals.expenses));
+  row("Net (PKR)", pkr(totals.net));
+  row("");
+
+  row("INCOME BY SOURCE");
+  row("account", "source", "amount");
+  for (const item of breakdown(transactions, "income")) {
+    row(codeOf("income_source", item.category), item.category, item.amount);
+  }
+  row("");
+
+  row("EXPENSES BY CATEGORY");
+  row("account", "category", "amount");
+  for (const item of breakdown(transactions, "expense")) {
+    row(codeOf("expense_category", item.category), item.category, item.amount);
+  }
+
+  return lines.join("\n");
 };
 
 /* ── Parsing ──────────────────────────────────────────────────────────────── */
@@ -150,6 +212,7 @@ export const parseTransactionsCsv = (text: string): CsvParseResult => {
 
     drafts.push({
       legacyId: col("id") === -1 ? "" : (cells[col("id")] ?? ""),
+      txnNo: col("no") === -1 ? "" : (cells[col("no")] ?? ""),
       date,
       type: rawType,
       category,

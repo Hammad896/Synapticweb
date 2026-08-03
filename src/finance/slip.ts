@@ -1,12 +1,20 @@
-import { PDFDocument, StandardFonts, rgb, type PDFFont } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { Employee } from "@/admin/types";
-import { pkr, monthLabel } from "./calc";
-import { netPay, type PayrollItem } from "./types";
+import { loadLayout } from "@/hr/layout";
+import { pkr } from "./calc";
+import { DEFAULT_SLIP_NOTE, netPay, type PayrollItem } from "./types";
 
 /**
- * The salary slip, in the exact layout and wording the company has always
- * issued (03-EMPLOYEES-AND-PAYROLL.md). One page, A4, system-generated note
- * and the FBR tax disclaimer verbatim — that text is policy, not decoration.
+ * The salary slip, rendered onto the REAL Letterhead.pdf — the same artwork the
+ * letters module uses, carrying the company's actual signature and stamp. The
+ * body sits inside the calibrated text box from hr/layout.ts, so it can never
+ * print across the signature.
+ *
+ * The tax note at the bottom comes from Finance → Settings (editable); the
+ * default is the standard FBR self-filing text.
+ *
+ * If /letterhead.pdf cannot be loaded (local dev without the asset), the slip
+ * falls back to a clean plain-A4 rendering rather than failing the download.
  */
 
 const COMPANY = {
@@ -18,82 +26,96 @@ const COMPANY = {
   signatory: "Hammad — CEO, Synaptic Lab",
 };
 
-const TAX_NOTE =
-  "Note: Synaptic Lab does not withhold or deduct any income tax from salaries. " +
-  "Each employee is responsible for calculating, declaring and paying their own " +
-  "income tax to the FBR as per applicable regulations.";
+const ink = rgb(0.08, 0.08, 0.1);
+const muted = rgb(0.42, 0.42, 0.47);
+const line = rgb(0.8, 0.8, 0.84);
 
-const A4: [number, number] = [595.28, 841.89];
-const MARGIN = 56;
+interface Frame {
+  page: PDFPage;
+  font: PDFFont;
+  bold: PDFFont;
+  left: number;
+  right: number;
+  y: number;
+  pageWidth: number;
+}
 
-const ink = rgb(0.13, 0.13, 0.15);
-const muted = rgb(0.45, 0.45, 0.5);
-const line = rgb(0.85, 0.85, 0.88);
+const wrapText = (text: string, font: PDFFont, size: number, maxWidth: number): string[] => {
+  const lines: string[] = [];
+  for (const paragraph of text.split("\n")) {
+    let current = "";
+    for (const word of paragraph.split(" ")) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (font.widthOfTextAtSize(candidate, size) > maxWidth && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = candidate;
+      }
+    }
+    lines.push(current);
+  }
+  return lines;
+};
 
-export const renderSalarySlip = async (
+/** Draws the slip body inside the frame; returns the y it finished at. */
+const drawSlipBody = (
+  frame: Frame,
   item: PayrollItem,
   employee: Employee | null,
-): Promise<Uint8Array> => {
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage(A4);
-  const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  noteText: string,
+): number => {
+  const { page, font, bold, left, right } = frame;
+  const width = right - left;
+  const centerX = (value: string, f: PDFFont, size: number) =>
+    left + (width - f.widthOfTextAtSize(value, size)) / 2;
+  let y = frame.y;
 
-  const width = A4[0] - MARGIN * 2;
-  let y = A4[1] - MARGIN;
-
-  const text = (
-    value: string,
-    options: { x?: number; size?: number; font?: PDFFont; color?: ReturnType<typeof rgb>; align?: "left" | "right" | "center" } = {},
-  ) => {
-    const size = options.size ?? 10;
-    const f = options.font ?? font;
-    let x = options.x ?? MARGIN;
-    if (options.align === "center") x = (A4[0] - f.widthOfTextAtSize(value, size)) / 2;
-    if (options.align === "right") x = A4[0] - MARGIN - f.widthOfTextAtSize(value, size);
-    page.drawText(value, { x, y, size, font: f, color: options.color ?? ink });
-  };
-
-  const rule = (offset = 0) =>
+  const rule = (offset = 0, color = line) =>
     page.drawLine({
-      start: { x: MARGIN, y: y + offset },
-      end: { x: MARGIN + width, y: y + offset },
+      start: { x: left, y: y + offset },
+      end: { x: right, y: y + offset },
       thickness: 0.75,
-      color: line,
+      color,
     });
 
-  /* ── Header ────────────────────────────────────────────────────────────── */
-  text(COMPANY.name, { size: 20, font: bold, align: "center" });
-  y -= 16;
-  text(COMPANY.tagline, { size: 10, color: muted, align: "center" });
-  y -= 13;
-  text(COMPANY.address, { size: 9, color: muted, align: "center" });
-  y -= 28;
-
-  text("SALARY SLIP", { size: 14, font: bold, align: "center" });
+  /* Title */
+  page.drawText("SALARY SLIP", { x: centerX("SALARY SLIP", bold, 15), y, size: 15, font: bold, color: ink });
   y -= 24;
   rule(10);
 
+  /* Meta */
   const monthNames = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"];
   const [py, pm] = item.payMonth.split("-").map(Number);
-  const fullPeriod = monthNames[pm - 1]
-    ? `${monthNames[pm - 1]} ${py}`
-    : monthLabel(item.payMonth.slice(0, 7));
-
+  const period = monthNames[pm - 1] ? `${monthNames[pm - 1]} ${py}` : item.payMonth.slice(0, 7);
   const issueDate = new Date().toISOString().slice(0, 10);
-  text(`Document No: ${item.slipNo}`, { size: 10 });
-  text(`Pay Period: ${fullPeriod}`, { size: 10, align: "right" });
-  y -= 15;
-  text(`Issue Date: ${issueDate}`, { size: 10 });
-  text(`Pay Date: ${item.payDate || "—"}`, { size: 10, align: "right" });
-  y -= 26;
 
-  /* ── Employee details ──────────────────────────────────────────────────── */
-  text("EMPLOYEE DETAILS", { size: 10, font: bold });
-  y -= 6;
+  const metaLeft = (label: string, value: string) => {
+    page.drawText(label, { x: left, y, size: 9, font, color: muted });
+    page.drawText(value, { x: left + 78, y, size: 9, font: bold, color: ink });
+  };
+  const metaRight = (label: string, value: string) => {
+    const valueX = right - font.widthOfTextAtSize(value, 9) - 2;
+    page.drawText(value, { x: valueX, y, size: 9, font: bold, color: ink });
+    page.drawText(label, {
+      x: valueX - font.widthOfTextAtSize(label, 9) - 8,
+      y, size: 9, font, color: muted,
+    });
+  };
+
+  metaLeft("Document No", item.slipNo);
+  metaRight("Pay Period", period);
+  y -= 14;
+  metaLeft("Issue Date", issueDate);
+  metaRight("Pay Date", item.payDate || "—");
+  y -= 22;
+
+  /* Employee details */
+  page.drawText("EMPLOYEE DETAILS", { x: left, y, size: 9.5, font: bold, color: ink });
+  y -= 5;
   rule();
-  y -= 16;
+  y -= 14;
 
   const details: Array<[string, string]> = [
     ["Employee Name", item.employeeName],
@@ -103,90 +125,140 @@ export const renderSalarySlip = async (
     ["Payment Mode", item.paymentMode || "Bank Transfer"],
   ];
   for (const [label, value] of details) {
-    text(label, { size: 9.5, color: muted });
-    text(value, { x: MARGIN + 150, size: 9.5 });
-    y -= 15;
+    page.drawText(label, { x: left, y, size: 9, font, color: muted });
+    page.drawText(value, { x: left + 130, y, size: 9, font, color: ink });
+    y -= 13.5;
   }
-  y -= 12;
+  y -= 10;
 
-  /* ── Earnings / deductions ─────────────────────────────────────────────── */
-  const midX = MARGIN + width / 2 + 12;
-  const rightCol = (label: string, value: string, f: PDFFont = font) => {
-    page.drawText(label, { x: midX, y, size: 9.5, font: f, color: f === bold ? ink : muted });
-    page.drawText(value, {
-      x: A4[0] - MARGIN - f.widthOfTextAtSize(value, 9.5),
-      y, size: 9.5, font: f, color: ink,
-    });
-  };
-  const leftCol = (label: string, value: string, f: PDFFont = font) => {
-    page.drawText(label, { x: MARGIN, y, size: 9.5, font: f, color: f === bold ? ink : muted });
-    page.drawText(value, {
-      x: midX - 24 - f.widthOfTextAtSize(value, 9.5),
-      y, size: 9.5, font: f, color: ink,
-    });
-  };
-
-  text("EARNINGS", { size: 10, font: bold });
-  page.drawText("DEDUCTIONS", { x: midX, y, size: 10, font: bold, color: ink });
-  y -= 6;
+  /* Earnings / deductions, two columns */
+  const midX = left + width / 2 + 10;
+  page.drawText("EARNINGS", { x: left, y, size: 9.5, font: bold, color: ink });
+  page.drawText("DEDUCTIONS", { x: midX, y, size: 9.5, font: bold, color: ink });
+  y -= 5;
   rule();
-  y -= 16;
+  y -= 14;
 
-  leftCol("Basic Salary", pkr(item.basic));
-  rightCol("Advance / Deduction", pkr(item.deduction));
-  y -= 15;
-  leftCol("Bonus / Allowance", pkr(item.bonus));
-  y -= 18;
-  leftCol("Total Earnings", pkr(item.basic + item.bonus), bold);
-  rightCol("Total Deductions", pkr(item.deduction), bold);
+  const moneyRow = (
+    colStart: number,
+    colEnd: number,
+    label: string,
+    value: string,
+    f: PDFFont,
+  ) => {
+    page.drawText(label, { x: colStart, y, size: 9, font: f, color: f === bold ? ink : muted });
+    page.drawText(value, { x: colEnd - f.widthOfTextAtSize(value, 9), y, size: 9, font: f, color: ink });
+  };
+
+  moneyRow(left, midX - 22, "Basic Salary", pkr(item.basic), font);
+  moneyRow(midX, right, "Advance / Deduction", pkr(item.deduction), font);
+  y -= 13.5;
+  moneyRow(left, midX - 22, "Bonus / Allowance", pkr(item.bonus), font);
+  y -= 16;
+  moneyRow(left, midX - 22, "Total Earnings", pkr(item.basic + item.bonus), bold);
+  moneyRow(midX, right, "Total Deductions", pkr(item.deduction), bold);
+  y -= 24;
+
+  /* Net payable band */
+  page.drawRectangle({
+    x: left, y: y - 8, width, height: 26,
+    color: rgb(0.94, 0.95, 0.97),
+  });
+  const net = `NET PAYABLE: PKR ${pkr(netPay(item))}`;
+  page.drawText(net, { x: centerX(net, bold, 11.5), y, size: 11.5, font: bold, color: ink });
   y -= 30;
 
-  /* ── Net payable ───────────────────────────────────────────────────────── */
-  page.drawRectangle({
-    x: MARGIN, y: y - 10, width, height: 30,
-    color: rgb(0.95, 0.95, 0.97),
-  });
-  y -= 1;
-  text(`NET PAYABLE: PKR ${pkr(netPay(item))}`, { size: 12, font: bold, align: "center" });
-  y -= 44;
+  /* The editable note — policy text, printed verbatim */
+  for (const noteLine of wrapText(noteText || DEFAULT_SLIP_NOTE, font, 8, width)) {
+    page.drawText(noteLine, { x: left, y, size: 8, font, color: muted });
+    y -= 10.5;
+  }
+  y -= 4;
 
-  /* ── Tax note (verbatim, wrapped) ──────────────────────────────────────── */
-  const words = TAX_NOTE.split(" ");
-  let lineText = "";
-  for (const word of words) {
-    const candidate = lineText ? `${lineText} ${word}` : word;
-    if (font.widthOfTextAtSize(candidate, 8.5) > width) {
-      text(lineText, { size: 8.5, color: muted });
-      y -= 12;
-      lineText = word;
-    } else {
-      lineText = candidate;
-    }
-  }
-  if (lineText) {
-    text(lineText, { size: 8.5, color: muted });
-    y -= 12;
-  }
+  page.drawText("This is a system-generated salary slip.", {
+    x: left, y, size: 7.5, font, color: muted,
+  });
+
+  return y;
+};
+
+/** Plain-A4 fallback when the letterhead asset is unavailable. */
+const renderPlain = async (
+  item: PayrollItem,
+  employee: Employee | null,
+  noteText: string,
+): Promise<Uint8Array> => {
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([595.28, 841.89]);
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+  const left = 60;
+  const right = 595.28 - 60;
+  const width = right - left;
+
+  let y = 841.89 - 64;
+  const center = (value: string, f: PDFFont, size: number) =>
+    left + (width - f.widthOfTextAtSize(value, size)) / 2;
+
+  page.drawText(COMPANY.name, { x: center(COMPANY.name, bold, 20), y, size: 20, font: bold, color: ink });
+  y -= 16;
+  page.drawText(COMPANY.tagline, { x: center(COMPANY.tagline, font, 10), y, size: 10, font, color: muted });
+  y -= 12;
+  page.drawText(COMPANY.address, { x: center(COMPANY.address, font, 9), y, size: 9, font, color: muted });
+  y -= 34;
+
+  y = drawSlipBody({ page, font, bold, left, right, y, pageWidth: 595.28 }, item, employee, noteText);
+
+  /* Signature block — the plain version has no artwork to lean on */
   y -= 46;
+  page.drawLine({ start: { x: left, y: y + 12 }, end: { x: left + 170, y: y + 12 }, thickness: 0.75, color: ink });
+  page.drawText("Authorized Signatory", { x: left, y, size: 9, font, color: ink });
+  y -= 12;
+  page.drawText(COMPANY.signatory, { x: left, y, size: 9, font, color: muted });
 
-  /* ── Signature ─────────────────────────────────────────────────────────── */
-  page.drawLine({
-    start: { x: MARGIN, y: y + 12 },
-    end: { x: MARGIN + 170, y: y + 12 },
-    thickness: 0.75,
-    color: ink,
-  });
-  text("Authorized Signatory", { size: 9 });
-  y -= 13;
-  text(COMPANY.signatory, { size: 9, color: muted });
+  const footer = `${COMPANY.email} | ${COMPANY.phone} | ${COMPANY.address}`;
+  page.drawText(footer, { x: center(footer, font, 8), y: 52, size: 8, font, color: muted });
 
-  /* ── Footer ────────────────────────────────────────────────────────────── */
-  y = MARGIN + 8;
-  text(`${COMPANY.email} | ${COMPANY.phone} | ${COMPANY.address}`, {
-    size: 8, color: muted, align: "center",
-  });
-  y -= 11;
-  text("This is a system-generated salary slip.", { size: 8, color: muted, align: "center" });
+  return pdf.save();
+};
+
+export const renderSalarySlip = async (
+  item: PayrollItem,
+  employee: Employee | null,
+  noteText: string = DEFAULT_SLIP_NOTE,
+): Promise<Uint8Array> => {
+  let letterhead: ArrayBuffer | null = null;
+  try {
+    const response = await fetch("/letterhead.pdf");
+    if (response.ok) letterhead = await response.arrayBuffer();
+  } catch {
+    letterhead = null;
+  }
+  if (!letterhead) return renderPlain(item, employee, noteText);
+
+  const pdf = await PDFDocument.load(letterhead);
+  const page = pdf.getPages()[0];
+  const { width } = page.getSize();
+  const font = await pdf.embedStandardFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedStandardFont(StandardFonts.HelveticaBold);
+
+  // The same calibrated geometry the letters use: the body stays inside the
+  // text box, clear of the logo block above and the signature + stamp below.
+  const layout = loadLayout();
+  drawSlipBody(
+    {
+      page,
+      font,
+      bold,
+      left: layout.marginLeft,
+      right: width - layout.marginRight,
+      y: page.getSize().height - layout.marginTop,
+      pageWidth: width,
+    },
+    item,
+    employee,
+    noteText,
+  );
 
   return pdf.save();
 };

@@ -9,7 +9,7 @@ interface Props {
   categories: FinanceCategory[];
   settings: FinanceSettings;
   transactionCount: number;
-  onSaveCategory: (kind: CategoryKind, name: string, id?: string) => Promise<void>;
+  onSaveCategory: (kind: CategoryKind, name: string, accountCode: string, id?: string) => Promise<void>;
   onToggleCategory: (category: FinanceCategory) => Promise<void>;
   onDeleteCategory: (category: FinanceCategory) => Promise<void>;
   onSaveSettings: (settings: FinanceSettings) => Promise<void>;
@@ -19,11 +19,11 @@ interface Props {
 const KIND_META: Record<CategoryKind, { title: string; hint: string }> = {
   income_source: {
     title: "Income sources",
-    hint: "Who money comes from. Used as the category of Income transactions.",
+    hint: "Who money comes from (your customers/investors). The number is the account code — e.g. 0001, 0002…",
   },
   expense_category: {
     title: "Expense categories",
-    hint: "What money goes to. Used as the category of Expense transactions.",
+    hint: "What money goes to. The number is the account code — e.g. Salary 2998, Legal 6500.",
   },
 };
 
@@ -41,8 +41,10 @@ const CategoryList = ({
   onDelete: Props["onDeleteCategory"];
 }) => {
   const [newName, setNewName] = useState("");
+  const [newCode, setNewCode] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [editCode, setEditCode] = useState("");
 
   const rows = categories.filter((c) => c.kind === kind);
   const meta = KIND_META[kind];
@@ -50,13 +52,17 @@ const CategoryList = ({
   const add = async () => {
     const name = newName.trim();
     if (!name) return;
-    await onSave(kind, name);
+    await onSave(kind, name, newCode.trim());
     setNewName("");
+    setNewCode("");
   };
 
   const rename = async (category: FinanceCategory) => {
     const name = editName.trim();
-    if (name && name !== category.name) await onSave(kind, name, category.id);
+    const code = editCode.trim();
+    if (name && (name !== category.name || code !== category.accountCode)) {
+      await onSave(kind, name, code, category.id);
+    }
     setEditingId(null);
   };
 
@@ -90,6 +96,13 @@ const CategoryList = ({
                 }}
               >
                 <input
+                  aria-label={`Account code for ${category.name}`}
+                  placeholder="Code"
+                  className={inputClass("w-20 py-1.5 text-sm tabular-nums")}
+                  value={editCode}
+                  onChange={(e) => setEditCode(e.target.value)}
+                />
+                <input
                   aria-label={`Rename ${category.name}`}
                   className={inputClass("py-1.5 text-sm")}
                   value={editName}
@@ -106,6 +119,11 @@ const CategoryList = ({
               </form>
             ) : (
               <>
+                {category.accountCode && (
+                  <span className="w-12 shrink-0 text-xs tabular-nums text-accent">
+                    {category.accountCode}
+                  </span>
+                )}
                 <span
                   className={`flex-1 text-sm ${category.isActive ? "text-foreground" : "text-muted-foreground line-through"}`}
                 >
@@ -119,6 +137,7 @@ const CategoryList = ({
                   onClick={() => {
                     setEditingId(category.id);
                     setEditName(category.name);
+                    setEditCode(category.accountCode);
                   }}
                 >
                   <Pencil size={13} aria-hidden="true" />
@@ -156,6 +175,13 @@ const CategoryList = ({
         }}
       >
         <input
+          aria-label={`New ${meta.title.toLowerCase()} account code`}
+          placeholder="Code"
+          className={inputClass("w-20 py-2 text-sm tabular-nums")}
+          value={newCode}
+          onChange={(e) => setNewCode(e.target.value)}
+        />
+        <input
           aria-label={`New ${meta.title.toLowerCase()} name`}
           placeholder="Add new…"
           className={inputClass("py-2 text-sm")}
@@ -181,6 +207,8 @@ const SettingsPanel = ({
   onImport,
 }: Props) => {
   const [reserve, setReserve] = useState(String(settings.reserve));
+  const [slipNote, setSlipNote] = useState(settings.slipNote);
+  const [noteSaved, setNoteSaved] = useState(false);
   const [importing, setImporting] = useState(false);
   const [report, setReport] = useState<ImportReport | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -190,6 +218,12 @@ const SettingsPanel = ({
     if (Number.isFinite(value) && value >= 0) {
       await onSaveSettings({ ...settings, reserve: value });
     }
+  };
+
+  const saveSlipNote = async () => {
+    await onSaveSettings({ ...settings, slipNote: slipNote.trim() });
+    setNoteSaved(true);
+    window.setTimeout(() => setNoteSaved(false), 2500);
   };
 
   const runImport = async () => {
@@ -279,6 +313,28 @@ const SettingsPanel = ({
             Save
           </Button>
         </form>
+      </div>
+
+      {/* ── Salary slip note ──────────────────────────────────────────────── */}
+      <div className="surface mt-4 p-4 sm:p-5">
+        <Label>Salary slip note</Label>
+        <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+          Printed at the bottom of every salary slip, exactly as written here.
+          The default is the standard FBR self-filing text.
+        </p>
+        <textarea
+          aria-label="Salary slip note"
+          rows={4}
+          className={inputClass("mt-3 max-w-2xl resize-y text-sm")}
+          value={slipNote}
+          onChange={(e) => setSlipNote(e.target.value)}
+        />
+        <div className="mt-3 flex items-center gap-3">
+          <Button variant="secondary" className="px-4 py-2 text-xs" onClick={() => void saveSlipNote()}>
+            Save note
+          </Button>
+          {noteSaved && <span className="text-xs text-emerald-600">Saved ✓</span>}
+        </div>
       </div>
 
       {/* ── Category lists ────────────────────────────────────────────────── */}

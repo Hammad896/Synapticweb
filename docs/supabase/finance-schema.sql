@@ -25,14 +25,19 @@ end $$;
 
 -- ── Category lists (editable in settings, seeded below) ────────────────────
 create table if not exists finance_categories (
-  id         uuid primary key default gen_random_uuid(),
-  kind       text not null check (kind in ('income_source','expense_category')),
-  name       text not null check (char_length(name) between 2 and 40),
-  sort_order int  default 100,
-  is_active  boolean default true,
-  created_at timestamptz default now(),
+  id           uuid primary key default gen_random_uuid(),
+  kind         text not null check (kind in ('income_source','expense_category')),
+  name         text not null check (char_length(name) between 2 and 40),
+  -- Chart-of-accounts code (Salary 2998, Legal 6500, customers 0001…). Free
+  -- text, editable in settings.
+  account_code text default '',
+  sort_order   int  default 100,
+  is_active    boolean default true,
+  created_at   timestamptz default now(),
   unique (kind, name)
 );
+
+alter table finance_categories add column if not exists account_code text default '';
 
 -- ── The ledger ──────────────────────────────────────────────────────────────
 create table if not exists transactions (
@@ -57,8 +62,13 @@ create table if not exists transactions (
   updated_at  timestamptz default now()
 );
 
--- Idempotent upgrade for databases created before notes existed.
+-- Idempotent upgrades for databases created before these columns existed.
 alter table transactions add column if not exists notes text default '';
+-- System number NNN-YYYY (001-2026…), restarting each year. Assigned by the
+-- app on create and backfilled chronologically for imported history.
+alter table transactions add column if not exists txn_no text;
+create unique index if not exists transactions_txn_no_key
+  on transactions (txn_no) where txn_no is not null;
 
 create index if not exists transactions_date_idx on transactions (date);
 create index if not exists transactions_type_category_idx on transactions (type, category);
@@ -96,10 +106,15 @@ create table if not exists finance_settings (
   id         text primary key default 'main',
   -- The untouchable minimum balance. "Available" money = net balance − reserve.
   reserve    numeric(14,2) not null default 100000,
+  -- The standard note printed on every salary slip (NULL = the app's default
+  -- FBR self-filing text). Editable in Finance → Settings.
+  slip_note  text,
   updated_at timestamptz default now()
 );
 
 insert into finance_settings (id) values ('main') on conflict (id) do nothing;
+
+alter table finance_settings add column if not exists slip_note text;
 
 -- ── Row Level Security — admin allowlist only, nothing public ──────────────
 alter table finance_categories enable row level security;

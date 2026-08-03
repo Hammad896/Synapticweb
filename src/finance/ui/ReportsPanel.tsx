@@ -1,10 +1,13 @@
 import { useMemo, useState } from "react";
-import { EmptyState, inputClass } from "@/components/kit";
+import { Download } from "lucide-react";
+import { Button, EmptyState, inputClass } from "@/components/kit";
 import { monthLabel, monthlyClosings, pkr, yearlyClosings, type PeriodClosing } from "../calc";
-import type { Transaction } from "../types";
+import { closingsToCsv, downloadCsv, financialReportToCsv, transactionsToCsv } from "../csv";
+import type { FinanceCategory, Transaction } from "../types";
 
 interface Props {
   transactions: Transaction[];
+  categories: FinanceCategory[];
 }
 
 const Amount = ({ value, signed = false }: { value: number; signed?: boolean }) => (
@@ -66,12 +69,19 @@ const ClosingTable = ({
   </div>
 );
 
-const ReportsPanel = ({ transactions }: Props) => {
+const ReportsPanel = ({ transactions, categories }: Props) => {
   const years = useMemo(
     () => [...new Set(transactions.map((t) => t.date.slice(0, 4)))].sort().reverse(),
     [transactions],
   );
   const [year, setYear] = useState<string>("");
+
+  const scoped = useMemo(
+    () => (year ? transactions.filter((t) => t.date.startsWith(year)) : transactions),
+    [transactions, year],
+  );
+  const scopeLabel = year || "all time";
+  const today = new Date().toISOString().slice(0, 10);
 
   const monthly = useMemo(() => {
     // Carry-forward must run over the WHOLE history — a year filter changes
@@ -93,7 +103,70 @@ const ReportsPanel = ({ transactions }: Props) => {
 
   return (
     <div>
-      <h3 className="text-base font-medium text-foreground">Yearly closing</h3>
+      {/* ── Downloads — everything an accountant would ask for ───────────── */}
+      <div className="surface flex flex-wrap items-center gap-3 p-4 sm:p-5">
+        <div className="mr-auto">
+          <p className="text-sm font-medium text-foreground">Download reports</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            CSV files Excel opens directly. Scope follows the year picker below
+            (currently: {scopeLabel}).
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          className="px-4 py-2 text-xs"
+          onClick={() =>
+            downloadCsv(
+              `synapticlab-financial-report-${scopeLabel.replace(" ", "-")}-${today}.csv`,
+              financialReportToCsv(scoped, categories, scopeLabel),
+            )
+          }
+        >
+          <Download size={13} aria-hidden="true" />
+          Financial report
+        </Button>
+        <Button
+          variant="secondary"
+          className="px-4 py-2 text-xs"
+          onClick={() =>
+            downloadCsv(
+              `synapticlab-yearly-closings-${today}.csv`,
+              closingsToCsv(yearly, (p) => p),
+            )
+          }
+        >
+          <Download size={13} aria-hidden="true" />
+          Yearly closings
+        </Button>
+        <Button
+          variant="secondary"
+          className="px-4 py-2 text-xs"
+          onClick={() =>
+            downloadCsv(
+              `synapticlab-monthly-closings-${scopeLabel.replace(" ", "-")}-${today}.csv`,
+              closingsToCsv(monthly, monthLabel),
+            )
+          }
+        >
+          <Download size={13} aria-hidden="true" />
+          Monthly closings
+        </Button>
+        <Button
+          variant="secondary"
+          className="px-4 py-2 text-xs"
+          onClick={() =>
+            downloadCsv(
+              `synapticlab-transactions-${scopeLabel.replace(" ", "-")}-${today}.csv`,
+              transactionsToCsv(scoped),
+            )
+          }
+        >
+          <Download size={13} aria-hidden="true" />
+          Transactions
+        </Button>
+      </div>
+
+      <h3 className="mt-8 text-base font-medium text-foreground">Yearly closing</h3>
       <div className="mt-3">
         <ClosingTable
           rows={yearly}
