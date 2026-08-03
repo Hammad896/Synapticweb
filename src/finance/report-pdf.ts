@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { loadLayout } from "@/hr/layout";
 import {
+  balanceSheetAsOf,
   breakdown,
   monthLabel,
   monthlyClosings,
@@ -206,6 +207,92 @@ export const renderFinancialReport = async (params: ReportParams): Promise<Uint8
   page.drawText("This is a system-generated report derived from the company ledger.", {
     x: left, y, size: 7.5, font, color: muted,
   });
+
+  return pdf.save();
+};
+
+/**
+ * The cash-basis balance sheet as of a date, on the letterhead. This is a
+ * cash book, so it states exactly what a cash book can prove: cash on hand,
+ * loans given out of it, and how the pair was funded — and it balances by
+ * construction.
+ */
+export const renderBalanceSheet = async (
+  transactions: Transaction[],
+  asOf: string,
+): Promise<Uint8Array> => {
+  const sheet = balanceSheetAsOf(transactions, asOf);
+
+  let base: ArrayBuffer | null = null;
+  try {
+    const response = await fetch("/letterhead.pdf");
+    if (response.ok) base = await response.arrayBuffer();
+  } catch {
+    base = null;
+  }
+
+  const pdf = base ? await PDFDocument.load(base) : await PDFDocument.create();
+  const page = base ? pdf.getPages()[0] : pdf.addPage([595.28, 841.89]);
+  const font = await pdf.embedStandardFont(StandardFonts.Helvetica);
+  const bold = await pdf.embedStandardFont(StandardFonts.HelveticaBold);
+
+  const layout = loadLayout();
+  const { width, height } = page.getSize();
+  const left = layout.marginLeft;
+  const right = width - layout.marginRight;
+  let y = height - (base ? Math.min(layout.marginTop, 148) : 90);
+
+  const center = (value: string, f: PDFFont, size: number) =>
+    left + (right - left - f.widthOfTextAtSize(value, size)) / 2;
+  const row = (label: string, value: string, emphasize = false, indent = 0) => {
+    const f = emphasize ? bold : font;
+    page.drawText(label, { x: left + indent, y, size: 10, font: f, color: emphasize ? ink : muted });
+    page.drawText(value, { x: right - f.widthOfTextAtSize(value, 10), y, size: 10, font: f, color: ink });
+    y -= 16;
+  };
+  const rule = () => {
+    page.drawLine({ start: { x: left, y: y + 6 }, end: { x: right, y: y + 6 }, thickness: 0.75, color: line });
+    y -= 6;
+  };
+
+  const title = "BALANCE SHEET";
+  page.drawText(title, { x: center(title, bold, 15), y, size: 15, font: bold, color: ink });
+  y -= 17;
+  const sub = `(cash basis)  ·  as of ${sheet.asOf}`;
+  page.drawText(sub, { x: center(sub, font, 9.5), y, size: 9.5, font, color: muted });
+  y -= 32;
+
+  page.drawText("ASSETS", { x: left, y, size: 10.5, font: bold, color: ink });
+  y -= 6;
+  rule();
+  y -= 12;
+  row("Cash & bank", `PKR ${pkr(sheet.cash)}`, false, 12);
+  row("Loans receivable (Loan account, cumulative)", `PKR ${pkr(sheet.loansReceivable)}`, false, 12);
+  rule();
+  y -= 10;
+  row("TOTAL ASSETS", `PKR ${pkr(sheet.totalAssets)}`, true);
+  y -= 14;
+
+  page.drawText("FUNDED BY", { x: left, y, size: 10.5, font: bold, color: ink });
+  y -= 6;
+  rule();
+  y -= 12;
+  row("Total receipts (contributions, revenue, repayments)", `PKR ${pkr(sheet.totalReceipts)}`, false, 12);
+  row("Less operating payments (excluding loans given)", `PKR (${pkr(sheet.operatingPayments)})`, false, 12);
+  rule();
+  y -= 10;
+  row("NET FUNDING", `PKR ${pkr(round2(sheet.totalReceipts - sheet.operatingPayments))}`, true);
+  y -= 22;
+
+  const notes = [
+    "Prepared on a cash basis from the company ledger: assets are stated at the cash actually",
+    "held or lent, not at accrual values. Loan repayments received are included in receipts.",
+    "This is a system-generated statement.",
+  ];
+  for (const note of notes) {
+    page.drawText(note, { x: left, y, size: 7.5, font, color: muted });
+    y -= 10.5;
+  }
 
   return pdf.save();
 };

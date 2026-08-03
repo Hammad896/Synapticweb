@@ -17,8 +17,15 @@ import {
   yearsOf,
   type PeriodClosing,
 } from "../calc";
-import { closingsToCsv, downloadCsv, financialReportToCsv, transactionsToCsv } from "../csv";
-import { renderFinancialReport } from "../report-pdf";
+import {
+  closingsToCsv,
+  downloadCsv,
+  financialReportToCsv,
+  generalLedgerToCsv,
+  transactionsToCsv,
+  trialBalanceToCsv,
+} from "../csv";
+import { renderBalanceSheet, renderFinancialReport } from "../report-pdf";
 import type { FinanceCategory, Transaction } from "../types";
 
 interface Props {
@@ -154,9 +161,21 @@ const ReportsPanel = ({ transactions, categories }: Props) => {
   const stamp = new Date().toISOString().slice(0, 10);
   const fileBase = `synaptic-report-${(from || "start")}-to-${(to || stamp)}${typeScope ? "-" + typeScope : ""}${categoryScope ? "-" + categoryScope.toLowerCase().replace(/\s+/g, "-") : ""}`;
 
-  const downloadPdf = async () => {
+  const guarded = async (work: () => Promise<void>) => {
     setBusy(true);
     try {
+      await work();
+    } catch (caught) {
+      window.alert(
+        `Could not generate the report: ${caught instanceof Error ? caught.message : "unknown error"}`,
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const downloadPdf = () =>
+    guarded(async () =>
       openPdf(
         await renderFinancialReport({
           transactions: scoped,
@@ -168,15 +187,14 @@ const ReportsPanel = ({ transactions, categories }: Props) => {
           to,
         }),
         `${fileBase}.pdf`,
-      );
-    } catch (caught) {
-      window.alert(
-        `Could not generate the report: ${caught instanceof Error ? caught.message : "unknown error"}`,
-      );
-    } finally {
-      setBusy(false);
-    }
-  };
+      ),
+    );
+
+  const downloadBalanceSheet = () =>
+    guarded(async () => {
+      const asOf = to || stamp;
+      openPdf(await renderBalanceSheet(transactions, asOf), `synaptic-balance-sheet-${asOf}.pdf`);
+    });
 
   /* ── The standing tables ───────────────────────────────────────────────── */
   const fiscal = useMemo(() => fiscalYearClosings(transactions), [transactions]);
@@ -309,6 +327,45 @@ const ReportsPanel = ({ transactions, categories }: Props) => {
           >
             <Download size={13} aria-hidden="true" />
             Transactions CSV
+          </Button>
+          <Button
+            disabled={busy || transactions.length === 0}
+            className="px-4 py-2 text-xs"
+            title={`The cash position as of ${to || "today"} — assets and how they were funded`}
+            onClick={() => void downloadBalanceSheet()}
+          >
+            <FileText size={13} aria-hidden="true" />
+            Balance sheet PDF
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={scoped.length === 0}
+            className="px-4 py-2 text-xs"
+            title="Every transaction grouped under its account with running balances"
+            onClick={() =>
+              downloadCsv(
+                `${fileBase}-general-ledger.csv`,
+                generalLedgerToCsv(scoped, categories, `${periodLabel} · ${scopeLabel}`),
+              )
+            }
+          >
+            <Download size={13} aria-hidden="true" />
+            General ledger CSV
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={scoped.length === 0}
+            className="px-4 py-2 text-xs"
+            title="Per-account debits and credits for the period"
+            onClick={() =>
+              downloadCsv(
+                `${fileBase}-trial-balance.csv`,
+                trialBalanceToCsv(scoped, categories, `${periodLabel} · ${scopeLabel}`),
+              )
+            }
+          >
+            <Download size={13} aria-hidden="true" />
+            Trial balance CSV
           </Button>
         </div>
       </div>

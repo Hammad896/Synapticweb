@@ -111,6 +111,94 @@ export const financialReportToCsv = (
   return lines.join("\n");
 };
 
+/**
+ * The general ledger: every transaction grouped under its account (category),
+ * with a running balance per account. The format an accountant expects.
+ */
+export const generalLedgerToCsv = (
+  transactions: Transaction[],
+  categories: FinanceCategory[],
+  scopeLabel: string,
+): string => {
+  const codeOf = (t: Transaction) =>
+    categories.find(
+      (c) =>
+        c.kind === (t.type === "income" ? "income_source" : "expense_category") &&
+        c.name.toLowerCase() === t.category.toLowerCase(),
+    )?.accountCode ?? "";
+
+  const lines: string[] = [];
+  const row = (...cells: Array<string | number>) => lines.push(cells.map(escape).join(","));
+
+  row("SYNAPTIC LAB — GENERAL LEDGER");
+  row("Scope", scopeLabel);
+  row("");
+
+  const accounts = new Map<string, Transaction[]>();
+  for (const t of transactions) {
+    const key = `${t.type}|${t.category}`;
+    accounts.set(key, [...(accounts.get(key) ?? []), t]);
+  }
+  const sortedAccounts = [...accounts.entries()].sort((a, b) => {
+    const codeA = codeOf(a[1][0]);
+    const codeB = codeOf(b[1][0]);
+    return (codeA || "9999").localeCompare(codeB || "9999") || a[0].localeCompare(b[0]);
+  });
+
+  for (const [key, items] of sortedAccounts) {
+    const [type, category] = key.split("|");
+    const code = codeOf(items[0]);
+    row(`ACCOUNT ${code || "—"} · ${category} (${type})`);
+    row("no", "date", "description", "amount", "running total");
+    let running = 0;
+    for (const t of [...items].sort((a, b) => a.date.localeCompare(b.date))) {
+      running = Math.round((running + t.amount) * 100) / 100;
+      row(t.txnNo || t.legacyId || t.id, t.date, t.description, t.amount, running);
+    }
+    row("TOTAL", "", "", running, "");
+    row("");
+  }
+  return lines.join("\n");
+};
+
+/** Trial balance: one row per account — income as credits, expenses as debits. */
+export const trialBalanceToCsv = (
+  transactions: Transaction[],
+  categories: FinanceCategory[],
+  scopeLabel: string,
+): string => {
+  const lines: string[] = [];
+  const row = (...cells: Array<string | number>) => lines.push(cells.map(escape).join(","));
+
+  row("SYNAPTIC LAB — TRIAL BALANCE");
+  row("Scope", scopeLabel);
+  row("");
+  row("account", "name", "debit (expenses)", "credit (income)");
+
+  let debits = 0;
+  let credits = 0;
+  const seen = new Map<string, { code: string; name: string; debit: number; credit: number }>();
+  for (const t of transactions) {
+    const kind = t.type === "income" ? "income_source" : "expense_category";
+    const code =
+      categories.find((c) => c.kind === kind && c.name.toLowerCase() === t.category.toLowerCase())
+        ?.accountCode ?? "";
+    const key = `${kind}:${t.category}`;
+    const entry = seen.get(key) ?? { code, name: t.category, debit: 0, credit: 0 };
+    if (t.type === "expense") { entry.debit += t.amount; debits += t.amount; }
+    else { entry.credit += t.amount; credits += t.amount; }
+    seen.set(key, entry);
+  }
+  for (const entry of [...seen.values()].sort((a, b) => (a.code || "9999").localeCompare(b.code || "9999"))) {
+    row(entry.code || "—", entry.name, Math.round(entry.debit * 100) / 100, Math.round(entry.credit * 100) / 100);
+  }
+  row("");
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  row("", "TOTALS", r2(debits), r2(credits));
+  row("", "NET (cash movement)", "", r2(credits - debits));
+  return lines.join("\n");
+};
+
 /* ── Parsing ──────────────────────────────────────────────────────────────── */
 
 const parseLine = (line: string): string[] => {

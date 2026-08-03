@@ -174,6 +174,43 @@ export const openingBalance = (transactions: Transaction[], from: string): numbe
   return totalsOf(transactions.filter((t) => t.date < from)).net;
 };
 
+/**
+ * The cash-basis balance sheet as of a date. This is a cash book, so the
+ * statement is what a cash book can honestly assert: cash on hand, loans
+ * given out of it, and how the pair was funded. It balances by construction.
+ */
+export interface BalanceSheet {
+  asOf: string;
+  cash: number;
+  loansReceivable: number;
+  totalAssets: number;
+  /** All money received (contributions, revenue, loan repayments received). */
+  totalReceipts: number;
+  /** All money paid out EXCLUDING loans given (those are still assets). */
+  operatingPayments: number;
+}
+
+export const balanceSheetAsOf = (
+  transactions: Transaction[],
+  asOf: string,
+): BalanceSheet => {
+  const upTo = transactions.filter((t) => !asOf || t.date <= asOf);
+  const totals = totalsOf(upTo);
+  const loans = round2(
+    upTo
+      .filter((t) => t.type === "expense" && t.category === "Loan")
+      .reduce((sum, t) => sum + t.amount, 0),
+  );
+  return {
+    asOf: asOf || new Date().toISOString().slice(0, 10),
+    cash: totals.net,
+    loansReceivable: loans,
+    totalAssets: round2(totals.net + loans),
+    totalReceipts: totals.income,
+    operatingPayments: round2(totals.expenses - loans),
+  };
+};
+
 /** Category name → total, sorted largest first. Used for both breakdowns. */
 export const breakdown = (
   transactions: Transaction[],
