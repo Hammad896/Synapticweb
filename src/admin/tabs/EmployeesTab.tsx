@@ -7,6 +7,8 @@ import {
   Plus,
   Search,
   Trash2,
+  UserCheck,
+  UserX,
 } from "lucide-react";
 import { Badge, Button, EmptyState, inputClass } from "@/components/kit";
 import IdCard from "@/hr/IdCard";
@@ -28,6 +30,7 @@ interface Props {
   setIsCreating: (creating: boolean) => void;
   onSave: (draft: EmployeeDraft, photo: File | null) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  onSetStatus: (employee: Employee, status: Employee["status"]) => Promise<void>;
   onImport: (drafts: EmployeeDraft[]) => Promise<void>;
   onExportCsv: () => void;
 }
@@ -48,6 +51,7 @@ const EmployeesTab = ({
   setIsCreating,
   onSave,
   onDelete,
+  onSetStatus,
   onImport,
   onExportCsv,
 }: Props) => {
@@ -330,6 +334,32 @@ const EmployeesTab = ({
                           <div className="flex justify-end gap-1">
                             <button
                               type="button"
+                              onClick={() =>
+                                void onSetStatus(
+                                  employee,
+                                  employee.status === "active" ? "inactive" : "active",
+                                )
+                              }
+                              aria-label={
+                                employee.status === "active"
+                                  ? `Mark ${employee.fullName} as Former`
+                                  : `Reactivate ${employee.fullName}`
+                              }
+                              title={
+                                employee.status === "active"
+                                  ? "Mark Former (keeps all history, leaves future payroll)"
+                                  : "Reactivate (returns to default views and payroll)"
+                              }
+                              className="tap rounded-full text-muted-foreground hover:text-accent"
+                            >
+                              {employee.status === "active" ? (
+                                <UserX size={15} aria-hidden="true" />
+                              ) : (
+                                <UserCheck size={15} aria-hidden="true" />
+                              )}
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => setCardFor(employee)}
                               aria-label={`ID card for ${employee.fullName}`}
                               className="tap rounded-full text-muted-foreground hover:text-accent"
@@ -407,6 +437,19 @@ const EmployeesTab = ({
             setSheetFor(null);
           }}
         />
+        {sheetFor && (
+          <SheetAction
+            icon={sheetFor.status === "active" ? UserX : UserCheck}
+            label={sheetFor.status === "active" ? "Mark as Former" : "Reactivate"}
+            onClick={async () => {
+              await onSetStatus(
+                sheetFor,
+                sheetFor.status === "active" ? "inactive" : "active",
+              );
+              setSheetFor(null);
+            }}
+          />
+        )}
         <SheetAction
           icon={Trash2}
           label="Delete"
@@ -414,7 +457,9 @@ const EmployeesTab = ({
           onClick={async () => {
             if (
               sheetFor &&
-              window.confirm(`Delete ${sheetFor.fullName}? This cannot be undone.`)
+              window.confirm(
+                `Delete ${sheetFor.fullName}?\n\nIf they just left the company, use "Mark as Former" instead — it keeps all their history. You can Undo a delete for a short while.`,
+              )
             ) {
               await onDelete(sheetFor.id);
             }

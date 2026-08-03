@@ -16,7 +16,7 @@ import {
 } from "./repository";
 import { monthsSince } from "./format";
 import { DEFAULT_CONTENT, type SiteContent } from "@/data/content";
-import type { Employee, EmployeeDraft } from "./types";
+import type { Employee, EmployeeDraft, EmployeeStatus } from "./types";
 
 /**
  * Every read and write the admin panel performs, in one place.
@@ -44,6 +44,8 @@ export const useHrData = () => {
   const [content, setContent] = useState<SiteContent>(DEFAULT_CONTENT);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  /** The last deleted employee, held so the delete can be undone. */
+  const [lastDeleted, setLastDeleted] = useState<Employee | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -131,9 +133,42 @@ export const useHrData = () => {
       const employee = employees.find((e) => e.id === id);
       await repository.removeEmployee(id);
       await repository.audit(actor, "employee.delete", employee?.fullName ?? id);
+      // Held in memory so the toast can offer Undo. Restoring re-creates the
+      // record (fresh id and verify token — the DB mints those).
+      setLastDeleted(employee ?? null);
       await refresh();
     },
     [repository, actor, refresh, employees],
+  );
+
+  const undoDeleteEmployee = useCallback(async () => {
+    if (!lastDeleted) return;
+    const { id: _discarded, ...rest } = lastDeleted;
+    const draft: EmployeeDraft = { ...rest, verifyToken: "" };
+    await repository.createEmployee(draft);
+    await repository.audit(actor, "employee.restore", lastDeleted.fullName, {
+      employeeId: lastDeleted.employeeId,
+    });
+    setLastDeleted(null);
+    await refresh();
+  }, [lastDeleted, repository, actor, refresh]);
+
+  const dismissUndo = useCallback(() => setLastDeleted(null), []);
+
+  /** One-click Active ↔ Former. Former keeps every record; it is never a delete. */
+  const setEmployeeStatus = useCallback(
+    async (employee: Employee, status: EmployeeStatus) => {
+      const { id, ...draft } = employee;
+      await repository.updateEmployee(id, { ...draft, status });
+      await repository.audit(
+        actor,
+        status === "active" ? "employee.reactivate" : "employee.deactivate",
+        employee.fullName,
+        { employeeId: employee.employeeId },
+      );
+      await refresh();
+    },
+    [repository, actor, refresh],
   );
 
   const importEmployees = useCallback(
@@ -354,6 +389,10 @@ export const useHrData = () => {
     refresh,
     saveEmployee,
     deleteEmployee,
+    undoDeleteEmployee,
+    dismissUndo,
+    lastDeleted,
+    setEmployeeStatus,
     importEmployees,
     issueDocument,
     revokeDocument,

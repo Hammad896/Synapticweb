@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Landmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFinanceData } from "@/finance/useFinanceData";
@@ -33,7 +33,19 @@ const FinanceTab = ({
   onEmployeesChanged: () => Promise<void>;
 }) => {
   const data = useFinanceData();
-  const [panel, setPanel] = useState<Panel>("dashboard");
+
+  /* Panel in the URL (?tab=finance&panel=payroll) for the same reason the main
+     tab is: Back walks through where you have been instead of leaving /admin. */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawPanel = searchParams.get("panel");
+  const panel: Panel = PANELS.some((p) => p.id === rawPanel) ? (rawPanel as Panel) : "dashboard";
+  const setPanel = (next: Panel) =>
+    setSearchParams((previous) => {
+      const params = new URLSearchParams(previous);
+      if (next === "dashboard") params.delete("panel");
+      else params.set("panel", next);
+      return params;
+    });
 
   return (
     <>

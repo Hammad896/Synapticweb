@@ -3,6 +3,7 @@ import { Link, Navigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Lock, TriangleAlert } from "lucide-react";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
+import { isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "./auth";
 
 const FIELD =
@@ -150,23 +151,28 @@ const LoginPage = () => {
             </button>
           </form>
 
-          {/* This must stay on the page. Hiding it would be the actual dishonesty:
-              it looks like a login, so someone will assume it protects something. */}
-          <div className="mt-6 flex gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4">
-            <TriangleAlert
-              size={16}
-              aria-hidden="true"
-              className="mt-0.5 shrink-0 text-amber-500"
-            />
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              <span className="font-medium text-foreground">
-                Development gate — not real authentication.
-              </span>{" "}
-              The credentials are checked in the browser, so they exist in the shipped
-              JavaScript. This keeps casual visitors out; it will not stop anyone who opens
-              DevTools. Wire OAuth or Supabase Auth before storing real salary data.
-            </p>
-          </div>
+          {/* Shown ONLY when running without Supabase (the local dev gate). With
+              Supabase configured this login is real: the password is verified on
+              the server and RLS refuses data to anyone not on the admin
+              allowlist — showing a "not real authentication" warning there would
+              be false, and needlessly alarming. */}
+          {!isSupabaseConfigured && (
+            <div className="mt-6 flex gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4">
+              <TriangleAlert
+                size={16}
+                aria-hidden="true"
+                className="mt-0.5 shrink-0 text-amber-500"
+              />
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                <span className="font-medium text-foreground">
+                  Development gate — not real authentication.
+                </span>{" "}
+                The credentials are checked in the browser, so they exist in the shipped
+                JavaScript. This keeps casual visitors out; it will not stop anyone who opens
+                DevTools. Wire OAuth or Supabase Auth before storing real salary data.
+              </p>
+            </div>
+          )}
         </div>
       </main>
     </div>

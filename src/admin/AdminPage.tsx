@@ -1,13 +1,13 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Database, LogOut, TrendingUp, TriangleAlert, X } from "lucide-react";
+import { Database, LogOut, TrendingUp, TriangleAlert, Undo2, X } from "lucide-react";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
-import { Badge } from "@/components/kit";
+import { Badge, Button } from "@/components/kit";
 import { useAuth } from "@/auth/auth";
 import { buildAlerts } from "@/hr/automations";
-import { DesktopTabs, MobileNav, type Tab } from "./AdminNav";
+import { DesktopTabs, MobileNav, TABS, type Tab } from "./AdminNav";
 import { useHrData } from "./useHrData";
 import { isRemote, toCsv, type IssuedDocument } from "./repository";
 import Reports from "./Reports";
@@ -37,7 +37,16 @@ const AdminPage = () => {
   const { user, signOut } = useAuth();
   const data = useHrData();
 
-  const [tab, setTab] = useState<Tab>("overview");
+  /* The active tab lives in the URL (?tab=finance), so the browser's Back
+     button steps between admin sections instead of dumping the admin onto the
+     public site — the single biggest "did it just log me out?" confusion.
+     (It never logged anyone out; the session survives regardless.) */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get("tab");
+  const tab: Tab = TABS.some((t) => t.id === rawTab) ? (rawTab as Tab) : "overview";
+  const setTab = (next: Tab) =>
+    setSearchParams(next === "overview" ? {} : { tab: next });
+
   const [moreOpen, setMoreOpen] = useState(false);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -68,6 +77,13 @@ const AdminPage = () => {
     setWarningDismissed(true);
     sessionStorage.setItem(WARNING_DISMISSED, "1");
   };
+
+  // The Undo window: a deleted employee can be restored for 15 seconds.
+  useEffect(() => {
+    if (!data.lastDeleted) return;
+    const timer = window.setTimeout(data.dismissUndo, 15_000);
+    return () => window.clearTimeout(timer);
+  }, [data.lastDeleted, data.dismissUndo]);
 
   return (
     <div className="w-full overflow-x-hidden bg-background">
@@ -188,6 +204,7 @@ const AdminPage = () => {
                   setIsCreating(false);
                 }}
                 onDelete={data.deleteEmployee}
+                onSetStatus={data.setEmployeeStatus}
                 onImport={data.importEmployees}
                 onExportCsv={exportCsv}
               />
@@ -254,6 +271,40 @@ const AdminPage = () => {
           </motion.div>
         </AnimatePresence>
       </main>
+
+      {/* Undo toast — sits above the mobile bottom bar. */}
+      <AnimatePresence>
+        {data.lastDeleted && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className="fixed inset-x-0 bottom-20 z-[60] flex justify-center px-4 md:bottom-6"
+          >
+            <div className="surface flex items-center gap-3 rounded-full border border-border py-2 pl-5 pr-2 shadow-lg">
+              <p className="text-sm text-foreground">
+                Deleted <strong>{data.lastDeleted.fullName}</strong>
+              </p>
+              <Button
+                variant="secondary"
+                className="px-3 py-1.5 text-xs"
+                onClick={() => void data.undoDeleteEmployee()}
+              >
+                <Undo2 size={13} aria-hidden="true" />
+                Undo
+              </Button>
+              <button
+                type="button"
+                aria-label="Dismiss"
+                onClick={data.dismissUndo}
+                className="tap rounded-full p-1 text-muted-foreground hover:text-foreground"
+              >
+                <X size={14} aria-hidden="true" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <MobileNav
         tab={tab}
