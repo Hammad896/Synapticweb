@@ -109,6 +109,71 @@ export const monthlyClosings = (transactions: Transaction[]): PeriodClosing[] =>
 export const yearlyClosings = (transactions: Transaction[]): PeriodClosing[] =>
   closings(transactions, (date) => date.slice(0, 4));
 
+/* ── Custom periods & the FBR fiscal year (1 July – 30 June) ─────────────── */
+
+/** "2025-26" for any date from 2025-07-01 through 2026-06-30. */
+export const fiscalYearOf = (date: string): string => {
+  const year = Number(date.slice(0, 4));
+  const month = Number(date.slice(5, 7));
+  const start = month >= 7 ? year : year - 1;
+  return `${start}-${String((start + 1) % 100).padStart(2, "0")}`;
+};
+
+/** ["2025-07-01", "2026-06-30"] for the "2025-26" fiscal year. */
+export const fiscalYearRange = (fy: string): [string, string] => {
+  const start = Number(fy.slice(0, 4));
+  return [`${start}-07-01`, `${start + 1}-06-30`];
+};
+
+/** Carry-forward closings per FBR fiscal year — the returns table. */
+export const fiscalYearClosings = (transactions: Transaction[]): PeriodClosing[] => {
+  // fillRange can't interpolate "2025-26" keys, so build the chain directly:
+  // fiscal keys sort correctly as strings and money never skips a year here
+  // without also skipping it in the data.
+  if (transactions.length === 0) return [];
+  const byFy = new Map<string, { income: number; expenses: number }>();
+  for (const t of transactions) {
+    const key = fiscalYearOf(t.date);
+    const bucket = byFy.get(key) ?? { income: 0, expenses: 0 };
+    if (t.type === "income") bucket.income += t.amount;
+    else bucket.expenses += t.amount;
+    byFy.set(key, bucket);
+  }
+  const rows: PeriodClosing[] = [];
+  let opening = 0;
+  for (const key of [...byFy.keys()].sort()) {
+    const bucket = byFy.get(key)!;
+    const net = round2(bucket.income - bucket.expenses);
+    const closing = round2(opening + net);
+    rows.push({
+      period: key,
+      opening,
+      income: round2(bucket.income),
+      expenses: round2(bucket.expenses),
+      net,
+      closing,
+    });
+    opening = closing;
+  }
+  return rows;
+};
+
+/** Transactions inside [from, to], inclusive; open ends allowed. */
+export const inRange = (
+  transactions: Transaction[],
+  from: string,
+  to: string,
+): Transaction[] =>
+  transactions.filter(
+    (t) => (!from || t.date >= from) && (!to || t.date <= to),
+  );
+
+/** The cash position the period STARTS with: net of everything before it. */
+export const openingBalance = (transactions: Transaction[], from: string): number => {
+  if (!from) return 0;
+  return totalsOf(transactions.filter((t) => t.date < from)).net;
+};
+
 /** Category name → total, sorted largest first. Used for both breakdowns. */
 export const breakdown = (
   transactions: Transaction[],

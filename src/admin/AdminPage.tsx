@@ -10,7 +10,7 @@ import { useAuth } from "@/auth/auth";
 import { buildAlerts } from "@/hr/automations";
 import { MobileNav, SideNav, TABS, type Tab } from "./AdminNav";
 import { useHrData } from "./useHrData";
-import { isRemote, toCsv, type IssuedDocument } from "./repository";
+import { getRepository, isRemote, toCsv, type IssuedDocument } from "./repository";
 import Reports from "./Reports";
 import FinanceTab from "./tabs/FinanceTab";
 import OverviewTab from "./tabs/OverviewTab";
@@ -85,6 +85,38 @@ const AdminPage = () => {
     const timer = window.setTimeout(data.dismissUndo, 15_000);
     return () => window.clearTimeout(timer);
   }, [data.lastDeleted, data.dismissUndo]);
+
+  /* The black box: uncaught errors anywhere in the admin become audit
+     entries, so Audit log → "Download bug report" carries everything needed
+     to fix them. Capped per session so an error loop can't flood the log. */
+  useEffect(() => {
+    let budget = 10;
+    const record = (kind: string, message: string, detail: Record<string, unknown>) => {
+      if (budget-- <= 0) return;
+      void getRepository().audit("system", `system.error.${kind}`, message.slice(0, 200), detail);
+    };
+    const onError = (event: ErrorEvent) =>
+      record("window", event.message, {
+        source: `${event.filename}:${event.lineno}:${event.colno}`,
+        stack: String(event.error?.stack ?? "").slice(0, 1500),
+      });
+    const onRejection = (event: PromiseRejectionEvent) =>
+      record("promise", String(event.reason?.message ?? event.reason ?? "unknown"), {
+        stack: String(event.reason?.stack ?? "").slice(0, 1500),
+      });
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+  }, []);
+
+  const reportSectionError = (error: Error) =>
+    void getRepository().audit("system", "system.error.render", error.message.slice(0, 200), {
+      tab,
+      stack: String(error.stack ?? "").slice(0, 1500),
+    });
 
   return (
     <div className="w-full overflow-x-hidden bg-background">
@@ -177,17 +209,51 @@ const AdminPage = () => {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
           >
-          <ErrorBoundary>
+          <ErrorBoundary onError={reportSectionError}>
             {tab === "overview" && (
-              <OverviewTab
-                employees={data.employees}
-                documents={data.documents}
-                metrics={data.metrics}
-                onOpenEmployee={(employee) => {
-                  setEditing(employee);
-                  setTab("employees");
-                }}
-              />
+              <>
+                {/* One click to anywhere work actually happens — the COO
+                    launchpad. "New transaction" lands with the form open. */}
+                <div className="no-print mb-6 flex flex-wrap gap-2">
+                  {(
+                    [
+                      ["New transaction", { tab: "finance", panel: "transactions", new: "1" }],
+                      ["Run payroll", { tab: "finance", panel: "payroll" }],
+                      ["Build a report", { tab: "finance", panel: "reports" }],
+                      ["Draft a letter", { tab: "letters" }],
+                      ["Bug report", { tab: "audit" }],
+                    ] as Array<[string, Record<string, string>]>
+                  ).map(([label, params]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      onClick={() => setSearchParams(params)}
+                      className="rounded-full border border-border px-4 py-2 text-xs text-muted-foreground transition-transform hover:border-accent hover:text-accent active:scale-95"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchParams({ tab: "employees" });
+                      setIsCreating(true);
+                    }}
+                    className="rounded-full border border-border px-4 py-2 text-xs text-muted-foreground transition-transform hover:border-accent hover:text-accent active:scale-95"
+                  >
+                    Add employee
+                  </button>
+                </div>
+                <OverviewTab
+                  employees={data.employees}
+                  documents={data.documents}
+                  metrics={data.metrics}
+                  onOpenEmployee={(employee) => {
+                    setEditing(employee);
+                    setTab("employees");
+                  }}
+                />
+              </>
             )}
 
             {tab === "finance" && (

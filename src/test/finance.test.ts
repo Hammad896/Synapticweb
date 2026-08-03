@@ -3,7 +3,13 @@ import {
   applyFilter,
   breakdown,
   EMPTY_FILTER,
+  fiscalYearClosings,
+  fiscalYearOf,
+  fiscalYearRange,
+  inRange,
   monthlyClosings,
+  openingBalance,
+  round2,
   totalsOf,
   yearlyClosings,
 } from "@/finance/calc";
@@ -147,6 +153,51 @@ describe("payroll rules", () => {
   it("pay date defaults to the 5th of the following month, across year end", () => {
     expect(defaultPayDate("2026-07-01")).toBe("2026-08-05");
     expect(defaultPayDate("2026-12-01")).toBe("2027-01-05");
+  });
+});
+
+describe("FBR fiscal years and custom periods", () => {
+  it("maps dates to the 1 July – 30 June fiscal year", () => {
+    expect(fiscalYearOf("2025-06-30")).toBe("2024-25");
+    expect(fiscalYearOf("2025-07-01")).toBe("2025-26");
+    expect(fiscalYearOf("2026-06-30")).toBe("2025-26");
+    expect(fiscalYearOf("2026-07-01")).toBe("2026-27");
+    expect(fiscalYearRange("2025-26")).toEqual(["2025-07-01", "2026-06-30"]);
+  });
+
+  it("fiscal closings chain and reconcile with the all-time totals", () => {
+    const rows = fiscalYearClosings(ledger);
+    expect(rows[0].opening).toBe(0);
+    for (let i = 1; i < rows.length; i++) {
+      expect(rows[i].opening).toBe(rows[i - 1].closing);
+    }
+    const income = round2(rows.reduce((s, r) => s + r.income, 0));
+    const expenses = round2(rows.reduce((s, r) => s + r.expenses, 0));
+    expect(income).toBe(11_915_314.18);
+    expect(expenses).toBe(11_771_096);
+    expect(rows[rows.length - 1].closing).toBe(144_218.18);
+  });
+
+  it("answers 'salaries from 1 Jul 2025 to 30 Jun 2026' exactly", () => {
+    const scoped = inRange(ledger, "2025-07-01", "2026-06-30").filter(
+      (t) => t.type === "expense" && t.category === "Salary",
+    );
+    expect(scoped.length).toBeGreaterThan(0);
+    expect(scoped.every((t) => t.date >= "2025-07-01" && t.date <= "2026-06-30")).toBe(true);
+    // The FY row must agree with the manual slice.
+    const fy = fiscalYearClosings(ledger).find((r) => r.period === "2025-26")!;
+    const manual = totalsOf(inRange(ledger, "2025-07-01", "2026-06-30"));
+    expect(fy.income).toBe(manual.income);
+    expect(fy.expenses).toBe(manual.expenses);
+  });
+
+  it("opening balance at a period start equals net of everything before it", () => {
+    const opening = openingBalance(ledger, "2026-01-01");
+    const before = totalsOf(ledger.filter((t) => t.date < "2026-01-01"));
+    expect(opening).toBe(before.net);
+    // Opening + period net = all-time net when the period runs to the end.
+    const period = totalsOf(inRange(ledger, "2026-01-01", ""));
+    expect(round2(opening + period.net)).toBe(144_218.18);
   });
 });
 

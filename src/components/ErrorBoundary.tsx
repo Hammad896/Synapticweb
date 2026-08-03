@@ -6,7 +6,7 @@ import { Component, type ReactNode } from "react";
  * With it, the broken section says so, and everything else keeps working.
  */
 export default class ErrorBoundary extends Component<
-  { children: ReactNode },
+  { children: ReactNode; onError?: (error: Error) => void },
   { error: Error | null }
 > {
   state = { error: null as Error | null };
@@ -17,6 +17,8 @@ export default class ErrorBoundary extends Component<
 
   componentDidCatch(error: Error) {
     console.error("Section crashed:", error);
+    // Reported to the audit log so "Download bug report" carries it.
+    this.props.onError?.(error);
   }
 
   render() {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Download, Pencil, Plus, StickyNote, Trash2, Upload, X } from "lucide-react";
 import { Badge, Button, EmptyState, Field, inputClass } from "@/components/kit";
 import { shortDate } from "@/admin/format";
@@ -68,6 +69,20 @@ const TransactionsPanel = ({
   );
   // Changing any filter jumps back to the first page of the new result set.
   useEffect(() => setPage(0), [filter]);
+
+  /* Deep link from the Overview launchpad: ?new=1 opens the form ready to
+     type, then drops the flag so refresh/back don't reopen it. */
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("new") !== "1") return;
+    startCreate();
+    setSearchParams((previous) => {
+      const params = new URLSearchParams(previous);
+      params.delete("new");
+      return params;
+    }, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run on flag only
+  }, [searchParams]);
 
   const pager = pageCount > 1 && (
     <div className="mt-3 flex items-center justify-between gap-3">
