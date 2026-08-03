@@ -68,3 +68,25 @@ automations. See [`CONTENT.md`](./CONTENT.md) for editing the website.
 **The audit log is append-only at the database level.** There is a `select` policy and an
 `insert` policy, and deliberately **no `update` or `delete` policy for anyone — including
 you.** A log you can rewrite is not a log.
+
+## August 2026 additions
+
+- **Self-service update links** (`docs/supabase/self-service.sql`): the 🔗 icon
+  on any employee mints a 24-hour, single-use link; the employee fills their
+  own contact/CNIC/bank/emergency details (all required except NTN) at
+  `/update-info`, and the submission lands as an old→new diff awaiting
+  Approve/Reject. "Add via link" onboards a new hire from just a name the same
+  way. Anonymous users touch nothing but two SECURITY DEFINER functions with a
+  database-side field whitelist.
+- **Delete protection**: an employee with payroll rows, salary transactions,
+  or issued letters cannot be deleted — the app blocks with the exact counts
+  and points at Former; the database enforces the same rule with ON DELETE
+  RESTRICT on the payroll and document foreign keys.
+- **Password recovery**: "Forgot password?" on the sign-in page emails a
+  reset link (Supabase, free) landing on `/reset-password`. The admin account
+  email is qhammad286@gmail.com.
+- **ID cards** come in three templates — Dark, Light (default; the readable
+  one in print), Brand — and show blood group when recorded.
+- **The black box**: uncaught errors anywhere in the admin become
+  `system.error.*` audit entries; Audit log → "Download bug report" exports
+  them as JSON to hand to the AI maintaining this codebase.
