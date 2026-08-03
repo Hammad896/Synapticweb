@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, FileDown, Pencil, Plus, Trash2, X } from "lucide-react";
+import { CheckCircle2, Download, FileDown, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Badge, Button, EmptyState, Field, inputClass } from "@/components/kit";
 import type { Employee } from "@/admin/types";
 import { monthLabel, pkr } from "../calc";
+import { downloadCsv, payrollToCsv } from "../csv";
 import { netPay, type PayrollItem } from "../types";
 import { downloadSlip, renderSalarySlip } from "../slip";
 
@@ -138,6 +139,21 @@ const PayrollPanel = ({
         <Button disabled={busy || !month} className="px-4 py-2.5 text-xs" onClick={() => void generate()}>
           <Plus size={14} aria-hidden="true" />
           Generate run
+        </Button>
+        <Button
+          variant="secondary"
+          disabled={!payroll.length}
+          className="px-4 py-2.5 text-xs"
+          title="Download the whole payroll register as a CSV backup Excel can open"
+          onClick={() =>
+            downloadCsv(
+              `synapticlab-payroll-${new Date().toISOString().slice(0, 10)}.csv`,
+              payrollToCsv(payroll),
+            )
+          }
+        >
+          <Download size={14} aria-hidden="true" />
+          Export CSV
         </Button>
         <p className="text-xs leading-relaxed text-muted-foreground">
           Creates one editable row per <strong>Active · Internal</strong> employee

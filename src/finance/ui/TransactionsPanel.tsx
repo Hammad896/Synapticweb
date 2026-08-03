@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Download, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { Badge, Button, EmptyState, Field, inputClass } from "@/components/kit";
 import { shortDate } from "@/admin/format";
-import { applyFilter, EMPTY_FILTER, pkr, totalsOf, type TransactionFilter } from "../calc";
+import { applyFilter, EMPTY_FILTER, pkr, round2, totalsOf, type TransactionFilter } from "../calc";
+import { downloadCsv, parseTransactionsCsv, transactionsToCsv } from "../csv";
 import {
   EMPTY_TRANSACTION,
   type FinanceCategory,
@@ -22,6 +23,11 @@ interface Props {
   expenseCategories: FinanceCategory[];
   onSave: (draft: TransactionDraft, editing: Transaction | null) => Promise<void>;
   onDelete: (transaction: Transaction) => Promise<void>;
+  onImportCsv: (drafts: TransactionDraft[]) => Promise<{
+    added: number;
+    skipped: number;
+    newCategories: string[];
+  }>;
 }
 
 const TransactionsPanel = ({
@@ -30,12 +36,15 @@ const TransactionsPanel = ({
   expenseCategories,
   onSave,
   onDelete,
+  onImportCsv,
 }: Props) => {
   const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [draft, setDraft] = useState<TransactionDraft>(EMPTY_TRANSACTION);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
 
   const years = useMemo(
     () => [...new Set(transactions.map((t) => t.date.slice(0, 4)))].sort().reverse(),
@@ -104,6 +113,57 @@ const TransactionsPanel = ({
 
   const set = (patch: Partial<TransactionFilter>) =>
     setFilter((f) => ({ ...f, ...patch }));
+
+  /** Backup: what's on screen (all rows when no filter is active). */
+  const exportCsv = () => {
+    const scope = filtered.length === transactions.length ? "all" : "filtered";
+    downloadCsv(
+      `synapticlab-transactions-${scope}-${new Date().toISOString().slice(0, 10)}.csv`,
+      transactionsToCsv(filtered),
+    );
+  };
+
+  const uploadCsv = async (file: File) => {
+    setUploading(true);
+    try {
+      const { drafts, errors } = parseTransactionsCsv(await file.text());
+
+      if (errors.length) {
+        const shown = errors.slice(0, 8).join("\n");
+        const more = errors.length > 8 ? `\n…and ${errors.length - 8} more.` : "";
+        if (drafts.length === 0) {
+          window.alert(`Nothing imported — every row failed:\n\n${shown}${more}`);
+          return;
+        }
+        if (
+          !window.confirm(
+            `${errors.length} row${errors.length === 1 ? "" : "s"} will be SKIPPED:\n\n${shown}${more}\n\nImport the ${drafts.length} valid row${drafts.length === 1 ? "" : "s"} anyway?`,
+          )
+        )
+          return;
+      }
+
+      const income = round2(drafts.filter((d) => d.type === "income").reduce((s, d) => s + d.amount, 0));
+      const expense = round2(drafts.filter((d) => d.type === "expense").reduce((s, d) => s + d.amount, 0));
+      if (
+        !window.confirm(
+          `Import ${drafts.length} transactions?\n\nIncome ${pkr(income)} · Expenses ${pkr(expense)}\n\nRows with an id that already exists are skipped automatically.`,
+        )
+      )
+        return;
+
+      const result = await onImportCsv(drafts);
+      window.alert(
+        `Done. Added ${result.added}, skipped ${result.skipped} duplicate${result.skipped === 1 ? "" : "s"}.` +
+          (result.newCategories.length
+            ? `\nNew categories added to Settings: ${result.newCategories.join(", ")}.`
+            : ""),
+      );
+    } finally {
+      setUploading(false);
+      if (fileInput.current) fileInput.current.value = "";
+    }
+  };
 
   return (
     <div>
@@ -188,10 +248,43 @@ const TransactionsPanel = ({
             Net {pkr(totals.net)}
           </span>
 
-          <Button className="ml-auto px-4 py-2 text-xs" onClick={startCreate}>
-            <Plus size={14} aria-hidden="true" />
-            Add transaction
-          </Button>
+          <div className="ml-auto flex flex-wrap gap-2">
+            <input
+              ref={fileInput}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              aria-label="Upload transactions CSV"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void uploadCsv(file);
+              }}
+            />
+            <Button
+              variant="secondary"
+              disabled={uploading}
+              className="px-4 py-2 text-xs"
+              title="Bulk upload from a CSV file (same columns as the export)"
+              onClick={() => fileInput.current?.click()}
+            >
+              <Upload size={14} aria-hidden="true" />
+              {uploading ? "Uploading…" : "Upload CSV"}
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={!filtered.length}
+              className="px-4 py-2 text-xs"
+              title="Download what's on screen as a CSV backup Excel can open"
+              onClick={exportCsv}
+            >
+              <Download size={14} aria-hidden="true" />
+              Export CSV
+            </Button>
+            <Button className="px-4 py-2 text-xs" onClick={startCreate}>
+              <Plus size={14} aria-hidden="true" />
+              Add transaction
+            </Button>
+          </div>
         </div>
       </div>
 

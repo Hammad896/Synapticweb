@@ -21,6 +21,8 @@ export interface FinanceRepository {
   removeTransaction(id: string): Promise<void>;
   /** Bulk import. Rows whose legacyId already exists are skipped — idempotent. */
   insertTransactions(drafts: TransactionDraft[]): Promise<number>;
+  /** Plain bulk insert for CSV uploads with no dedupe key. */
+  createTransactions(drafts: TransactionDraft[]): Promise<number>;
 
   listCategories(): Promise<FinanceCategory[]>;
   saveCategory(kind: CategoryKind, name: string, id?: string): Promise<void>;
@@ -170,6 +172,16 @@ class SupabaseFinanceRepository implements FinanceRepository {
       if (error) throw error;
     }
     return fresh.length;
+  }
+
+  async createTransactions(drafts: TransactionDraft[]): Promise<number> {
+    for (let i = 0; i < drafts.length; i += 200) {
+      const { error } = await this.db
+        .from("transactions")
+        .insert(drafts.slice(i, i + 200).map(toTransactionRow));
+      if (error) throw error;
+    }
+    return drafts.length;
   }
 
   async listCategories(): Promise<FinanceCategory[]> {
@@ -352,6 +364,16 @@ class LocalFinanceRepository implements FinanceRepository {
       }));
     write(KEY.transactions, [...existing, ...fresh]);
     return fresh.length;
+  }
+
+  async createTransactions(drafts: TransactionDraft[]) {
+    const saved = drafts.map((d) => ({
+      ...d,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    }));
+    write(KEY.transactions, [...read<Transaction>(KEY.transactions), ...saved]);
+    return saved.length;
   }
 
   async listCategories() {

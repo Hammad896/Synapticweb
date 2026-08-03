@@ -50,6 +50,22 @@ closing reports, all admin-only behind the same RLS allowlist as HR.
 | **Finance → Settings** | Editable income-source and expense-category lists (rename / retire / delete — history keeps its names), the reserve amount (default 100,000), and the import button. |
 | **Employees** | Now defaults to **Active**; a Former filter reveals history. Each person has a payroll type: **Internal** (monthly payroll) or **Outsource** (paid per project through the ledger). Marking someone Former removes them from future runs and keeps everything they ever had. |
 
+## Backups & bulk upload (Excel)
+
+- **Export:** Finance → Transactions → **Export CSV** downloads what's on
+  screen (everything when no filter is active) as a UTF-8 CSV Excel opens
+  directly. Finance → Payroll → **Export CSV** does the same for the whole
+  payroll register, net pay included.
+- **Bulk upload:** Finance → Transactions → **Upload CSV**. Required columns
+  (any order, any case): `date, type, category, amount`; optional: `id,
+  description`. Dates accept `YYYY-MM-DD` or day-first `DD/MM/YYYY`; amounts
+  may contain thousand separators. Bad rows are listed individually and
+  skipped — never the whole file. Rows with an `id` dedupe against it, so
+  **re-uploading your own backup adds nothing twice**; categories seen for the
+  first time are added to Settings automatically.
+- The export and the importer share one format: a file can round-trip
+  app → Excel → app unedited.
+
 ## Rules the code enforces
 
 - **Reserve:** available money = all-time net balance − reserve. The reserve is

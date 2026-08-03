@@ -8,6 +8,7 @@ import {
   yearlyClosings,
 } from "@/finance/calc";
 import { defaultPayDate, netPay, nextSlipNo, type PayrollItem, type Transaction } from "@/finance/types";
+import { parseTransactionsCsv, transactionsToCsv } from "@/finance/csv";
 import seed from "@/finance/seed/finance-seed.json";
 
 /**
@@ -137,5 +138,70 @@ describe("payroll rules", () => {
   it("pay date defaults to the 5th of the following month, across year end", () => {
     expect(defaultPayDate("2026-07-01")).toBe("2026-08-05");
     expect(defaultPayDate("2026-12-01")).toBe("2027-01-05");
+  });
+});
+
+describe("CSV backup round trip", () => {
+  it("export → parse returns the whole ledger unchanged", () => {
+    const csv = transactionsToCsv(ledger);
+    const { drafts, errors } = parseTransactionsCsv(csv);
+    expect(errors).toEqual([]);
+    expect(drafts).toHaveLength(262);
+    // Descriptions carry commas and quotes; totals prove nothing was mangled.
+    const income = drafts.filter((d) => d.type === "income").reduce((s, d) => s + d.amount, 0);
+    expect(Math.round(income * 100) / 100).toBe(11_915_314.18);
+    expect(drafts[0].legacyId).toBe("T001");
+  });
+
+  it("accepts Excel-style day-first dates, thousand separators, and any column order", () => {
+    const { drafts, errors } = parseTransactionsCsv(
+      [
+        "amount,category,type,date,description",
+        '"1,500",Subscription,Expense,05/08/2026,"Canva, yearly"',
+        "2000,Qamar,income,2026-08-05,",
+      ].join("\n"),
+    );
+    expect(errors).toEqual([]);
+    expect(drafts).toEqual([
+      {
+        legacyId: "",
+        date: "2026-08-05",
+        type: "expense",
+        category: "Subscription",
+        description: "Canva, yearly",
+        amount: 1500,
+      },
+      {
+        legacyId: "",
+        date: "2026-08-05",
+        type: "income",
+        category: "Qamar",
+        description: "",
+        amount: 2000,
+      },
+    ]);
+  });
+
+  it("reports bad rows individually instead of failing the file", () => {
+    const { drafts, errors } = parseTransactionsCsv(
+      [
+        "id,date,type,category,description,amount",
+        "X1,2026-13-45,Expense,Other,bad date,100",
+        "X2,2026-08-01,Transfer,Other,bad type,100",
+        "X3,2026-08-01,Expense,,no category,100",
+        "X4,2026-08-01,Expense,Other,bad amount,abc",
+        "X5,2026-08-01,Expense,Other,fine,100",
+      ].join("\n"),
+    );
+    expect(drafts).toHaveLength(1);
+    expect(drafts[0].legacyId).toBe("X5");
+    expect(errors).toHaveLength(4);
+  });
+
+  it("rejects a file missing required columns with a clear message", () => {
+    const { drafts, errors } = parseTransactionsCsv("date,amount\n2026-08-01,100");
+    expect(drafts).toEqual([]);
+    expect(errors[0]).toContain("type");
+    expect(errors[0]).toContain("category");
   });
 });

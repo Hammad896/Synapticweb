@@ -255,6 +255,48 @@ export const useFinanceData = () => {
     [finance, hr, actor, refresh],
   );
 
+  /**
+   * CSV bulk upload. Rows carrying an id dedupe against it (so re-uploading a
+   * backup adds nothing twice); rows without one are plain inserts. Categories
+   * seen for the first time are added to the settings lists automatically —
+   * a bulk upload should never silently strand rows outside the dropdowns.
+   */
+  const importTransactionsCsv = useCallback(
+    async (drafts: TransactionDraft[]) => {
+      const known = new Set(categories.map((c) => `${c.kind}:${c.name.toLowerCase()}`));
+      const newIncome = [...new Set(
+        drafts
+          .filter((d) => d.type === "income" && !known.has(`income_source:${d.category.toLowerCase()}`))
+          .map((d) => d.category),
+      )];
+      const newExpense = [...new Set(
+        drafts
+          .filter((d) => d.type === "expense" && !known.has(`expense_category:${d.category.toLowerCase()}`))
+          .map((d) => d.category),
+      )];
+      if (newIncome.length) await finance.ensureCategories("income_source", newIncome);
+      if (newExpense.length) await finance.ensureCategories("expense_category", newExpense);
+
+      const withKey = drafts.filter((d) => d.legacyId);
+      const withoutKey = drafts.filter((d) => !d.legacyId);
+      const addedWithKey = withKey.length ? await finance.insertTransactions(withKey) : 0;
+      const addedPlain = withoutKey.length ? await finance.createTransactions(withoutKey) : 0;
+
+      await hr.audit(actor, "finance.transactions.csv-import", `${drafts.length} rows`, {
+        added: addedWithKey + addedPlain,
+        skippedAsDuplicates: withKey.length - addedWithKey,
+        newCategories: [...newIncome, ...newExpense],
+      });
+      await refresh();
+      return {
+        added: addedWithKey + addedPlain,
+        skipped: withKey.length - addedWithKey,
+        newCategories: [...newIncome, ...newExpense],
+      };
+    },
+    [finance, hr, actor, categories, refresh],
+  );
+
   /* ── Settings & import ─────────────────────────────────────────────────── */
 
   const saveSettings = useCallback(
@@ -296,6 +338,7 @@ export const useFinanceData = () => {
     refresh,
     saveTransaction,
     deleteTransaction,
+    importTransactionsCsv,
     saveCategory,
     toggleCategory,
     deleteCategory,
