@@ -102,6 +102,22 @@ export interface Application {
   createdAt: string;
 }
 
+/** A self-service link: the employee updates their own contact details,
+ *  nothing applies until the admin approves the diff. */
+export interface UpdateRequest {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  /** Unguessable capability; the link carries this. 24h expiry. */
+  token: string;
+  expiresAt: string;
+  status: "pending" | "submitted" | "approved" | "rejected";
+  /** snake_case field → proposed value, whitelisted by the database. */
+  submitted: Record<string, string>;
+  submittedAt: string | null;
+  createdAt: string;
+}
+
 export interface IssuedDocument {
   id: string;
   reference: string;
@@ -166,6 +182,10 @@ export interface HrRepository {
 
   listAudit(limit?: number): Promise<AuditEntry[]>;
   audit(actor: string, action: string, target: string, detail?: Record<string, unknown>): Promise<void>;
+
+  createUpdateRequest(employeeId: string): Promise<UpdateRequest>;
+  listUpdateRequests(): Promise<UpdateRequest[]>;
+  setUpdateRequestStatus(id: string, status: UpdateRequest["status"]): Promise<void>;
 }
 
 /* ── Supabase adapter (the real one) ──────────────────────────────────────── */
@@ -690,6 +710,46 @@ class SupabaseRepository implements HrRepository {
       .insert({ actor, action, target, detail });
     if (error) console.error("Audit write failed:", error.message);
   }
+
+  private toUpdateRequest = (row: Row): UpdateRequest => ({
+    id: str(row.id),
+    employeeId: str(row.employee_id),
+    employeeName: str((row.employees as Row | null)?.full_name),
+    token: str(row.token),
+    expiresAt: str(row.expires_at),
+    status: str(row.status, "pending") as UpdateRequest["status"],
+    submitted: (row.submitted ?? {}) as Record<string, string>,
+    submittedAt: row.submitted_at ? str(row.submitted_at) : null,
+    createdAt: str(row.created_at),
+  });
+
+  async createUpdateRequest(employeeId: string): Promise<UpdateRequest> {
+    const { data, error } = await this.db
+      .from("employee_update_requests")
+      .insert({ employee_id: employeeId })
+      .select("*, employees(full_name)")
+      .single();
+    if (error) throw error;
+    return this.toUpdateRequest(data);
+  }
+
+  async listUpdateRequests(): Promise<UpdateRequest[]> {
+    const { data, error } = await this.db
+      .from("employee_update_requests")
+      .select("*, employees(full_name)")
+      .in("status", ["pending", "submitted"])
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map(this.toUpdateRequest);
+  }
+
+  async setUpdateRequestStatus(id: string, status: UpdateRequest["status"]): Promise<void> {
+    const { error } = await this.db
+      .from("employee_update_requests")
+      .update({ status })
+      .eq("id", id);
+    if (error) throw error;
+  }
 }
 
 /* ── Local adapter (fallback so a fresh clone still runs) ─────────────────── */
@@ -962,6 +1022,19 @@ class LocalRepository implements HrRepository {
       createdAt: new Date().toISOString(),
     };
     write(KEY.audit, [entry, ...read<AuditEntry>(KEY.audit)].slice(0, 500));
+  }
+
+  /** Self-service links need a server for anonymous submissions. */
+  async createUpdateRequest(): Promise<UpdateRequest> {
+    throw new Error("Self-service update links need Supabase configured.");
+  }
+
+  async listUpdateRequests(): Promise<UpdateRequest[]> {
+    return [];
+  }
+
+  async setUpdateRequestStatus(): Promise<void> {
+    /* no-op without a backend */
   }
 }
 

@@ -280,6 +280,10 @@ const AdminPage = () => {
                 onSetStatus={data.setEmployeeStatus}
                 onImport={data.importEmployees}
                 onExportCsv={exportCsv}
+                updateRequests={data.updateRequests}
+                onRequestLink={data.requestUpdateLink}
+                onApproveUpdate={data.approveUpdateRequest}
+                onRejectUpdate={data.rejectUpdateRequest}
               />
             )}
 

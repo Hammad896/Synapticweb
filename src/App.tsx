@@ -23,6 +23,7 @@ import NotFoundPage from "@/pages/NotFoundPage";
 const AdminPage = lazy(() => import("@/admin/AdminPage"));
 const LoginPage = lazy(() => import("@/auth/LoginPage"));
 const Verify = lazy(() => import("@/pages/Verify"));
+const UpdateInfo = lazy(() => import("@/pages/UpdateInfo"));
 
 const Loading = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
@@ -49,6 +50,10 @@ const App = () => (
 
             {/* Public — where the QR codes on letters and ID cards land. */}
             <Route path="/verify" element={<Verify />} />
+
+            {/* Public — where a 24h self-service update link lands. The token
+                in the URL is the whole capability; see self-service.sql. */}
+            <Route path="/update-info" element={<UpdateInfo />} />
 
             <Route path="/staff-login" element={<LoginPage />} />
 

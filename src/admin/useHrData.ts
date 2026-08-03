@@ -13,6 +13,7 @@ import {
   type SiteCapabilityDraft,
   type SitePartner,
   type SitePartnerDraft,
+  type UpdateRequest,
 } from "./repository";
 import { monthsSince } from "./format";
 import { DEFAULT_CONTENT, type SiteContent } from "@/data/content";
@@ -46,6 +47,7 @@ export const useHrData = () => {
   const [isLoading, setIsLoading] = useState(true);
   /** The last deleted employee, held so the delete can be undone. */
   const [lastDeleted, setLastDeleted] = useState<Employee | null>(null);
+  const [updateRequests, setUpdateRequests] = useState<UpdateRequest[]>([]);
 
   const refresh = useCallback(async () => {
     try {
@@ -54,7 +56,7 @@ export const useHrData = () => {
          admin was lying about what was live. Idempotent: a no-op once seeded. */
       await repository.seedDefaults();
 
-      const [e, d, a, l, j, apps, prt, cap, cnt] = await Promise.all([
+      const [e, d, a, l, j, apps, prt, cap, cnt, upd] = await Promise.all([
         repository.listEmployees(),
         repository.listDocuments(),
         repository.listAnnouncements(),
@@ -64,6 +66,9 @@ export const useHrData = () => {
         repository.listPartners(),
         repository.listCapabilities(),
         repository.getContent(),
+        // Tolerated failure: the table may not exist until the self-service
+        // migration runs, and that must not blank the whole admin.
+        repository.listUpdateRequests().catch(() => [] as UpdateRequest[]),
       ]);
 
       setEmployees(e);
@@ -75,6 +80,7 @@ export const useHrData = () => {
       setPartners(prt);
       setCapabilities(cap);
       setContent(cnt);
+      setUpdateRequests(upd);
       setError(null);
     } catch (caught) {
       setError(
@@ -189,6 +195,59 @@ export const useHrData = () => {
       await repository.audit(actor, "employee.import", `${drafts.length} records`, {
         count: drafts.length,
       });
+      await refresh();
+    },
+    [repository, actor, refresh],
+  );
+
+  /* ── Self-service update links ─────────────────────────────────────────── */
+
+  /** Creates a 24h link for the employee and returns it, ready to send. */
+  const requestUpdateLink = useCallback(
+    async (employee: Employee): Promise<string> => {
+      const request = await repository.createUpdateRequest(employee.id);
+      await repository.audit(actor, "employee.update-link.create", employee.fullName, {
+        expiresAt: request.expiresAt,
+      });
+      await refresh();
+      return `${window.location.origin}/update-info?t=${request.token}`;
+    },
+    [repository, actor, refresh],
+  );
+
+  /** Applies the submitted fields to the employee record. */
+  const approveUpdateRequest = useCallback(
+    async (request: UpdateRequest) => {
+      const employee = employees.find((e) => e.id === request.employeeId);
+      if (!employee) throw new Error("The employee for this request no longer exists.");
+      const s = request.submitted;
+      const { id, ...draft } = employee;
+      await repository.updateEmployee(id, {
+        ...draft,
+        phone: s.phone ?? draft.phone,
+        cnic: s.cnic ?? draft.cnic,
+        dateOfBirth: s.date_of_birth ?? draft.dateOfBirth,
+        address: s.address ?? draft.address,
+        email: s.email ?? draft.email,
+        emergencyContact: {
+          name: s.emergency_name ?? draft.emergencyContact.name,
+          relationship: s.emergency_relationship ?? draft.emergencyContact.relationship,
+          phone: s.emergency_phone ?? draft.emergencyContact.phone,
+        },
+      });
+      await repository.setUpdateRequestStatus(request.id, "approved");
+      await repository.audit(actor, "employee.update-link.approve", employee.fullName, {
+        fields: Object.keys(s),
+      });
+      await refresh();
+    },
+    [repository, actor, employees, refresh],
+  );
+
+  const rejectUpdateRequest = useCallback(
+    async (request: UpdateRequest) => {
+      await repository.setUpdateRequestStatus(request.id, "rejected");
+      await repository.audit(actor, "employee.update-link.reject", request.employeeName);
       await refresh();
     },
     [repository, actor, refresh],
@@ -403,6 +462,10 @@ export const useHrData = () => {
     dismissUndo,
     lastDeleted,
     setEmployeeStatus,
+    updateRequests,
+    requestUpdateLink,
+    approveUpdateRequest,
+    rejectUpdateRequest,
     importEmployees,
     issueDocument,
     revokeDocument,

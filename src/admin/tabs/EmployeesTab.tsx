@@ -1,14 +1,17 @@
 import { useMemo, useState } from "react";
 import {
+  Check,
   Download,
   Ellipsis,
   IdCard as IdCardIcon,
+  Link2,
   Pencil,
   Plus,
   Search,
   Trash2,
   UserCheck,
   UserX,
+  X,
 } from "lucide-react";
 import { Badge, Button, EmptyState, inputClass } from "@/components/kit";
 import { SortTh, useSort } from "@/lib/useSort";
@@ -18,6 +21,7 @@ import ImportEmployees from "../ImportEmployees";
 import { ActionSheet, Drawer, SheetAction } from "../Sheet";
 import { initialsOf, money, shortDate } from "../format";
 import type { Employee, EmployeeDraft } from "../types";
+import type { UpdateRequest } from "../repository";
 import { cn } from "@/lib/utils";
 
 type Filter = "all" | "active" | "inactive";
@@ -34,7 +38,38 @@ interface Props {
   onSetStatus: (employee: Employee, status: Employee["status"]) => Promise<void>;
   onImport: (drafts: EmployeeDraft[]) => Promise<void>;
   onExportCsv: () => void;
+  updateRequests: UpdateRequest[];
+  onRequestLink: (employee: Employee) => Promise<string>;
+  onApproveUpdate: (request: UpdateRequest) => Promise<void>;
+  onRejectUpdate: (request: UpdateRequest) => Promise<void>;
 }
+
+/** submitted-json key → what the reviewer reads. */
+const FIELD_LABELS: Record<string, string> = {
+  phone: "Phone",
+  cnic: "CNIC",
+  date_of_birth: "Date of birth",
+  email: "Email",
+  address: "Address",
+  emergency_name: "Emergency name",
+  emergency_relationship: "Emergency relationship",
+  emergency_phone: "Emergency phone",
+};
+
+const currentValueOf = (employee: Employee | undefined, key: string): string => {
+  if (!employee) return "";
+  switch (key) {
+    case "phone": return employee.phone;
+    case "cnic": return employee.cnic;
+    case "date_of_birth": return employee.dateOfBirth;
+    case "email": return employee.email;
+    case "address": return employee.address;
+    case "emergency_name": return employee.emergencyContact.name;
+    case "emergency_relationship": return employee.emergencyContact.relationship;
+    case "emergency_phone": return employee.emergencyContact.phone;
+    default: return "";
+  }
+};
 
 /**
  * The employee roster.
@@ -55,6 +90,10 @@ const EmployeesTab = ({
   onSetStatus,
   onImport,
   onExportCsv,
+  updateRequests,
+  onRequestLink,
+  onApproveUpdate,
+  onRejectUpdate,
 }: Props) => {
   const [query, setQuery] = useState("");
   // Active by default: Former employees are history, revealed on demand.
@@ -88,6 +127,21 @@ const EmployeesTab = ({
 
   const isEditorOpen = isCreating || editing !== null;
   const editorTitle = editing ? `Edit — ${editing.fullName}` : "New employee";
+
+  const requestLink = async (employee: Employee) => {
+    try {
+      const url = await onRequestLink(employee);
+      await navigator.clipboard.writeText(url).catch(() => {});
+      window.alert(
+        `Update link for ${employee.fullName} — copied to your clipboard, valid 24 hours:\n\n${url}\n\nSend it by WhatsApp or email. Their submission appears here for your approval.`,
+      );
+    } catch (caught) {
+      window.alert(caught instanceof Error ? caught.message : "Could not create the link.");
+    }
+  };
+
+  const submittedRequests = updateRequests.filter((r) => r.status === "submitted");
+  const awaitingCount = updateRequests.filter((r) => r.status === "pending").length;
 
   const close = () => {
     setEditing(null);
@@ -156,6 +210,76 @@ const EmployeesTab = ({
               </Button>
             </div>
           </div>
+
+          {/* ── Submitted self-service updates, awaiting review ──────────── */}
+          {submittedRequests.length > 0 && (
+            <div className="surface mt-6 border-accent/40 p-4 sm:p-5">
+              <p className="text-sm font-medium text-foreground">
+                {submittedRequests.length} update{submittedRequests.length === 1 ? "" : "s"} awaiting your review
+              </p>
+              <ul className="mt-3 flex flex-col gap-3">
+                {submittedRequests.map((request) => {
+                  const employee = employees.find((e) => e.id === request.employeeId);
+                  const changes = Object.entries(request.submitted).filter(
+                    ([key, value]) => value !== currentValueOf(employee, key),
+                  );
+                  return (
+                    <li key={request.id} className="rounded-xl border border-border p-4">
+                      <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-sm font-medium text-foreground">
+                          {request.employeeName || employee?.fullName || "Unknown"}
+                        </p>
+                        <span className="text-xs text-muted-foreground">
+                          submitted {shortDate(request.submittedAt)}
+                        </span>
+                        <span className="ml-auto flex gap-2">
+                          <Button
+                            className="px-3 py-1.5 text-xs"
+                            onClick={() => void onApproveUpdate(request)}
+                          >
+                            <Check size={13} aria-hidden="true" /> Approve
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="px-3 py-1.5 text-xs text-red-500"
+                            onClick={() => {
+                              if (window.confirm("Reject this submission? Nothing will change on the record.")) {
+                                void onRejectUpdate(request);
+                              }
+                            }}
+                          >
+                            <X size={13} aria-hidden="true" /> Reject
+                          </Button>
+                        </span>
+                      </div>
+                      {changes.length === 0 ? (
+                        <p className="mt-2 text-xs text-muted-foreground">
+                          No changes — everything matches the current record.
+                        </p>
+                      ) : (
+                        <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+                          {changes.map(([key, value]) => (
+                            <li key={key} className="text-xs">
+                              <span className="text-muted-foreground">{FIELD_LABELS[key] ?? key}: </span>
+                              <span className="text-muted-foreground line-through">
+                                {currentValueOf(employee, key) || "—"}
+                              </span>{" "}
+                              <span className="font-medium text-emerald-600">{value || "—"}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+          {awaitingCount > 0 && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              {awaitingCount} update link{awaitingCount === 1 ? "" : "s"} sent, awaiting the employee's response.
+            </p>
+          )}
 
           <div className="mt-6 flex flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
             <div className="relative flex-1">
@@ -367,6 +491,15 @@ const EmployeesTab = ({
                             </button>
                             <button
                               type="button"
+                              onClick={() => void requestLink(employee)}
+                              aria-label={`Request info update from ${employee.fullName}`}
+                              title="Copy a 24h self-service update link for this employee"
+                              className="tap rounded-full text-muted-foreground hover:text-accent"
+                            >
+                              <Link2 size={15} aria-hidden="true" />
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => setCardFor(employee)}
                               aria-label={`ID card for ${employee.fullName}`}
                               className="tap rounded-full text-muted-foreground hover:text-accent"
@@ -444,6 +577,17 @@ const EmployeesTab = ({
             setSheetFor(null);
           }}
         />
+        {sheetFor && (
+          <SheetAction
+            icon={Link2}
+            label="Request info update (24h link)"
+            onClick={async () => {
+              const target = sheetFor;
+              setSheetFor(null);
+              await requestLink(target);
+            }}
+          />
+        )}
         {sheetFor && (
           <SheetAction
             icon={sheetFor.status === "active" ? UserX : UserCheck}
