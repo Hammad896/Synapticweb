@@ -88,7 +88,9 @@ const AdminPage = () => {
   return (
     <div className="w-full overflow-x-hidden bg-background">
       <header className="no-print sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-4 sm:h-16 sm:px-6">
+        {/* Full width: the admin is a working surface, not an article — dead
+            side margins are rows and columns we could be showing. */}
+        <div className="flex h-14 items-center justify-between gap-4 px-4 sm:h-16 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <Link to="/" aria-label="Back to the public site">
               <Logo className="h-6 sm:h-7" />
@@ -126,8 +128,8 @@ const AdminPage = () => {
       </header>
 
       {/* pb-28 clears the fixed bottom bar on mobile. Desktop: grouped sidebar
-          on the left, content on the right. */}
-      <main className="mx-auto flex max-w-7xl gap-8 px-4 pb-28 pt-6 sm:px-6 sm:py-10 md:pb-12">
+          on the left, content filling the rest of the viewport. */}
+      <main className="flex gap-6 px-4 pb-28 pt-6 sm:px-6 sm:py-10 md:pb-12 lg:gap-8 lg:px-8">
         <SideNav tab={tab} onChange={setTab} alertCount={alertCount} />
 
         <div className="min-w-0 flex-1">
