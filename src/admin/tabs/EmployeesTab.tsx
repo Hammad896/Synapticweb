@@ -142,13 +142,26 @@ const EmployeesTab = ({
   const isEditorOpen = isCreating || editing !== null;
   const editorTitle = editing ? `Edit — ${editing.fullName}` : "New employee";
 
+  /** Opens the owner's own mail client with a ready-to-send draft — the mail
+   *  genuinely goes out from their account (qhammad286@gmail.com), free. */
+  const openEmailDraft = (to: string, subject: string, body: string) => {
+    window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
+
   const requestLink = async (employee: Employee) => {
     try {
       const url = await onRequestLink(employee);
       await navigator.clipboard.writeText(url).catch(() => {});
-      window.alert(
-        `Update link for ${employee.fullName} — copied to your clipboard, valid 24 hours:\n\n${url}\n\nSend it by WhatsApp or email. Their submission appears here for your approval.`,
+      const sendEmail = window.confirm(
+        `Update link for ${employee.fullName} — copied to your clipboard, valid 24 hours:\n\n${url}\n\nOK = open a ready-made email draft to send it.\nCancel = just keep it on the clipboard (e.g. for WhatsApp).`,
       );
+      if (sendEmail) {
+        openEmailDraft(
+          employee.email,
+          "Synaptic Lab — please update your details",
+          `Salam ${employee.fullName.split(" ")[0]},\n\nPlease check and update your details for our records using this link (valid 24 hours):\n\n${url}\n\nIt takes about two minutes. Thank you!\n\n— Synaptic Lab`,
+        );
+      }
     } catch (caught) {
       const message = errorMessage(caught, "Could not create the link.");
       window.alert(
@@ -170,9 +183,16 @@ const EmployeesTab = ({
     try {
       const url = await onAddViaLink(name);
       await navigator.clipboard.writeText(url).catch(() => {});
-      window.alert(
-        `${name} added to the roster.\n\nOnboarding link copied — valid 24 hours:\n\n${url}\n\nSend it to them; their details arrive here for your approval.`,
+      const sendEmail = window.confirm(
+        `${name} added to the roster.\n\nOnboarding link copied — valid 24 hours:\n\n${url}\n\nOK = open a ready-made welcome email to send it.\nCancel = just keep it on the clipboard.`,
       );
+      if (sendEmail) {
+        openEmailDraft(
+          "",
+          "Welcome to Synaptic Lab — complete your details",
+          `Salam ${name.split(" ")[0]},\n\nWelcome aboard! Please complete your employee record using this link (valid 24 hours):\n\n${url}\n\nIt covers your CNIC, bank account for salary, and emergency contact — takes about two minutes.\n\n— Synaptic Lab`,
+        );
+      }
     } catch (caught) {
       window.alert(errorMessage(caught, "Could not create the onboarding link."));
     }

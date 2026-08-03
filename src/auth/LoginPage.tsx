@@ -116,7 +116,7 @@ const LoginPage = () => {
                 autoFocus
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="admin@synaptic.com"
+                placeholder="qhammad286@gmail.com"
                 className={`${FIELD} mt-2.5`}
               />
             </div>
