@@ -185,10 +185,16 @@ export const renderLetter = async (input: LetterInput): Promise<Uint8Array> => {
       color: rgb(1, 1, 1),
     });
 
-    page.drawText("DRAFT — NOT SIGNED", {
-      x: box.x,
+    // Centered inside the mask, sized to fit it.
+    const draftLabel = "DRAFT — NOT SIGNED";
+    const labelSize = Math.min(
+      9,
+      (box.width - 8) / fontBold.widthOfTextAtSize(draftLabel, 1),
+    );
+    page.drawText(draftLabel, {
+      x: box.x + (box.width - fontBold.widthOfTextAtSize(draftLabel, labelSize)) / 2,
       y: box.y + box.height / 2,
-      size: 11,
+      size: labelSize,
       font: fontBold,
       color: rgb(0.75, 0.1, 0.1),
     });
@@ -209,6 +215,26 @@ export const renderLetter = async (input: LetterInput): Promise<Uint8Array> => {
   }
 
   const contentWidth = width - layout.marginLeft - layout.marginRight;
+  const text = template.build(input.employee, input.values);
+
+  /* ── Fit to one page when the overflow is small ─────────────────────────
+     A letter whose last two lines spill onto a continuation page looks
+     broken. If shrinking type by up to ~20% makes everything fit above the
+     signature, do that; genuinely long letters still paginate. */
+  let fontSize = layout.fontSize;
+  let lineHeight = layout.lineHeight;
+  let lines = wrap(text, font, fontSize, contentWidth);
+
+  const headerHeight = lineHeight * 4; // date row + gap + subject + gap
+  const available = height - layout.marginTop - layout.marginBottom;
+  const needed = headerHeight + lines.length * lineHeight;
+  if (needed > available && needed <= available * 1.25) {
+    const scale = Math.max(0.8, available / needed);
+    fontSize = fontSize * scale;
+    lineHeight = lineHeight * scale;
+    lines = wrap(text, font, fontSize, contentWidth);
+  }
+
   let cursorY = height - layout.marginTop;
 
   // Date, right-aligned at the top of the body block.
@@ -218,25 +244,22 @@ export const renderLetter = async (input: LetterInput): Promise<Uint8Array> => {
     year: "numeric",
   });
   page.drawText(when, {
-    x: width - layout.marginRight - font.widthOfTextAtSize(when, layout.fontSize),
+    x: width - layout.marginRight - font.widthOfTextAtSize(when, fontSize),
     y: cursorY,
-    size: layout.fontSize,
+    size: fontSize,
     font,
     color: rgb(0.2, 0.2, 0.22),
   });
-  cursorY -= layout.lineHeight * 2;
+  cursorY -= lineHeight * 2;
 
   page.drawText(template.subject.toUpperCase(), {
     x: layout.marginLeft,
     y: cursorY,
-    size: layout.fontSize + 1,
+    size: fontSize + 1,
     font: fontBold,
     color: rgb(0.02, 0.02, 0.02),
   });
-  cursorY -= layout.lineHeight * 2;
-
-  const text = template.build(input.employee, input.values);
-  const lines = wrap(text, font, layout.fontSize, contentWidth);
+  cursorY -= lineHeight * 2;
 
   for (const line of lines) {
     if (cursorY < layout.marginBottom) {
@@ -251,7 +274,7 @@ export const renderLetter = async (input: LetterInput): Promise<Uint8Array> => {
         font,
         color: rgb(0.5, 0.5, 0.5),
       });
-      cursorY -= layout.lineHeight * 2;
+      cursorY -= lineHeight * 2;
     }
 
     const target = pdf.getPages()[pdf.getPageCount() - 1];
@@ -259,12 +282,12 @@ export const renderLetter = async (input: LetterInput): Promise<Uint8Array> => {
       target.drawText(line, {
         x: layout.marginLeft,
         y: cursorY,
-        size: layout.fontSize,
+        size: fontSize,
         font,
         color: rgb(0.05, 0.05, 0.06),
       });
     }
-    cursorY -= layout.lineHeight;
+    cursorY -= lineHeight;
   }
 
   // ── ISSUED: reference, footer, verification QR ───────────────────────────

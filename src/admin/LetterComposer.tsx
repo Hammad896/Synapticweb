@@ -44,6 +44,18 @@ const LetterComposer = ({
     if (preview) URL.revokeObjectURL(preview);
   }, [preview]);
 
+  /* Live preview: the draft re-renders itself ~a second after you stop
+     typing, so the right-hand pane always shows what will be issued. The
+     Preview button remains for an immediate refresh. */
+  useEffect(() => {
+    if (!employee) return;
+    const missing = template.fields.some((f) => f.required && !values[f.key]?.trim());
+    if (missing) return;
+    const timer = window.setTimeout(() => void handlePreview(), 900);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- render inputs only
+  }, [employeeId, letterType, values]);
+
   const reference = useMemo(
     () => nextReference(documents.map((d) => d.reference)),
     [documents],
@@ -146,11 +158,20 @@ const LetterComposer = ({
             className={inputClass()}
           >
             <option value="">Select an employee…</option>
-            {employees.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.fullName} — {e.role || "no role set"}
-              </option>
-            ))}
+            <optgroup label="Active">
+              {employees.filter((e) => e.status === "active").map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.fullName} — {e.role || "no role set"}
+                </option>
+              ))}
+            </optgroup>
+            <optgroup label="Former">
+              {employees.filter((e) => e.status !== "active").map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.fullName} — {e.role || "no role set"}
+                </option>
+              ))}
+            </optgroup>
           </select>
         </Field>
 
@@ -199,7 +220,11 @@ const LetterComposer = ({
         )}
 
         {template.fields.map((field) => (
-          <Field key={field.key} id={`f-${field.key}`} label={field.label}>
+          <Field
+            key={field.key}
+            id={`f-${field.key}`}
+            label={field.required ? `${field.label} *` : field.label}
+          >
             {field.type === "textarea" ? (
               <textarea
                 id={`f-${field.key}`}

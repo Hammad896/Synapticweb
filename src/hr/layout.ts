@@ -28,16 +28,23 @@ export interface LetterheadLayout {
 }
 
 export const DEFAULT_LAYOUT: LetterheadLayout = {
-  marginTop: 210,
+  // The blue band ends ≈121pt from the top (the registration line above it was
+  // removed from the artwork); 150 starts the body just below it.
+  marginTop: 150,
   marginBottom: 250,
   marginLeft: 64,
   marginRight: 64,
   fontSize: 10.5,
   lineHeight: 15.5,
-  signatureBox: { x: 50, y: 90, width: 300, height: 150 },
+  // Measured off the real artwork: signature ≈ y 166-238, stamp ≈ y 81-156,
+  // both in the right column x ≈ 460-560. One box covers the pair.
+  signatureBox: { x: 448, y: 72, width: 130, height: 175 },
 };
 
-const STORAGE_KEY = "synapticlab.letterhead.layout";
+// v2: the geometry was remeasured after the registration line was removed
+// from the artwork (2026-08). Any layout saved under the old key was
+// calibrated against the wrong signature position, so it is left behind.
+const STORAGE_KEY = "synapticlab.letterhead.layout.v2";
 
 export const loadLayout = (): LetterheadLayout => {
   try {
