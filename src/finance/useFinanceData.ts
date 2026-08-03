@@ -99,6 +99,18 @@ export const useFinanceData = () => {
     [finance, hr, actor, refresh],
   );
 
+  const deleteTransactions = useCallback(
+    async (selected: Transaction[]) => {
+      await finance.removeTransactions(selected.map((t) => t.id));
+      await hr.audit(actor, "finance.transaction.bulk-delete", `${selected.length} rows`, {
+        total: selected.reduce((sum, t) => sum + t.amount, 0),
+        ids: selected.map((t) => t.legacyId || t.id),
+      });
+      await refresh();
+    },
+    [finance, hr, actor, refresh],
+  );
+
   /* ── Categories ────────────────────────────────────────────────────────── */
 
   const saveCategory = useCallback(
@@ -190,15 +202,18 @@ export const useFinanceData = () => {
     async (item: PayrollItem, patch: Partial<PayrollItem>) => {
       await finance.updatePayrollItem(item.id, patch);
 
-      // A confirmed row already wrote a Salary expense — keep it true.
+      // A confirmed row already wrote a Salary expense — keep it true. Any note
+      // the owner added to that ledger entry survives the sync.
       const next = { ...item, ...patch };
       if (item.status === "confirmed" && item.transactionId) {
+        const linked = transactions.find((t) => t.id === item.transactionId);
         await finance.updateTransaction(item.transactionId, {
-          legacyId: "",
+          legacyId: linked?.legacyId ?? "",
           date: next.payDate || next.payMonth,
           type: "expense",
           category: "Salary",
           description: salaryDescription(next),
+          notes: linked?.notes ?? "",
           amount: netPay(next),
         });
       }
@@ -206,7 +221,7 @@ export const useFinanceData = () => {
       await hr.audit(actor, "finance.payroll.update", next.slipNo, { net: netPay(next) });
       await refresh();
     },
-    [finance, hr, actor, refresh],
+    [finance, hr, actor, transactions, refresh],
   );
 
   /** Confirming writes one Salary expense per row and links it. */
@@ -222,6 +237,7 @@ export const useFinanceData = () => {
           type: "expense",
           category: "Salary",
           description: salaryDescription(item),
+          notes: "",
           amount: netPay(item),
         });
         await finance.updatePayrollItem(item.id, {
@@ -338,6 +354,7 @@ export const useFinanceData = () => {
     refresh,
     saveTransaction,
     deleteTransaction,
+    deleteTransactions,
     importTransactionsCsv,
     saveCategory,
     toggleCategory,

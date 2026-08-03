@@ -48,11 +48,17 @@ create table if not exists transactions (
   -- in settings must never rewrite two years of history.
   category    text not null,
   description text default '',
+  -- Free reminder text ("follow up on this", "half still owed") — shown in the
+  -- app, separate from the description that goes on reports.
+  notes       text default '',
   amount      numeric(14,2) not null check (amount >= 0),
 
   created_at  timestamptz default now(),
   updated_at  timestamptz default now()
 );
+
+-- Idempotent upgrade for databases created before notes existed.
+alter table transactions add column if not exists notes text default '';
 
 create index if not exists transactions_date_idx on transactions (date);
 create index if not exists transactions_type_category_idx on transactions (type, category);

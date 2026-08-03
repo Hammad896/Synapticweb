@@ -25,6 +25,7 @@ const ledger: Transaction[] = seed.transactions.map((t, i) => ({
   type: t.type as Transaction["type"],
   category: t.category,
   description: t.description,
+  notes: "",
   amount: t.amount,
   createdAt: "",
 }));
@@ -169,6 +170,7 @@ describe("CSV backup round trip", () => {
         type: "expense",
         category: "Subscription",
         description: "Canva, yearly",
+        notes: "",
         amount: 1500,
       },
       {
@@ -177,6 +179,7 @@ describe("CSV backup round trip", () => {
         type: "income",
         category: "Qamar",
         description: "",
+        notes: "",
         amount: 2000,
       },
     ]);

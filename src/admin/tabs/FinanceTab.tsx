@@ -96,6 +96,7 @@ const FinanceTab = ({
                 expenseCategories={data.expenseCategories}
                 onSave={data.saveTransaction}
                 onDelete={data.deleteTransaction}
+                onDeleteMany={data.deleteTransactions}
                 onImportCsv={data.importTransactionsCsv}
               />
             )}

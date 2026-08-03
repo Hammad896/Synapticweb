@@ -19,6 +19,8 @@ export interface FinanceRepository {
   createTransaction(draft: TransactionDraft): Promise<Transaction>;
   updateTransaction(id: string, draft: TransactionDraft): Promise<void>;
   removeTransaction(id: string): Promise<void>;
+  /** Bulk delete for the multi-select action. */
+  removeTransactions(ids: string[]): Promise<void>;
   /** Bulk import. Rows whose legacyId already exists are skipped — idempotent. */
   insertTransactions(drafts: TransactionDraft[]): Promise<number>;
   /** Plain bulk insert for CSV uploads with no dedupe key. */
@@ -62,6 +64,7 @@ const toTransaction = (row: Row): Transaction => ({
   type: str(row.type, "expense") as Transaction["type"],
   category: str(row.category),
   description: str(row.description),
+  notes: str(row.notes),
   amount: num(row.amount),
   createdAt: str(row.created_at),
 });
@@ -72,6 +75,7 @@ const toTransactionRow = (draft: TransactionDraft) => ({
   type: draft.type,
   category: draft.category,
   description: draft.description,
+  notes: draft.notes,
   amount: draft.amount,
 });
 
@@ -151,6 +155,16 @@ class SupabaseFinanceRepository implements FinanceRepository {
   async removeTransaction(id: string): Promise<void> {
     const { error } = await this.db.from("transactions").delete().eq("id", id);
     if (error) throw error;
+  }
+
+  async removeTransactions(ids: string[]): Promise<void> {
+    for (let i = 0; i < ids.length; i += 200) {
+      const { error } = await this.db
+        .from("transactions")
+        .delete()
+        .in("id", ids.slice(i, i + 200));
+      if (error) throw error;
+    }
   }
 
   async insertTransactions(drafts: TransactionDraft[]): Promise<number> {
@@ -321,9 +335,12 @@ const write = <T,>(key: string, value: T[]) =>
 
 class LocalFinanceRepository implements FinanceRepository {
   async listTransactions() {
-    return read<Transaction>(KEY.transactions).sort(
-      (a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt),
-    );
+    // Older local records predate notes.
+    return read<Transaction>(KEY.transactions)
+      .map((t) => ({ ...t, notes: t.notes ?? "" }))
+      .sort(
+        (a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt),
+      );
   }
 
   async createTransaction(draft: TransactionDraft) {
@@ -349,6 +366,14 @@ class LocalFinanceRepository implements FinanceRepository {
     write(
       KEY.transactions,
       read<Transaction>(KEY.transactions).filter((t) => t.id !== id),
+    );
+  }
+
+  async removeTransactions(ids: string[]) {
+    const gone = new Set(ids);
+    write(
+      KEY.transactions,
+      read<Transaction>(KEY.transactions).filter((t) => !gone.has(t.id)),
     );
   }
 

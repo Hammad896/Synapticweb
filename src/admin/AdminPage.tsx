@@ -7,7 +7,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { Badge, Button } from "@/components/kit";
 import { useAuth } from "@/auth/auth";
 import { buildAlerts } from "@/hr/automations";
-import { DesktopTabs, MobileNav, TABS, type Tab } from "./AdminNav";
+import { MobileNav, SideNav, TABS, type Tab } from "./AdminNav";
 import { useHrData } from "./useHrData";
 import { isRemote, toCsv, type IssuedDocument } from "./repository";
 import Reports from "./Reports";
@@ -123,12 +123,14 @@ const AdminPage = () => {
             </button>
           </div>
         </div>
-
-        <DesktopTabs tab={tab} onChange={setTab} alertCount={alertCount} />
       </header>
 
-      {/* pb-28 clears the fixed bottom bar on mobile. */}
-      <main className="mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 sm:py-12 md:pb-12">
+      {/* pb-28 clears the fixed bottom bar on mobile. Desktop: grouped sidebar
+          on the left, content on the right. */}
+      <main className="mx-auto flex max-w-7xl gap-8 px-4 pb-28 pt-6 sm:px-6 sm:py-10 md:pb-12">
+        <SideNav tab={tab} onChange={setTab} alertCount={alertCount} />
+
+        <div className="min-w-0 flex-1">
         {!isRemote() && !warningDismissed && (
           <div className="no-print mb-6 flex gap-3 rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 sm:mb-8 sm:gap-4 sm:p-5">
             <TriangleAlert
@@ -270,6 +272,7 @@ const AdminPage = () => {
             {tab === "audit" && <AuditTab audit={data.audit} />}
           </motion.div>
         </AnimatePresence>
+        </div>
       </main>
 
       {/* Undo toast — sits above the mobile bottom bar. */}

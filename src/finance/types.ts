@@ -9,6 +9,8 @@ export interface Transaction {
   /** Category NAME (income source or expense category), denormalised on purpose. */
   category: string;
   description: string;
+  /** Free reminder text, separate from the description that goes on reports. */
+  notes: string;
   amount: number;
   createdAt: string;
 }
@@ -21,6 +23,7 @@ export const EMPTY_TRANSACTION: TransactionDraft = {
   type: "expense",
   category: "",
   description: "",
+  notes: "",
   amount: 0,
 };
 

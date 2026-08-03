@@ -45,6 +45,15 @@ export const TABS: Array<{ id: Tab; label: string; icon: typeof Users }> = [
 const PRIMARY_TABS: Tab[] = ["overview", "finance", "employees", "letters"];
 const MORE_TABS: Tab[] = ["documents", "reports", "careers", "announcements", "content", "audit"];
 
+/** The desktop sidebar: one subject per group, headed, in workload order. */
+export const NAV_GROUPS: Array<{ heading: string; ids: Tab[] }> = [
+  { heading: "Dashboard", ids: ["overview"] },
+  { heading: "Money", ids: ["finance"] },
+  { heading: "People", ids: ["employees", "letters", "documents"] },
+  { heading: "Website", ids: ["careers", "announcements", "content"] },
+  { heading: "System", ids: ["reports", "audit"] },
+];
+
 interface Props {
   tab: Tab;
   onChange: (tab: Tab) => void;
@@ -54,41 +63,52 @@ interface Props {
   setMoreOpen: (open: boolean) => void;
 }
 
-/** Desktop: a tab strip under the header. */
-export const DesktopTabs = ({
+/** Desktop: a grouped sidebar with headings — the map of the whole back office. */
+export const SideNav = ({
   tab,
   onChange,
   alertCount,
 }: Pick<Props, "tab" | "onChange" | "alertCount">) => (
-  <nav
-    aria-label="Admin sections"
-    className="mx-auto hidden max-w-7xl px-4 sm:px-6 md:block"
-  >
-    <ul className="-mb-px flex gap-1 overflow-x-auto">
-      {TABS.map(({ id, label, icon: Icon }) => (
-        <li key={id}>
-          <button
-            type="button"
-            onClick={() => onChange(id)}
-            aria-current={tab === id ? "page" : undefined}
-            className={cn(
-              "flex items-center gap-2 whitespace-nowrap border-b-2 px-4 py-3 text-xs transition-colors",
-              tab === id
-                ? "border-accent text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            <Icon size={14} aria-hidden="true" />
-            {label}
-            {id === "overview" && alertCount > 0 && (
-              <span className="rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] tabular-nums text-accent">
-                {alertCount}
-              </span>
-            )}
-          </button>
-        </li>
+  <nav aria-label="Admin sections" className="hidden w-52 shrink-0 md:block">
+    <div className="sticky top-24 flex flex-col gap-6">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.heading}>
+          <p className="px-3 text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+            {group.heading}
+          </p>
+          <ul className="mt-2 flex flex-col gap-0.5">
+            {group.ids.map((id) => {
+              const meta = TABS.find((t) => t.id === id)!;
+              const Icon = meta.icon;
+              const isActive = tab === id;
+              return (
+                <li key={id}>
+                  <button
+                    type="button"
+                    onClick={() => onChange(id)}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors",
+                      isActive
+                        ? "bg-accent/10 font-medium text-accent"
+                        : "text-muted-foreground hover:bg-accent/5 hover:text-foreground",
+                    )}
+                  >
+                    <Icon size={15} aria-hidden="true" />
+                    {meta.label}
+                    {id === "overview" && alertCount > 0 && (
+                      <span className="ml-auto rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] tabular-nums text-accent">
+                        {alertCount}
+                      </span>
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       ))}
-    </ul>
+    </div>
   </nav>
 );
 

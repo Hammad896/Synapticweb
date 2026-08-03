@@ -9,11 +9,11 @@ import { netPay, type PayrollItem, type Transaction, type TransactionDraft } fro
 const escape = (value: string | number): string =>
   `"${String(value).replace(/"/g, '""')}"`;
 
-/** id,date,type,category,description,amount — the id doubles as the dedupe key. */
+/** id,date,type,category,description,amount,notes — the id doubles as the dedupe key. */
 export const transactionsToCsv = (transactions: Transaction[]): string => {
-  const header = ["id", "date", "type", "category", "description", "amount"];
+  const header = ["id", "date", "type", "category", "description", "amount", "notes"];
   const rows = transactions.map((t) =>
-    [t.legacyId || t.id, t.date, t.type === "income" ? "Income" : "Expense", t.category, t.description, t.amount]
+    [t.legacyId || t.id, t.date, t.type === "income" ? "Income" : "Expense", t.category, t.description, t.amount, t.notes]
       .map(escape)
       .join(","),
   );
@@ -154,6 +154,7 @@ export const parseTransactionsCsv = (text: string): CsvParseResult => {
       type: rawType,
       category,
       description: col("description") === -1 ? "" : (cells[col("description")] ?? ""),
+      notes: col("notes") === -1 ? "" : (cells[col("notes")] ?? ""),
       amount,
     });
   }

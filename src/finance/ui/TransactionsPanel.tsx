@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { Download, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { Download, Pencil, Plus, StickyNote, Trash2, Upload, X } from "lucide-react";
 import { Badge, Button, EmptyState, Field, inputClass } from "@/components/kit";
 import { shortDate } from "@/admin/format";
 import { applyFilter, EMPTY_FILTER, pkr, round2, totalsOf, type TransactionFilter } from "../calc";
@@ -23,6 +23,7 @@ interface Props {
   expenseCategories: FinanceCategory[];
   onSave: (draft: TransactionDraft, editing: Transaction | null) => Promise<void>;
   onDelete: (transaction: Transaction) => Promise<void>;
+  onDeleteMany: (transactions: Transaction[]) => Promise<void>;
   onImportCsv: (drafts: TransactionDraft[]) => Promise<{
     added: number;
     skipped: number;
@@ -36,6 +37,7 @@ const TransactionsPanel = ({
   expenseCategories,
   onSave,
   onDelete,
+  onDeleteMany,
   onImportCsv,
 }: Props) => {
   const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
@@ -44,6 +46,7 @@ const TransactionsPanel = ({
   const [draft, setDraft] = useState<TransactionDraft>(EMPTY_TRANSACTION);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const fileInput = useRef<HTMLInputElement>(null);
 
   const years = useMemo(
@@ -78,6 +81,7 @@ const TransactionsPanel = ({
       type: transaction.type,
       category: transaction.category,
       description: transaction.description,
+      notes: transaction.notes,
       amount: transaction.amount,
     });
     setIsCreating(true);
@@ -108,6 +112,51 @@ const TransactionsPanel = ({
       )
     ) {
       await onDelete(transaction);
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(transaction.id);
+        return next;
+      });
+    }
+  };
+
+  /* ── Multi-select ──────────────────────────────────────────────────────── */
+
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const allVisibleSelected =
+    filtered.length > 0 && filtered.every((t) => selected.has(t.id));
+
+  const toggleAllVisible = () =>
+    setSelected((prev) => {
+      if (allVisibleSelected) {
+        const next = new Set(prev);
+        for (const t of filtered) next.delete(t.id);
+        return next;
+      }
+      return new Set([...prev, ...filtered.map((t) => t.id)]);
+    });
+
+  const selectedRows = useMemo(
+    () => transactions.filter((t) => selected.has(t.id)),
+    [transactions, selected],
+  );
+
+  const removeSelected = async () => {
+    const total = selectedRows.reduce((sum, t) => sum + t.amount, 0);
+    if (
+      window.confirm(
+        `Delete ${selectedRows.length} selected transaction${selectedRows.length === 1 ? "" : "s"} (PKR ${pkr(total)} in total)?\n\nThis cannot be undone.`,
+      )
+    ) {
+      await onDeleteMany(selectedRows);
+      setSelected(new Set());
     }
   };
 
@@ -371,6 +420,23 @@ const TransactionsPanel = ({
             </Field>
           </div>
 
+          <div className="mt-4">
+            <Field
+              id="tx-notes"
+              label="Notes (optional)"
+              hint="A reminder for later — e.g. “half still owed, follow up in September”. Shown with a note icon in the list."
+            >
+              <textarea
+                id="tx-notes"
+                rows={2}
+                className={inputClass("resize-y")}
+                placeholder="Anything you want to remember about this transaction…"
+                value={draft.notes}
+                onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
+              />
+            </Field>
+          </div>
+
           <div className="mt-4 flex gap-3">
             <Button type="submit" disabled={saving} className="px-4 py-2 text-xs">
               {saving ? "Saving…" : editing ? "Save changes" : "Add transaction"}
@@ -380,6 +446,32 @@ const TransactionsPanel = ({
             </Button>
           </div>
         </form>
+      )}
+
+      {/* ── Bulk selection bar ────────────────────────────────────────────── */}
+      {selected.size > 0 && (
+        <div className="surface mt-4 flex flex-wrap items-center gap-3 border-accent/40 p-3 sm:px-5">
+          <span className="text-sm text-foreground">
+            <strong>{selected.size}</strong> selected · PKR{" "}
+            {pkr(selectedRows.reduce((sum, t) => sum + t.amount, 0))}
+          </span>
+          <Button
+            variant="danger"
+            className="ml-auto px-4 py-1.5 text-xs"
+            onClick={() => void removeSelected()}
+          >
+            <Trash2 size={13} aria-hidden="true" />
+            Delete selected
+          </Button>
+          <Button
+            variant="ghost"
+            className="px-3 py-1.5 text-xs"
+            onClick={() => setSelected(new Set())}
+          >
+            <X size={13} aria-hidden="true" />
+            Clear
+          </Button>
+        </div>
       )}
 
       {/* ── The ledger ────────────────────────────────────────────────────── */}
@@ -401,13 +493,26 @@ const TransactionsPanel = ({
             {filtered.map((t) => (
               <li key={t.id} className="surface p-4">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${t.description || t.category}`}
+                    className="mt-1 h-4 w-4 shrink-0 accent-current"
+                    checked={selected.has(t.id)}
+                    onChange={() => toggleSelected(t.id)}
+                  />
+                  <div className="min-w-0 flex-1">
                     <p className="truncate text-sm text-foreground">
                       {t.description || t.category}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {shortDate(t.date)} · {t.category}
                     </p>
+                    {t.notes && (
+                      <p className="mt-1 flex items-start gap-1.5 text-xs italic text-muted-foreground">
+                        <StickyNote size={12} aria-hidden="true" className="mt-0.5 shrink-0 text-accent" />
+                        {t.notes}
+                      </p>
+                    )}
                   </div>
                   <p
                     className={`shrink-0 text-sm tabular-nums ${
@@ -442,6 +547,15 @@ const TransactionsPanel = ({
             <table className="w-full min-w-[52rem] border-collapse text-left">
               <thead>
                 <tr className="border-b border-border">
+                  <th scope="col" className="w-10 px-4 py-4">
+                    <input
+                      type="checkbox"
+                      aria-label={allVisibleSelected ? "Deselect all visible" : "Select all visible"}
+                      className="h-4 w-4 accent-current"
+                      checked={allVisibleSelected}
+                      onChange={toggleAllVisible}
+                    />
+                  </th>
                   {["Date", "Type", "Category", "Description", "Amount", ""].map((h) => (
                     <th
                       key={h}
@@ -455,7 +569,19 @@ const TransactionsPanel = ({
               </thead>
               <tbody>
                 {filtered.map((t) => (
-                  <tr key={t.id} className="border-b border-border last:border-b-0">
+                  <tr
+                    key={t.id}
+                    className={`border-b border-border last:border-b-0 ${selected.has(t.id) ? "bg-accent/5" : ""}`}
+                  >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        aria-label={`Select ${t.description || t.category}`}
+                        className="h-4 w-4 accent-current"
+                        checked={selected.has(t.id)}
+                        onChange={() => toggleSelected(t.id)}
+                      />
+                    </td>
                     <td className="whitespace-nowrap px-5 py-3 text-sm tabular-nums text-muted-foreground">
                       {shortDate(t.date)}
                     </td>
@@ -467,8 +593,15 @@ const TransactionsPanel = ({
                     <td className="whitespace-nowrap px-5 py-3 text-sm text-foreground">
                       {t.category}
                     </td>
-                    <td className="max-w-[24rem] truncate px-5 py-3 text-sm text-muted-foreground">
-                      {t.description}
+                    <td className="max-w-[24rem] px-5 py-3 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-2">
+                        <span className="truncate">{t.description}</span>
+                        {t.notes && (
+                          <span title={t.notes} aria-label={`Note: ${t.notes}`} className="shrink-0 cursor-help">
+                            <StickyNote size={13} aria-hidden="true" className="text-accent" />
+                          </span>
+                        )}
+                      </span>
                     </td>
                     <td
                       className={`whitespace-nowrap px-5 py-3 text-right text-sm tabular-nums ${

@@ -44,7 +44,7 @@ closing reports, all admin-only behind the same RLS allowlist as HR.
 | Screen | What it does |
 |---|---|
 | **Finance → Dashboard** | All-time / per-year totals, available-after-reserve, monthly income-vs-expense chart, breakdowns by category and source. |
-| **Finance → Transactions** | The ledger. Add/edit/delete with date, type, category, description, amount. Filter by year, month, type, category, and text. The category dropdown follows the type. |
+| **Finance → Transactions** | The ledger. Add/edit/delete with date, type, category, description, amount, and a free **notes** field for reminders (note icon in the list). Multi-select checkboxes with bulk delete. Filter by year, month, type, category, and text. The category dropdown follows the type. |
 | **Finance → Payroll** | Generate a month's run — one editable row per **Active · Internal** employee, pre-filled from their current salary. Confirming posts one `Salary` expense per row to the ledger and links it. Editing or deleting a confirmed row keeps that ledger entry in sync. Slip PDF per row (`SYN-SS-YYYYMM-NNN`, restarts at 001 monthly, pay date defaults to the 5th of the following month). |
 | **Finance → Reports** | Monthly and yearly closing tables: opening carried forward, income, expenses, net, closing — the same math as the Excel closing sheet, recomputed live. |
 | **Finance → Settings** | Editable income-source and expense-category lists (rename / retire / delete — history keeps its names), the reserve amount (default 100,000), and the import button. |

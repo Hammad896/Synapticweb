@@ -157,6 +157,7 @@ export const importFinanceSeed = async (
       type: t.type,
       category: t.category,
       description: t.description,
+      notes: "",
       amount: t.amount,
     })),
   );
