@@ -39,7 +39,8 @@ export interface FinanceRepository {
   listPayroll(): Promise<PayrollItem[]>;
   createPayrollItem(draft: PayrollDraft): Promise<PayrollItem>;
   updatePayrollItem(id: string, patch: Partial<PayrollDraft>): Promise<void>;
-  removePayrollItem(id: string): Promise<void>;
+  /** Bulk delete; a single delete is just a one-element call. */
+  removePayrollItems(ids: string[]): Promise<void>;
   /** Bulk import. Rows whose slipNo already exists are skipped — idempotent. */
   insertPayroll(drafts: PayrollDraft[]): Promise<number>;
 
@@ -283,8 +284,8 @@ class SupabaseFinanceRepository implements FinanceRepository {
     if (error) throw error;
   }
 
-  async removePayrollItem(id: string): Promise<void> {
-    const { error } = await this.db.from("payroll_items").delete().eq("id", id);
+  async removePayrollItems(ids: string[]): Promise<void> {
+    const { error } = await this.db.from("payroll_items").delete().in("id", ids);
     if (error) throw error;
   }
 
@@ -480,10 +481,11 @@ class LocalFinanceRepository implements FinanceRepository {
     );
   }
 
-  async removePayrollItem(id: string) {
+  async removePayrollItems(ids: string[]) {
+    const gone = new Set(ids);
     write(
       KEY.payroll,
-      read<PayrollItem>(KEY.payroll).filter((p) => p.id !== id),
+      read<PayrollItem>(KEY.payroll).filter((p) => !gone.has(p.id)),
     );
   }
 

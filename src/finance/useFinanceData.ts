@@ -288,21 +288,36 @@ export const useFinanceData = () => {
     [finance, hr, actor, payroll, transactions, refresh],
   );
 
-  const deletePayrollItem = useCallback(
-    async (item: PayrollItem) => {
-      // The ledger follows the register: removing a confirmed row removes the
-      // Salary expense it created. The caller confirms this with the user.
-      if (item.status === "confirmed" && item.transactionId) {
-        await finance.removeTransactions([item.transactionId]);
+  /** One delete path for one row or many. The ledger follows the register:
+   *  removing confirmed rows removes the Salary expenses they created. The
+   *  caller confirms this with the user. */
+  const deletePayrollItems = useCallback(
+    async (items: PayrollItem[]) => {
+      const linkedTransactions = items
+        .filter((i) => i.status === "confirmed" && i.transactionId)
+        .map((i) => i.transactionId as string);
+      if (linkedTransactions.length) {
+        await finance.removeTransactions(linkedTransactions);
       }
-      await finance.removePayrollItem(item.id);
-      await hr.audit(actor, "finance.payroll.delete", item.slipNo, {
-        employee: item.employeeName,
-        net: netPay(item),
-      });
+      await finance.removePayrollItems(items.map((i) => i.id));
+      await hr.audit(
+        actor,
+        items.length === 1 ? "finance.payroll.delete" : "finance.payroll.bulk-delete",
+        items.length === 1 ? items[0].slipNo : `${items.length} rows`,
+        {
+          employees: items.map((i) => i.employeeName),
+          totalNet: items.reduce((sum, i) => sum + netPay(i), 0),
+          ledgerEntriesRemoved: linkedTransactions.length,
+        },
+      );
       await refresh();
     },
     [finance, hr, actor, refresh],
+  );
+
+  const deletePayrollItem = useCallback(
+    (item: PayrollItem) => deletePayrollItems([item]),
+    [deletePayrollItems],
   );
 
   /**
@@ -411,6 +426,7 @@ export const useFinanceData = () => {
     savePayrollItem,
     confirmRun,
     deletePayrollItem,
+    deletePayrollItems,
     saveSettings,
     runImport,
   };

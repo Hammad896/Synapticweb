@@ -22,6 +22,7 @@ interface Props {
   onConfirm: (payMonth: string) => Promise<number>;
   onSaveItem: (item: PayrollItem, patch: Partial<PayrollItem>) => Promise<void>;
   onDeleteItem: (item: PayrollItem) => Promise<void>;
+  onDeleteItems: (items: PayrollItem[]) => Promise<void>;
 }
 
 const PayrollPanel = ({
@@ -32,11 +33,13 @@ const PayrollPanel = ({
   onConfirm,
   onSaveItem,
   onDeleteItem,
+  onDeleteItems,
 }: Props) => {
   const [month, setMonth] = useState(suggestedPayMonth);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<PayrollItem | null>(null);
   const [patch, setPatch] = useState<Partial<PayrollItem>>({});
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // The same predicate generateRun uses — the caption can never lie about
   // who a run will include.
@@ -82,7 +85,56 @@ const PayrollPanel = ({
       item.status === "confirmed"
         ? `Delete ${item.slipNo} (${item.employeeName})?\n\nIts Salary expense of PKR ${pkr(netPay(item))} will ALSO be removed from the ledger.`
         : `Delete ${item.slipNo} (${item.employeeName})?`;
-    if (window.confirm(warning)) await onDeleteItem(item);
+    if (window.confirm(warning)) {
+      await onDeleteItem(item);
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  };
+
+  /* ── Multi-select ──────────────────────────────────────────────────────── */
+
+  const toggleSelected = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
+  const toggleMonth = (items: PayrollItem[]) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const allIn = items.every((i) => next.has(i.id));
+      for (const item of items) {
+        if (allIn) next.delete(item.id);
+        else next.add(item.id);
+      }
+      return next;
+    });
+
+  const selectedRows = useMemo(
+    () => payroll.filter((p) => selected.has(p.id)),
+    [payroll, selected],
+  );
+
+  const removeSelected = async () => {
+    const confirmed = selectedRows.filter((i) => i.status === "confirmed" && i.transactionId);
+    const total = selectedRows.reduce((sum, i) => sum + netPay(i), 0);
+    if (
+      window.confirm(
+        `Delete ${selectedRows.length} payroll row${selectedRows.length === 1 ? "" : "s"} (PKR ${pkr(total)} net in total)?` +
+          (confirmed.length
+            ? `\n\n${confirmed.length} of them are confirmed — their Salary expenses will ALSO be removed from the ledger.`
+            : ""),
+      )
+    ) {
+      await onDeleteItems(selectedRows);
+      setSelected(new Set());
+    }
   };
 
   const startEdit = (item: PayrollItem) => {
@@ -245,6 +297,32 @@ const PayrollPanel = ({
         </div>
       )}
 
+      {/* ── Bulk selection bar ────────────────────────────────────────────── */}
+      {selected.size > 0 && (
+        <div className="surface mt-4 flex flex-wrap items-center gap-3 border-accent/40 p-3 sm:px-5">
+          <span className="text-sm text-foreground">
+            <strong>{selected.size}</strong> selected · PKR{" "}
+            {pkr(selectedRows.reduce((sum, i) => sum + netPay(i), 0))} net
+          </span>
+          <Button
+            variant="danger"
+            className="ml-auto px-4 py-1.5 text-xs"
+            onClick={() => void removeSelected()}
+          >
+            <Trash2 size={13} aria-hidden="true" />
+            Delete selected
+          </Button>
+          <Button
+            variant="ghost"
+            className="px-3 py-1.5 text-xs"
+            onClick={() => setSelected(new Set())}
+          >
+            <X size={13} aria-hidden="true" />
+            Clear
+          </Button>
+        </div>
+      )}
+
       {/* ── Runs ──────────────────────────────────────────────────────────── */}
       {byMonth.length === 0 ? (
         <div className="mt-6">
@@ -282,6 +360,15 @@ const PayrollPanel = ({
                 <table className="w-full min-w-[56rem] border-collapse text-left">
                   <thead>
                     <tr className="border-b border-border">
+                      <th scope="col" className="w-10 px-4 py-3">
+                        <input
+                          type="checkbox"
+                          aria-label={`Select all rows for ${monthLabel(key)}`}
+                          className="h-4 w-4 accent-current"
+                          checked={items.every((i) => selected.has(i.id))}
+                          onChange={() => toggleMonth(items)}
+                        />
+                      </th>
                       {["Slip", "Employee", "Basic", "Bonus", "Deduction", "Net pay", "Pay date", "Status", ""].map((h) => (
                         <th
                           key={h}
@@ -295,7 +382,19 @@ const PayrollPanel = ({
                   </thead>
                   <tbody>
                     {items.map((item) => (
-                      <tr key={item.id} className="border-b border-border last:border-b-0">
+                      <tr
+                        key={item.id}
+                        className={`border-b border-border last:border-b-0 ${selected.has(item.id) ? "bg-accent/5" : ""}`}
+                      >
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${item.slipNo}`}
+                            className="h-4 w-4 accent-current"
+                            checked={selected.has(item.id)}
+                            onChange={() => toggleSelected(item.id)}
+                          />
+                        </td>
                         <td className="whitespace-nowrap px-4 py-3 text-xs tabular-nums text-accent">
                           {item.slipNo}
                         </td>

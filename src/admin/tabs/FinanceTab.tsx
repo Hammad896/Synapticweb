@@ -110,6 +110,7 @@ const FinanceTab = ({
                 onConfirm={data.confirmRun}
                 onSaveItem={data.savePayrollItem}
                 onDeleteItem={data.deletePayrollItem}
+                onDeleteItems={data.deletePayrollItems}
               />
             )}
 
