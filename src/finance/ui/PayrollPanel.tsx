@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
-import { CheckCircle2, Download, FileDown, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Award, CheckCircle2, Download, FileDown, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Badge, Button, EmptyState, Field, inputClass } from "@/components/kit";
+import { SortTh, type SortState } from "@/lib/useSort";
 import type { Employee } from "@/admin/types";
 import { openPdf } from "@/hr/pdf";
-import { monthLabel, pkr } from "../calc";
+import { fiscalYearOf, monthLabel, pkr } from "../calc";
 import { downloadCsv, payrollToCsv } from "../csv";
 import {
   isPayrollEligible,
@@ -11,12 +12,15 @@ import {
   suggestedPayMonth,
   type FinanceSettings,
   type PayrollItem,
+  type Transaction,
 } from "../types";
 import { renderSalarySlip } from "../slip";
+import { monthlySalaries, renderSalaryCertificate } from "../certificate";
 
 interface Props {
   payroll: PayrollItem[];
   employees: Employee[];
+  transactions: Transaction[];
   settings: FinanceSettings;
   onGenerate: (payMonth: string, employees: Employee[]) => Promise<number>;
   onConfirm: (payMonth: string) => Promise<number>;
@@ -28,6 +32,7 @@ interface Props {
 const PayrollPanel = ({
   payroll,
   employees,
+  transactions,
   settings,
   onGenerate,
   onConfirm,
@@ -138,6 +143,41 @@ const PayrollPanel = ({
     [payroll, selected],
   );
 
+  /* One sort state shared by every month's table — consistent columns. */
+  const [rowSort, setRowSort] = useState<SortState | null>(null);
+  const toggleRowSort = (key: string) =>
+    setRowSort((current) =>
+      current?.key !== key
+        ? { key, dir: "asc" }
+        : current.dir === "asc"
+          ? { key, dir: "desc" }
+          : null,
+    );
+  const sortRows = (items: PayrollItem[]) => {
+    if (!rowSort) return items;
+    const accessors: Record<string, (i: PayrollItem) => string | number> = {
+      slip: (i) => i.slipNo,
+      employee: (i) => i.employeeName.toLowerCase(),
+      basic: (i) => i.basic,
+      bonus: (i) => i.bonus,
+      deduction: (i) => i.deduction,
+      net: (i) => netPay(i),
+      payDate: (i) => i.payDate,
+      status: (i) => i.status,
+    };
+    const accessor = accessors[rowSort.key];
+    if (!accessor) return items;
+    return [...items].sort((a, b) => {
+      const va = accessor(a);
+      const vb = accessor(b);
+      const cmp =
+        typeof va === "number" && typeof vb === "number"
+          ? va - vb
+          : String(va).localeCompare(String(vb));
+      return rowSort.dir === "asc" ? cmp : -cmp;
+    });
+  };
+
   const removeSelected = async () => {
     const confirmed = selectedRows.filter((i) => i.status === "confirmed" && i.transactionId);
     const total = selectedRows.reduce((sum, i) => sum + netPay(i), 0);
@@ -198,6 +238,51 @@ const PayrollPanel = ({
     bonus: patch.bonus ?? 0,
     deduction: patch.deduction ?? 0,
   });
+
+  /* ── Salary certificate (FBR) ──────────────────────────────────────────── */
+
+  const [certEmployeeId, setCertEmployeeId] = useState("");
+  const [certYear, setCertYear] = useState("");
+  const [certBusy, setCertBusy] = useState(false);
+
+  const certYears = useMemo(() => {
+    const years = new Set<string>();
+    for (const p of payroll) years.add(fiscalYearOf(p.payMonth));
+    for (const t of transactions) {
+      if (t.type === "expense" && t.category === "Salary") years.add(fiscalYearOf(t.date));
+    }
+    return [...years].sort().reverse();
+  }, [payroll, transactions]);
+
+  const downloadCertificate = async () => {
+    const person = employees.find((e) => e.id === certEmployeeId);
+    const fy = certYear || certYears[0];
+    if (!person || !fy) return;
+    setCertBusy(true);
+    try {
+      const rows = monthlySalaries({ employee: person, fiscalYear: fy, payroll, transactions });
+      if (rows.length === 0) {
+        window.alert(`No salary records found for ${person.fullName} in FY ${fy}.`);
+        return;
+      }
+      openPdf(
+        await renderSalaryCertificate({
+          employee: person,
+          fiscalYear: fy,
+          payroll,
+          transactions,
+          taxNote: settings.slipNote,
+        }),
+        `salary-certificate-${person.fullName.replace(/\s+/g, "-")}-FY${fy}.pdf`,
+      );
+    } catch (caught) {
+      window.alert(
+        `Could not generate the certificate: ${caught instanceof Error ? caught.message : "unknown error"}`,
+      );
+    } finally {
+      setCertBusy(false);
+    }
+  };
 
   return (
     <div>
@@ -314,6 +399,47 @@ const PayrollPanel = ({
         </div>
       )}
 
+      {/* ── Salary certificate (FBR) ──────────────────────────────────────── */}
+      <div className="surface mt-4 flex flex-wrap items-end gap-4 p-4 sm:p-5">
+        <Field id="cert-employee" label="Salary certificate (FBR)">
+          <select
+            id="cert-employee"
+            className={inputClass("w-56")}
+            value={certEmployeeId}
+            onChange={(e) => setCertEmployeeId(e.target.value)}
+          >
+            <option value="">Select employee…</option>
+            {employees.map((e) => (
+              <option key={e.id} value={e.id}>{e.fullName}</option>
+            ))}
+          </select>
+        </Field>
+        <Field id="cert-year" label="Fiscal year">
+          <select
+            id="cert-year"
+            className={inputClass("w-36")}
+            value={certYear || certYears[0] || ""}
+            onChange={(e) => setCertYear(e.target.value)}
+          >
+            {certYears.map((fy) => (
+              <option key={fy} value={fy}>FY {fy}</option>
+            ))}
+          </select>
+        </Field>
+        <Button
+          disabled={certBusy || !certEmployeeId}
+          className="px-4 py-2.5 text-xs"
+          onClick={() => void downloadCertificate()}
+        >
+          <Award size={14} aria-hidden="true" />
+          Download certificate
+        </Button>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          The annual statement an employee attaches to their FBR return —
+          month-by-month net salary for the fiscal year, on the letterhead.
+        </p>
+      </div>
+
       {/* ── Filters ───────────────────────────────────────────────────────── */}
       {payroll.length > 0 && (
         <div className="surface mt-4 grid grid-cols-2 gap-3 p-4 sm:grid-cols-4 sm:p-5">
@@ -429,19 +555,19 @@ const PayrollPanel = ({
                           onChange={() => toggleMonth(items)}
                         />
                       </th>
-                      {["Slip", "Employee", "Basic", "Bonus", "Deduction", "Net pay", "Pay date", "Status", ""].map((h) => (
-                        <th
-                          key={h}
-                          scope="col"
-                          className="whitespace-nowrap px-4 py-3 text-xs uppercase tracking-[0.15em] text-muted-foreground"
-                        >
-                          {h}
-                        </th>
-                      ))}
+                      <SortTh label="Slip" sortKey="slip" sort={rowSort} onToggle={toggleRowSort} className="!px-4 !py-3" />
+                      <SortTh label="Employee" sortKey="employee" sort={rowSort} onToggle={toggleRowSort} className="!px-4 !py-3" />
+                      <SortTh label="Basic" sortKey="basic" sort={rowSort} onToggle={toggleRowSort} className="!px-4 !py-3" />
+                      <SortTh label="Bonus" sortKey="bonus" sort={rowSort} onToggle={toggleRowSort} className="!px-4 !py-3" />
+                      <SortTh label="Deduction" sortKey="deduction" sort={rowSort} onToggle={toggleRowSort} className="!px-4 !py-3" />
+                      <SortTh label="Net pay" sortKey="net" sort={rowSort} onToggle={toggleRowSort} className="!px-4 !py-3" />
+                      <SortTh label="Pay date" sortKey="payDate" sort={rowSort} onToggle={toggleRowSort} className="!px-4 !py-3" />
+                      <SortTh label="Status" sortKey="status" sort={rowSort} onToggle={toggleRowSort} className="!px-4 !py-3" />
+                      <th scope="col" className="px-4 py-3" />
                     </tr>
                   </thead>
                   <tbody>
-                    {items.map((item) => (
+                    {sortRows(items).map((item) => (
                       <tr
                         key={item.id}
                         className={`border-b border-border last:border-b-0 ${selected.has(item.id) ? "bg-accent/5" : ""}`}

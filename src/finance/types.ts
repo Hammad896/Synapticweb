@@ -69,6 +69,18 @@ export interface PayrollItem {
 
 export type PayrollDraft = Omit<PayrollItem, "id" | "createdAt">;
 
+export interface RecurringTemplate {
+  id: string;
+  name: string;
+  type: TransactionType;
+  category: string;
+  description: string;
+  amount: number;
+  isActive: boolean;
+}
+
+export type RecurringDraft = Omit<RecurringTemplate, "id">;
+
 export const DEFAULT_SLIP_NOTE =
   "Note: Synaptic Lab does not withhold or deduct any income tax from salaries. " +
   "Each employee is responsible for calculating, declaring and paying their own " +

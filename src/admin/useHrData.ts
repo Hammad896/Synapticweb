@@ -97,6 +97,16 @@ export const useHrData = () => {
     async (draft: EmployeeDraft, photo: File | null, editing: Employee | null) => {
       const wasPublished = editing?.showOnWebsite ?? false;
 
+      /* A raise stamps itself: salary went up and the date wasn't set by
+         hand, so record today as the last raise. */
+      if (
+        editing &&
+        draft.salaryAmount > editing.salaryAmount &&
+        draft.lastRaiseAt === editing.lastRaiseAt
+      ) {
+        draft = { ...draft, lastRaiseAt: new Date().toISOString().slice(0, 10) };
+      }
+
       let saved = editing
         ? await repository.updateEmployee(editing.id, draft)
         : await repository.createEmployee(draft);

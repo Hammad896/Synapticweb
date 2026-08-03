@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Download, Pencil, Plus, StickyNote, Trash2, Upload, X } from "lucide-react";
+import { CheckCircle2, ChevronLeft, ChevronRight, Download, Pencil, Plus, RefreshCw, StickyNote, Trash2, Upload, X } from "lucide-react";
 import { Badge, Button, EmptyState, Field, inputClass } from "@/components/kit";
+import { SortTh, useSort } from "@/lib/useSort";
 import { shortDate } from "@/admin/format";
 import { applyFilter, EMPTY_FILTER, pkr, totalsOf, yearsOf, type TransactionFilter } from "../calc";
 import { downloadCsv, parseTransactionsCsv, transactionsToCsv } from "../csv";
 import {
   EMPTY_TRANSACTION,
   type FinanceCategory,
+  type RecurringTemplate,
   type Transaction,
   type TransactionDraft,
 } from "../types";
@@ -30,6 +32,8 @@ interface Props {
     skipped: number;
     newCategories: string[];
   }>;
+  recurring: RecurringTemplate[];
+  onPostRecurring: (template: RecurringTemplate) => Promise<void>;
 }
 
 const TransactionsPanel = ({
@@ -40,6 +44,8 @@ const TransactionsPanel = ({
   onDelete,
   onDeleteMany,
   onImportCsv,
+  recurring,
+  onPostRecurring,
 }: Props) => {
   const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
   const [editing, setEditing] = useState<Transaction | null>(null);
@@ -58,14 +64,24 @@ const TransactionsPanel = ({
   );
   const totals = useMemo(() => totalsOf(filtered), [filtered]);
 
+  /* ── Sorting — applies to the whole filtered set, before pagination ────── */
+  const { sorted, sort, toggle } = useSort(filtered, {
+    no: (t) => t.txnNo || t.legacyId,
+    date: (t) => t.date,
+    type: (t) => t.type,
+    category: (t) => t.category,
+    description: (t) => t.description.toLowerCase(),
+    amount: (t) => t.amount,
+  });
+
   /* ── Pagination — totals above always cover the WHOLE filtered set ─────── */
   const PAGE_SIZE = 50;
   const [page, setPage] = useState(0);
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount - 1);
   const paged = useMemo(
-    () => filtered.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE),
-    [filtered, currentPage],
+    () => sorted.slice(currentPage * PAGE_SIZE, (currentPage + 1) * PAGE_SIZE),
+    [sorted, currentPage],
   );
   // Changing any filter jumps back to the first page of the new result set.
   useEffect(() => setPage(0), [filter]);
@@ -392,6 +408,49 @@ const TransactionsPanel = ({
         </div>
       </div>
 
+      {/* ── Recurring — the monthly one-clicks ────────────────────────────── */}
+      {recurring.filter((r) => r.isActive).length > 0 && (
+        <div className="surface mt-4 flex flex-wrap items-center gap-2 p-4 sm:p-5">
+          <span className="mr-1 flex items-center gap-2 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+            <RefreshCw size={12} aria-hidden="true" /> Recurring
+          </span>
+          {recurring.filter((r) => r.isActive).map((template) => {
+            const month = new Date().toISOString().slice(0, 7);
+            const label = template.description || template.name;
+            const posted = transactions.some(
+              (t) =>
+                t.date.startsWith(month) &&
+                t.category === template.category &&
+                t.amount === template.amount &&
+                t.description === label,
+            );
+            return posted ? (
+              <span
+                key={template.id}
+                className="flex items-center gap-1.5 rounded-full border border-emerald-500/40 px-3 py-1.5 text-xs text-emerald-600"
+                title={`Already posted this month (${pkr(template.amount)})`}
+              >
+                <CheckCircle2 size={12} aria-hidden="true" />
+                {template.name}
+              </span>
+            ) : (
+              <button
+                key={template.id}
+                type="button"
+                onClick={() => void onPostRecurring(template)}
+                title={`Post ${pkr(template.amount)} as ${template.category}`}
+                className="rounded-full border border-border px-3 py-1.5 text-xs text-foreground transition-transform hover:border-accent hover:text-accent active:scale-95"
+              >
+                {template.name} · {pkr(template.amount)}
+              </button>
+            );
+          })}
+          <span className="ml-auto text-xs text-muted-foreground">
+            Manage templates in Settings
+          </span>
+        </div>
+      )}
+
       {/* ── Add / edit form ───────────────────────────────────────────────── */}
       {draft && (
         <form onSubmit={submit} className="surface mt-4 p-4 sm:p-5">
@@ -615,15 +674,13 @@ const TransactionsPanel = ({
                       onChange={toggleAllVisible}
                     />
                   </th>
-                  {["No.", "Date", "Type", "Category", "Description", "Amount", ""].map((h) => (
-                    <th
-                      key={h}
-                      scope="col"
-                      className="whitespace-nowrap px-5 py-4 text-xs uppercase tracking-[0.15em] text-muted-foreground"
-                    >
-                      {h}
-                    </th>
-                  ))}
+                  <SortTh label="No." sortKey="no" sort={sort} onToggle={toggle} className="!px-4" />
+                  <SortTh label="Date" sortKey="date" sort={sort} onToggle={toggle} />
+                  <SortTh label="Type" sortKey="type" sort={sort} onToggle={toggle} />
+                  <SortTh label="Category" sortKey="category" sort={sort} onToggle={toggle} />
+                  <SortTh label="Description" sortKey="description" sort={sort} onToggle={toggle} />
+                  <SortTh label="Amount" sortKey="amount" sort={sort} onToggle={toggle} />
+                  <th scope="col" className="px-5 py-4" />
                 </tr>
               </thead>
               <tbody>

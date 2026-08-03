@@ -11,6 +11,7 @@ import {
   UserX,
 } from "lucide-react";
 import { Badge, Button, EmptyState, inputClass } from "@/components/kit";
+import { SortTh, useSort } from "@/lib/useSort";
 import IdCard from "@/hr/IdCard";
 import EmployeeForm from "../EmployeeForm";
 import ImportEmployees from "../ImportEmployees";
@@ -74,6 +75,16 @@ const EmployeesTab = ({
             ),
       );
   }, [employees, query, filter]);
+
+  const { sorted, sort, toggle } = useSort(visible, {
+    name: (e) => e.fullName.toLowerCase(),
+    id: (e) => e.employeeId,
+    department: (e) => e.department.toLowerCase(),
+    status: (e) => `${e.status} ${e.staffType}`,
+    joined: (e) => e.joinedAt,
+    salary: (e) => e.salaryAmount,
+    lastRaise: (e) => e.lastRaiseAt,
+  });
 
   const isEditorOpen = isCreating || editing !== null;
   const editorTitle = editing ? `Edit — ${editing.fullName}` : "New employee";
@@ -206,7 +217,7 @@ const EmployeesTab = ({
             <>
               {/* ── Mobile: cards ─────────────────────────────────────────── */}
               <ul className="mt-6 flex flex-col gap-3 md:hidden">
-                {visible.map((employee) => (
+                {sorted.map((employee) => (
                   <li key={employee.id}>
                     <div className="surface flex items-center gap-4 p-4">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-border text-xs font-medium text-accent">
@@ -261,29 +272,22 @@ const EmployeesTab = ({
                 <table className="w-full min-w-[60rem] border-collapse text-left">
                   <thead>
                     <tr className="border-b border-border">
-                      {[
-                        "Employee",
-                        "ID",
-                        "Department",
-                        "Status",
-                        "Joined",
-                        "Salary",
-                        "Site",
-                        "",
-                      ].map((h) => (
-                        <th
-                          key={h}
-                          scope="col"
-                          className="whitespace-nowrap px-5 py-4 text-xs uppercase tracking-[0.15em] text-muted-foreground"
-                        >
-                          {h}
-                        </th>
-                      ))}
+                      <SortTh label="Employee" sortKey="name" sort={sort} onToggle={toggle} />
+                      <SortTh label="ID" sortKey="id" sort={sort} onToggle={toggle} />
+                      <SortTh label="Department" sortKey="department" sort={sort} onToggle={toggle} />
+                      <SortTh label="Status" sortKey="status" sort={sort} onToggle={toggle} />
+                      <SortTh label="Joined" sortKey="joined" sort={sort} onToggle={toggle} />
+                      <SortTh label="Salary" sortKey="salary" sort={sort} onToggle={toggle} />
+                      <SortTh label="Last raise" sortKey="lastRaise" sort={sort} onToggle={toggle} />
+                      <th scope="col" className="whitespace-nowrap px-5 py-4 text-xs uppercase tracking-[0.15em] text-muted-foreground">
+                        Site
+                      </th>
+                      <th scope="col" className="px-5 py-4" />
                     </tr>
                   </thead>
 
                   <tbody>
-                    {visible.map((employee) => (
+                    {sorted.map((employee) => (
                       <tr
                         key={employee.id}
                         className="border-b border-border last:border-b-0"
@@ -322,6 +326,9 @@ const EmployeesTab = ({
                           {employee.salaryAmount
                             ? money(employee.salaryAmount, employee.salaryCurrency)
                             : "—"}
+                        </td>
+                        <td className="px-5 py-4 text-sm text-muted-foreground">
+                          {shortDate(employee.lastRaiseAt || null)}
                         </td>
                         <td className="px-5 py-4">
                           {employee.showOnWebsite ? (

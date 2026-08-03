@@ -1,0 +1,43 @@
+# Twice-weekly database backup + free-tier keep-alive.
+#
+# Solves the two risks of running the company books on Supabase's free plan:
+#   1. No automatic backups  -> every run uploads a full JSON dump as a
+#      workflow artifact (private, even though the repo is public; kept 90 days).
+#   2. Pausing after 1 week of inactivity -> the dump queries ARE activity.
+#
+# Needs two repository secrets (Settings -> Secrets and variables -> Actions):
+#   SB_EMAIL  - the admin panel login email
+#   SB_PASS   - its password
+name: backup
+
+on:
+  schedule:
+    - cron: "0 3 * * 1,4" # Mon + Thu, 03:00 UTC (08:00 PKT)
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install supabase client
+        run: npm install --no-save @supabase/supabase-js
+
+      - name: Dump all tables
+        env:
+          SB_EMAIL: ${{ secrets.SB_EMAIL }}
+          SB_PASS: ${{ secrets.SB_PASS }}
+        run: node scripts/backup-live.mjs
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.run_id }}
+          path: backup/
+          retention-days: 90

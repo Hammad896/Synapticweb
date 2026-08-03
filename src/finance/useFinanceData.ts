@@ -16,6 +16,8 @@ import {
   type FinanceCategory,
   type FinanceSettings,
   type PayrollItem,
+  type RecurringDraft,
+  type RecurringTemplate,
   type Transaction,
   type TransactionDraft,
 } from "./types";
@@ -36,6 +38,7 @@ export const useFinanceData = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [payroll, setPayroll] = useState<PayrollItem[]>([]);
+  const [recurring, setRecurring] = useState<RecurringTemplate[]>([]);
   const [settings, setSettings] = useState<FinanceSettings>({
     reserve: 100000,
     slipNote: DEFAULT_SLIP_NOTE,
@@ -45,16 +48,18 @@ export const useFinanceData = () => {
 
   const refresh = useCallback(async () => {
     try {
-      const [t, c, p, s] = await Promise.all([
+      const [t, c, p, s, r] = await Promise.all([
         finance.listTransactions(),
         finance.listCategories(),
         finance.listPayroll(),
         finance.getSettings(),
+        finance.listRecurring(),
       ]);
       setTransactions(t);
       setCategories(c);
       setPayroll(p);
       setSettings(s);
+      setRecurring(r);
       setError(null);
     } catch (caught) {
       setError(
@@ -379,6 +384,50 @@ export const useFinanceData = () => {
     [finance, hr, actor, categories, transactions, refresh],
   );
 
+  /* ── Recurring templates ───────────────────────────────────────────────── */
+
+  const saveRecurringTemplate = useCallback(
+    async (draft: RecurringDraft, id?: string) => {
+      await finance.saveRecurring(draft, id);
+      await hr.audit(actor, id ? "finance.recurring.update" : "finance.recurring.create", draft.name, {
+        amount: draft.amount,
+      });
+      await refresh();
+    },
+    [finance, hr, actor, refresh],
+  );
+
+  const deleteRecurringTemplate = useCallback(
+    async (template: RecurringTemplate) => {
+      await finance.removeRecurring(template.id);
+      await hr.audit(actor, "finance.recurring.delete", template.name);
+      await refresh();
+    },
+    [finance, hr, actor, refresh],
+  );
+
+  /** Posts one template as a normal ledger transaction, dated today. */
+  const postRecurring = useCallback(
+    async (template: RecurringTemplate) => {
+      const date = new Date().toISOString().slice(0, 10);
+      await finance.createTransaction({
+        legacyId: "",
+        txnNo: nextTransactionNo(transactions, date),
+        date,
+        type: template.type,
+        category: template.category,
+        description: template.description || template.name,
+        notes: "",
+        amount: template.amount,
+      });
+      await hr.audit(actor, "finance.recurring.post", template.name, {
+        amount: template.amount,
+      });
+      await refresh();
+    },
+    [finance, hr, actor, transactions, refresh],
+  );
+
   /* ── Settings & import ─────────────────────────────────────────────────── */
 
   const saveSettings = useCallback(
@@ -432,5 +481,9 @@ export const useFinanceData = () => {
     deletePayrollItems,
     saveSettings,
     runImport,
+    recurring,
+    saveRecurringTemplate,
+    deleteRecurringTemplate,
+    postRecurring,
   };
 };

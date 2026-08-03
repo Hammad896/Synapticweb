@@ -98,6 +98,8 @@ const FinanceTab = ({
                 onDelete={data.deleteTransaction}
                 onDeleteMany={data.deleteTransactions}
                 onImportCsv={data.importTransactionsCsv}
+                recurring={data.recurring}
+                onPostRecurring={data.postRecurring}
               />
             )}
 
@@ -105,6 +107,7 @@ const FinanceTab = ({
               <PayrollPanel
                 payroll={data.payroll}
                 employees={employees}
+                transactions={data.transactions}
                 settings={data.settings}
                 onGenerate={data.generateRun}
                 onConfirm={data.confirmRun}
@@ -127,6 +130,9 @@ const FinanceTab = ({
                 onToggleCategory={data.toggleCategory}
                 onDeleteCategory={data.deleteCategory}
                 onSaveSettings={data.saveSettings}
+                recurring={data.recurring}
+                onSaveRecurring={data.saveRecurringTemplate}
+                onDeleteRecurring={data.deleteRecurringTemplate}
                 onImport={async () => {
                   const report = await data.runImport();
                   await onEmployeesChanged();

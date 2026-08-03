@@ -7,6 +7,8 @@ import {
   type FinanceSettings,
   type PayrollDraft,
   type PayrollItem,
+  type RecurringDraft,
+  type RecurringTemplate,
   type Transaction,
   type TransactionDraft,
 } from "./types";
@@ -46,6 +48,10 @@ export interface FinanceRepository {
 
   getSettings(): Promise<FinanceSettings>;
   saveSettings(settings: FinanceSettings): Promise<void>;
+
+  listRecurring(): Promise<RecurringTemplate[]>;
+  saveRecurring(draft: RecurringDraft, id?: string): Promise<void>;
+  removeRecurring(id: string): Promise<void>;
 }
 
 /* ── Row coercion — the HR adapter's shared helpers ───────────────────────── */
@@ -327,6 +333,43 @@ class SupabaseFinanceRepository implements FinanceRepository {
     });
     if (error) throw error;
   }
+
+  async listRecurring(): Promise<RecurringTemplate[]> {
+    const { data, error } = await this.db
+      .from("finance_recurring")
+      .select("*")
+      .order("name");
+    if (error) throw error;
+    return (data ?? []).map((row: Row) => ({
+      id: str(row.id),
+      name: str(row.name),
+      type: str(row.type, "expense") as RecurringTemplate["type"],
+      category: str(row.category),
+      description: str(row.description),
+      amount: num(row.amount),
+      isActive: bool(row.is_active, true),
+    }));
+  }
+
+  async saveRecurring(draft: RecurringDraft, id?: string): Promise<void> {
+    const row = {
+      name: draft.name,
+      type: draft.type,
+      category: draft.category,
+      description: draft.description,
+      amount: draft.amount,
+      is_active: draft.isActive,
+    };
+    const { error } = id
+      ? await this.db.from("finance_recurring").update(row).eq("id", id)
+      : await this.db.from("finance_recurring").insert(row);
+    if (error) throw error;
+  }
+
+  async removeRecurring(id: string): Promise<void> {
+    const { error } = await this.db.from("finance_recurring").delete().eq("id", id);
+    if (error) throw error;
+  }
 }
 
 /* ── Local adapter ────────────────────────────────────────────────────────── */
@@ -336,6 +379,7 @@ const KEY = {
   categories: "synapticlab.finance.categories",
   payroll: "synapticlab.finance.payroll",
   settings: "synapticlab.finance.settings",
+  recurring: "synapticlab.finance.recurring",
 };
 
 const read = <T,>(key: string): T[] => {
@@ -518,6 +562,28 @@ class LocalFinanceRepository implements FinanceRepository {
 
   async saveSettings(settings: FinanceSettings) {
     localStorage.setItem(KEY.settings, JSON.stringify(settings));
+  }
+
+  async listRecurring() {
+    return read<RecurringTemplate>(KEY.recurring).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
+  }
+
+  async saveRecurring(draft: RecurringDraft, id?: string) {
+    const all = read<RecurringTemplate>(KEY.recurring);
+    if (id) {
+      write(KEY.recurring, all.map((r) => (r.id === id ? { ...draft, id } : r)));
+    } else {
+      write(KEY.recurring, [...all, { ...draft, id: crypto.randomUUID() }]);
+    }
+  }
+
+  async removeRecurring(id: string) {
+    write(
+      KEY.recurring,
+      read<RecurringTemplate>(KEY.recurring).filter((r) => r.id !== id),
+    );
   }
 }
 

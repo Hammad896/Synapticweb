@@ -42,6 +42,7 @@ const SAMPLE: Employee = {
   employmentType: "full-time",
   workMode: "onsite",
   staffType: "internal",
+  lastRaiseAt: "",
   joinedAt: "2024-01-15",
   probationMonths: 3,
   exitDate: "",

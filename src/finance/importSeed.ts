@@ -132,6 +132,7 @@ export const importFinanceSeed = async (
         exitDate: "",
         salaryAmount: person.salaryAmount,
         salaryCurrency: "PKR",
+        lastRaiseAt: "",
         emergencyContact: {
           name: person.emergencyName,
           relationship: "",

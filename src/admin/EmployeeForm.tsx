@@ -366,6 +366,20 @@ const EmployeeForm = ({ employee, allEmployees, onSave, onCancel }: Props) => {
               ))}
             </select>
           </Field>
+
+          <Field
+            id="lastRaiseAt"
+            label="Last raise on"
+            hint="Stamps itself with today's date whenever you increase the salary."
+          >
+            <input
+              id="lastRaiseAt"
+              type="date"
+              value={draft.lastRaiseAt}
+              onChange={(e) => set("lastRaiseAt", e.target.value)}
+              className={inputClass()}
+            />
+          </Field>
         </div>
       </fieldset>
 

@@ -17,6 +17,10 @@
 -- them as Active/Former.
 alter table employees add column if not exists staff_type text not null default 'internal';
 
+-- When the person last got a raise. Stamped automatically when a salary is
+-- increased in the app; editable in the employee form.
+alter table employees add column if not exists last_raise_at date;
+
 do $$ begin
   alter table employees
     add constraint employees_staff_type_check check (staff_type in ('internal','outsource'));
@@ -100,6 +104,27 @@ create table if not exists payroll_items (
 );
 
 create index if not exists payroll_items_month_idx on payroll_items (pay_month);
+
+-- ── Recurring templates ─────────────────────────────────────────────────────
+-- The monthly subscriptions (ChatGPT, Canva, Envato…) and any other repeating
+-- entry. Posting one creates a normal ledger transaction; the template is just
+-- the memory of what to post.
+create table if not exists finance_recurring (
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null check (char_length(name) between 2 and 60),
+  type         text not null check (type in ('income','expense')),
+  category     text not null,
+  description  text default '',
+  amount       numeric(14,2) not null check (amount >= 0),
+  is_active    boolean default true,
+  created_at   timestamptz default now()
+);
+
+alter table finance_recurring enable row level security;
+
+drop policy if exists "admins manage recurring" on finance_recurring;
+create policy "admins manage recurring" on finance_recurring
+  for all to authenticated using (is_admin()) with check (is_admin());
 
 -- ── Settings (one row) ──────────────────────────────────────────────────────
 create table if not exists finance_settings (

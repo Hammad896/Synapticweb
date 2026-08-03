@@ -46,6 +46,8 @@ export interface Employee {
 
   salaryAmount: number;
   salaryCurrency: string;
+  /** When the salary was last increased. Auto-stamped on raises. */
+  lastRaiseAt: string;
 
   emergencyContact: EmergencyContact;
 
@@ -81,6 +83,7 @@ export const EMPTY_DRAFT: EmployeeDraft = {
   exitDate: "",
   salaryAmount: 0,
   salaryCurrency: "PKR",
+  lastRaiseAt: "",
   emergencyContact: { name: "", relationship: "", phone: "" },
   photoPath: "",
   notes: "",

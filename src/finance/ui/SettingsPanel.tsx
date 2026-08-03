@@ -1,9 +1,15 @@
 import { useState } from "react";
-import { Archive, ArchiveRestore, Download, Pencil, Plus, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Download, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { Badge, Button, Field, inputClass, Label } from "@/components/kit";
 import type { ImportReport } from "../importSeed";
 import { pkr } from "../calc";
-import type { CategoryKind, FinanceCategory, FinanceSettings } from "../types";
+import type {
+  CategoryKind,
+  FinanceCategory,
+  FinanceSettings,
+  RecurringDraft,
+  RecurringTemplate,
+} from "../types";
 
 interface Props {
   categories: FinanceCategory[];
@@ -14,6 +20,9 @@ interface Props {
   onDeleteCategory: (category: FinanceCategory) => Promise<void>;
   onSaveSettings: (settings: FinanceSettings) => Promise<void>;
   onImport: () => Promise<ImportReport>;
+  recurring: RecurringTemplate[];
+  onSaveRecurring: (draft: RecurringDraft, id?: string) => Promise<void>;
+  onDeleteRecurring: (template: RecurringTemplate) => Promise<void>;
 }
 
 const KIND_META: Record<CategoryKind, { title: string; hint: string }> = {
@@ -198,6 +207,166 @@ const CategoryList = ({
   );
 };
 
+const EMPTY_RECURRING: RecurringDraft = {
+  name: "",
+  type: "expense",
+  category: "",
+  description: "",
+  amount: 0,
+  isActive: true,
+};
+
+const RecurringManager = ({
+  recurring,
+  categories,
+  onSave,
+  onDelete,
+}: {
+  recurring: RecurringTemplate[];
+  categories: FinanceCategory[];
+  onSave: Props["onSaveRecurring"];
+  onDelete: Props["onDeleteRecurring"];
+}) => {
+  const [draft, setDraft] = useState<RecurringDraft>(EMPTY_RECURRING);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const options = categories.filter(
+    (c) =>
+      c.isActive &&
+      c.kind === (draft.type === "income" ? "income_source" : "expense_category"),
+  );
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!draft.name.trim() || !draft.category || draft.amount <= 0) return;
+    await onSave({ ...draft, name: draft.name.trim() }, editingId ?? undefined);
+    setDraft(EMPTY_RECURRING);
+    setEditingId(null);
+  };
+
+  return (
+    <div className="surface mt-4 p-4 sm:p-5">
+      <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+        <RefreshCw size={14} aria-hidden="true" className="text-accent" />
+        Recurring templates
+      </p>
+      <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+        The monthly regulars — ChatGPT, Canva, Envato… Each shows as a
+        one-click button on the Transactions page until it has been posted for
+        the current month.
+      </p>
+
+      {recurring.length > 0 && (
+        <ul className="mt-4 flex flex-col gap-1.5">
+          {recurring.map((template) => (
+            <li
+              key={template.id}
+              className="flex flex-wrap items-center gap-2 rounded-xl border border-border px-3 py-2"
+            >
+              <span className={`text-sm ${template.isActive ? "text-foreground" : "text-muted-foreground line-through"}`}>
+                {template.name}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                {template.category} · PKR {pkr(template.amount)}
+              </span>
+              <span className="ml-auto flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  aria-label={`Edit ${template.name}`}
+                  className="px-2 py-1 text-xs"
+                  onClick={() => {
+                    setEditingId(template.id);
+                    setDraft({ ...template });
+                  }}
+                >
+                  <Pencil size={13} aria-hidden="true" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  aria-label={template.isActive ? `Pause ${template.name}` : `Resume ${template.name}`}
+                  title={template.isActive ? "Pause (keeps the template)" : "Resume"}
+                  className="px-2 py-1 text-xs"
+                  onClick={() => void onSave({ ...template, isActive: !template.isActive }, template.id)}
+                >
+                  {template.isActive
+                    ? <Archive size={13} aria-hidden="true" />
+                    : <ArchiveRestore size={13} aria-hidden="true" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  aria-label={`Delete ${template.name}`}
+                  className="px-2 py-1 text-xs text-red-500"
+                  onClick={() => {
+                    if (window.confirm(`Delete the "${template.name}" template? Posted transactions stay.`)) {
+                      void onDelete(template);
+                    }
+                  }}
+                >
+                  <Trash2 size={13} aria-hidden="true" />
+                </Button>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <form onSubmit={submit} className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        <input
+          aria-label="Template name"
+          placeholder={editingId ? "Name" : "New template name…"}
+          className={inputClass("py-2 text-sm")}
+          value={draft.name}
+          onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+        />
+        <select
+          aria-label="Template type"
+          className={inputClass("py-2 text-sm")}
+          value={draft.type}
+          onChange={(e) =>
+            setDraft({ ...draft, type: e.target.value as RecurringDraft["type"], category: "" })
+          }
+        >
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+        </select>
+        <select
+          aria-label="Template category"
+          className={inputClass("py-2 text-sm")}
+          value={draft.category}
+          onChange={(e) => setDraft({ ...draft, category: e.target.value })}
+        >
+          <option value="">Category…</option>
+          {options.map((c) => (
+            <option key={c.id} value={c.name}>{c.name}</option>
+          ))}
+        </select>
+        <input
+          aria-label="Template amount"
+          type="number"
+          min={1}
+          placeholder="Amount"
+          className={inputClass("py-2 text-sm")}
+          value={draft.amount || ""}
+          onChange={(e) => setDraft({ ...draft, amount: e.target.valueAsNumber || 0 })}
+        />
+        <div className="flex gap-2">
+          <Button type="submit" variant="secondary" className="flex-1 px-3 py-2 text-xs">
+            <Plus size={13} aria-hidden="true" /> {editingId ? "Save" : "Add"}
+          </Button>
+          {editingId && (
+            <Button
+              type="button" variant="ghost" className="px-3 py-2 text-xs"
+              onClick={() => { setEditingId(null); setDraft(EMPTY_RECURRING); }}
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+};
+
 const SettingsPanel = ({
   categories,
   settings,
@@ -207,6 +376,9 @@ const SettingsPanel = ({
   onDeleteCategory,
   onSaveSettings,
   onImport,
+  recurring,
+  onSaveRecurring,
+  onDeleteRecurring,
 }: Props) => {
   const [reserve, setReserve] = useState(String(settings.reserve));
   const [slipNote, setSlipNote] = useState(settings.slipNote);
@@ -316,6 +488,14 @@ const SettingsPanel = ({
           </Button>
         </form>
       </div>
+
+      {/* ── Recurring templates ───────────────────────────────────────────── */}
+      <RecurringManager
+        recurring={recurring}
+        categories={categories}
+        onSave={onSaveRecurring}
+        onDelete={onDeleteRecurring}
+      />
 
       {/* ── Salary slip note ──────────────────────────────────────────────── */}
       <div className="surface mt-4 p-4 sm:p-5">

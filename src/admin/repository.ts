@@ -210,6 +210,7 @@ const toEmployee = (row: Row): Employee => ({
   exitDate: str(row.exit_date),
   salaryAmount: num(row.salary_amount),
   salaryCurrency: str(row.salary_currency, "PKR"),
+  lastRaiseAt: str(row.last_raise_at),
   emergencyContact: {
     name: str(row.emergency_name),
     relationship: str(row.emergency_relationship),
@@ -243,6 +244,7 @@ const toRow = (draft: EmployeeDraft) => ({
   exit_date: draft.exitDate || null,
   salary_amount: draft.salaryAmount,
   salary_currency: draft.salaryCurrency,
+  last_raise_at: draft.lastRaiseAt || null,
   emergency_name: draft.emergencyContact.name,
   emergency_relationship: draft.emergencyContact.relationship,
   emergency_phone: draft.emergencyContact.phone,
@@ -716,9 +718,9 @@ const write = <T,>(key: string, value: T[]) =>
 
 class LocalRepository implements HrRepository {
   async listEmployees() {
-    // Older local records predate staffType; treat them as internal.
+    // Older local records predate staffType and lastRaiseAt.
     return read<Employee>(KEY.employees)
-      .map((e) => ({ ...e, staffType: e.staffType ?? "internal" }))
+      .map((e) => ({ ...e, staffType: e.staffType ?? "internal", lastRaiseAt: e.lastRaiseAt ?? "" }))
       .sort((a, b) => a.fullName.localeCompare(b.fullName));
   }
 
@@ -980,7 +982,7 @@ export const toCsv = (employees: Employee[]): string => {
   const headers = [
     "Employee ID", "Full name", "Role", "Department", "Reports to", "Email", "Phone",
     "CNIC", "Date of birth", "Address", "Status", "Employment type", "Work mode",
-    "Joined", "Exit date", "Salary", "Currency",
+    "Joined", "Exit date", "Salary", "Currency", "Last raise",
     "Emergency contact", "Relationship", "Emergency phone", "On website", "Notes",
   ];
 
@@ -991,7 +993,7 @@ export const toCsv = (employees: Employee[]): string => {
     [
       e.employeeId, e.fullName, e.role, e.department, e.manager, e.email, e.phone,
       e.cnic, e.dateOfBirth, e.address, e.status, e.employmentType, e.workMode,
-      e.joinedAt, e.exitDate, e.salaryAmount, e.salaryCurrency,
+      e.joinedAt, e.exitDate, e.salaryAmount, e.salaryCurrency, e.lastRaiseAt,
       e.emergencyContact.name, e.emergencyContact.relationship, e.emergencyContact.phone,
       e.showOnWebsite, e.notes,
     ]
