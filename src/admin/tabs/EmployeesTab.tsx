@@ -593,7 +593,11 @@ const EmployeesTab = ({
                                 variant="danger"
                                 className="px-3 py-1 text-xs"
                                 onClick={async () => {
-                                  await onDelete(employee.id);
+                                  try {
+                                    await onDelete(employee.id);
+                                  } catch (caught) {
+                                    window.alert(errorMessage(caught, "Could not delete."));
+                                  }
                                   setConfirmDelete(null);
                                 }}
                               >
@@ -675,7 +679,11 @@ const EmployeesTab = ({
                 `Delete ${sheetFor.fullName}?\n\nIf they just left the company, use "Mark as Former" instead — it keeps all their history. You can Undo a delete for a short while.`,
               )
             ) {
-              await onDelete(sheetFor.id);
+              try {
+                await onDelete(sheetFor.id);
+              } catch (caught) {
+                window.alert(errorMessage(caught, "Could not delete."));
+              }
             }
             setSheetFor(null);
           }}

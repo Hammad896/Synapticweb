@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/auth/auth";
 import { joinerAnnouncement } from "@/hr/automations";
+import { getFinanceRepository } from "@/finance/repository";
 import {
   getRepository,
   type Announcement,
@@ -153,6 +154,47 @@ export const useHrData = () => {
   const deleteEmployee = useCallback(
     async (id: string) => {
       const employee = employees.find((e) => e.id === id);
+
+      /* A person with financial or document history is never deletable —
+         deleting them would orphan payroll rows, unlink letters, and detach
+         salary evidence from its subject. The block message says exactly what
+         is linked; Former is the correct exit. */
+      if (employee) {
+        const finance = getFinanceRepository();
+        const [payrollRows, transactions] = await Promise.all([
+          finance.listPayroll().catch(() => []),
+          finance.listTransactions().catch(() => []),
+        ]);
+        const needle = employee.fullName
+          .toLowerCase()
+          .replace(/\./g, "")
+          .split(/\s+/)
+          .filter((t) => t.length > 2)[0] ?? employee.fullName.toLowerCase();
+
+        const linkedPayroll = payrollRows.filter(
+          (p) => p.employeeId === id || p.employeeName.toLowerCase().includes(needle),
+        ).length;
+        const linkedSalaries = transactions.filter(
+          (t) =>
+            t.type === "expense" &&
+            t.category === "Salary" &&
+            t.description.toLowerCase().includes(needle),
+        ).length;
+        const linkedLetters = documents.filter((d) => d.employeeId === id).length;
+
+        if (linkedPayroll + linkedSalaries + linkedLetters > 0) {
+          const parts = [
+            linkedPayroll && `${linkedPayroll} payroll row${linkedPayroll === 1 ? "" : "s"}`,
+            linkedSalaries && `${linkedSalaries} salary transaction${linkedSalaries === 1 ? "" : "s"}`,
+            linkedLetters && `${linkedLetters} issued letter${linkedLetters === 1 ? "" : "s"}`,
+          ].filter(Boolean);
+          throw new Error(
+            `${employee.fullName} cannot be deleted — linked records exist: ${parts.join(", ")}. ` +
+              `Mark them as Former instead; that keeps the history and removes them from payroll and default views.`,
+          );
+        }
+      }
+
       await repository.removeEmployee(id);
       await repository.audit(actor, "employee.delete", employee?.fullName ?? id);
       // Held in memory so the toast can offer Undo. Restoring re-creates the
@@ -160,7 +202,7 @@ export const useHrData = () => {
       setLastDeleted(employee ?? null);
       await refresh();
     },
-    [repository, actor, refresh, employees],
+    [repository, actor, refresh, employees, documents],
   );
 
   const undoDeleteEmployee = useCallback(async () => {
