@@ -123,7 +123,11 @@ export const renderSalaryCertificate = async (
   y -= 22;
 
   const wasOrIs = employee.status === "active" ? "has been employed" : "was employed";
-  const cnic = employee.cnic ? ` (CNIC: ${employee.cnic})` : "";
+  const identifiers = [
+    employee.cnic && `CNIC: ${employee.cnic}`,
+    employee.ntn && `NTN: ${employee.ntn}`,
+  ].filter(Boolean);
+  const cnic = identifiers.length ? ` (${identifiers.join(", ")})` : "";
   const body =
     `This is to certify that ${employee.fullName}${cnic} ${wasOrIs} with Synaptic Lab ` +
     `as ${employee.role || "an employee"}. The salary paid to ${employee.fullName} during ` +

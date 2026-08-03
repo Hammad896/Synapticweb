@@ -24,14 +24,25 @@ interface RequestInfo {
   emergency_name?: string;
   emergency_relationship?: string;
   emergency_phone?: string;
+  father_name?: string;
+  blood_group?: string;
+  ntn?: string;
+  bank_name?: string;
+  bank_iban?: string;
 }
 
 const FIELDS: Array<{ key: string; label: string; type?: string; hint?: string }> = [
+  { key: "full_name", label: "Full name", hint: "As written on your CNIC" },
   { key: "phone", label: "Phone number" },
   { key: "cnic", label: "CNIC", hint: "e.g. 37405-1234567-1" },
+  { key: "father_name", label: "Father / guardian name" },
   { key: "date_of_birth", label: "Date of birth", type: "date" },
+  { key: "blood_group", label: "Blood group", hint: "e.g. B+" },
   { key: "email", label: "Email" },
   { key: "address", label: "City / address" },
+  { key: "ntn", label: "NTN (if you are an FBR filer)", hint: "Leave empty if you don't have one" },
+  { key: "bank_name", label: "Bank name", hint: "Where your salary should go" },
+  { key: "bank_iban", label: "IBAN / account number" },
   { key: "emergency_name", label: "Emergency contact — name" },
   { key: "emergency_relationship", label: "Emergency contact — relationship" },
   { key: "emergency_phone", label: "Emergency contact — phone" },
@@ -59,16 +70,12 @@ const UpdateInfo = () => {
         return;
       }
       setInfo(payload);
-      setValues({
-        phone: payload.phone ?? "",
-        cnic: payload.cnic ?? "",
-        date_of_birth: payload.date_of_birth ?? "",
-        email: payload.email ?? "",
-        address: payload.address ?? "",
-        emergency_name: payload.emergency_name ?? "",
-        emergency_relationship: payload.emergency_relationship ?? "",
-        emergency_phone: payload.emergency_phone ?? "",
-      });
+      const raw = payload as unknown as Record<string, unknown>;
+      setValues(
+        Object.fromEntries(
+          FIELDS.map((field) => [field.key, String(raw[field.key] ?? "")]),
+        ),
+      );
       setState("form");
     })();
   }, [token]);

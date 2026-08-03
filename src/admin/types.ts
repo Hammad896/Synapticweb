@@ -33,6 +33,14 @@ export interface Employee {
   cnic: string;
   dateOfBirth: string;
   address: string;
+  /** Standard on Pakistani HR records and CNIC-verified documents. */
+  fatherName: string;
+  bloodGroup: string;
+  /** National Tax Number — for employees who are FBR filers. */
+  ntn: string;
+  /** Where the salary goes. Printed on salary slips when set. */
+  bankName: string;
+  bankIban: string;
 
   status: EmployeeStatus;
   employmentType: EmploymentType;
@@ -74,6 +82,11 @@ export const EMPTY_DRAFT: EmployeeDraft = {
   cnic: "",
   dateOfBirth: "",
   address: "",
+  fatherName: "",
+  bloodGroup: "",
+  ntn: "",
+  bankName: "",
+  bankIban: "",
   status: "active",
   employmentType: "full-time",
   workMode: "onsite",
@@ -99,6 +112,7 @@ export const EMPLOYMENT_TYPES: EmploymentType[] = [
 ];
 export const WORK_MODES: WorkMode[] = ["onsite", "remote", "hybrid"];
 export const CURRENCIES = ["PKR", "USD", "EUR", "NOK", "GBP"];
+export const BLOOD_GROUPS = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"];
 
 /**
  * SL-2026-014 — company prefix, joining year, zero-padded sequence.

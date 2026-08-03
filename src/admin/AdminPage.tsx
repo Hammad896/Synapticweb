@@ -282,6 +282,7 @@ const AdminPage = () => {
                 onExportCsv={exportCsv}
                 updateRequests={data.updateRequests}
                 onRequestLink={data.requestUpdateLink}
+                onAddViaLink={data.addEmployeeViaLink}
                 onApproveUpdate={data.approveUpdateRequest}
                 onRejectUpdate={data.rejectUpdateRequest}
               />

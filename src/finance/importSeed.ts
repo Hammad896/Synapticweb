@@ -133,6 +133,11 @@ export const importFinanceSeed = async (
         salaryAmount: person.salaryAmount,
         salaryCurrency: "PKR",
         lastRaiseAt: "",
+        fatherName: "",
+        bloodGroup: "",
+        ntn: "",
+        bankName: "",
+        bankIban: "",
         emergencyContact: {
           name: person.emergencyName,
           relationship: "",

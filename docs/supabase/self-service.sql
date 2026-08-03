@@ -45,7 +45,8 @@ declare
 begin
   select q.expires_at, e.full_name, e.role, e.phone, e.cnic, e.date_of_birth,
          e.address, e.email, e.emergency_name, e.emergency_relationship,
-         e.emergency_phone
+         e.emergency_phone, e.father_name, e.blood_group, e.ntn,
+         e.bank_name, e.bank_iban
     into r
   from employee_update_requests q
   join employees e on e.id = q.employee_id
@@ -70,7 +71,12 @@ begin
     'email', r.email,
     'emergency_name', r.emergency_name,
     'emergency_relationship', r.emergency_relationship,
-    'emergency_phone', r.emergency_phone
+    'emergency_phone', r.emergency_phone,
+    'father_name', r.father_name,
+    'blood_group', r.blood_group,
+    'ntn', r.ntn,
+    'bank_name', r.bank_name,
+    'bank_iban', r.bank_iban
   );
 end;
 $$;
@@ -104,6 +110,7 @@ begin
   -- The whitelist IS here, in the database — the client cannot smuggle a
   -- salary or status change no matter what it sends.
   clean := jsonb_strip_nulls(jsonb_build_object(
+    'full_name',              left(payload->>'full_name', 80),
     'phone',                  left(payload->>'phone', 60),
     'cnic',                   left(payload->>'cnic', 40),
     'date_of_birth',          left(payload->>'date_of_birth', 10),
@@ -111,7 +118,12 @@ begin
     'email',                  left(payload->>'email', 120),
     'emergency_name',         left(payload->>'emergency_name', 80),
     'emergency_relationship', left(payload->>'emergency_relationship', 60),
-    'emergency_phone',        left(payload->>'emergency_phone', 60)
+    'emergency_phone',        left(payload->>'emergency_phone', 60),
+    'father_name',            left(payload->>'father_name', 80),
+    'blood_group',            left(payload->>'blood_group', 4),
+    'ntn',                    left(payload->>'ntn', 20),
+    'bank_name',              left(payload->>'bank_name', 60),
+    'bank_iban',              left(payload->>'bank_iban', 40)
   ));
 
   update employee_update_requests

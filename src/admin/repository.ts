@@ -221,6 +221,11 @@ const toEmployee = (row: Row): Employee => ({
   cnic: str(row.cnic),
   dateOfBirth: str(row.date_of_birth),
   address: str(row.address),
+  fatherName: str(row.father_name),
+  bloodGroup: str(row.blood_group),
+  ntn: str(row.ntn),
+  bankName: str(row.bank_name),
+  bankIban: str(row.bank_iban),
   status: str(row.status, "active") as Employee["status"],
   employmentType: str(row.employment_type, "full-time") as Employee["employmentType"],
   workMode: str(row.work_mode, "onsite") as Employee["workMode"],
@@ -255,6 +260,11 @@ const toRow = (draft: EmployeeDraft) => ({
   cnic: draft.cnic,
   date_of_birth: draft.dateOfBirth || null,
   address: draft.address,
+  father_name: draft.fatherName,
+  blood_group: draft.bloodGroup,
+  ntn: draft.ntn,
+  bank_name: draft.bankName,
+  bank_iban: draft.bankIban,
   status: draft.status,
   employment_type: draft.employmentType,
   work_mode: draft.workMode,
@@ -778,9 +788,18 @@ const write = <T,>(key: string, value: T[]) =>
 
 class LocalRepository implements HrRepository {
   async listEmployees() {
-    // Older local records predate staffType and lastRaiseAt.
+    // Older local records predate the newer fields — default them all.
     return read<Employee>(KEY.employees)
-      .map((e) => ({ ...e, staffType: e.staffType ?? "internal", lastRaiseAt: e.lastRaiseAt ?? "" }))
+      .map((e) => ({
+        ...e,
+        staffType: e.staffType ?? "internal",
+        lastRaiseAt: e.lastRaiseAt ?? "",
+        fatherName: e.fatherName ?? "",
+        bloodGroup: e.bloodGroup ?? "",
+        ntn: e.ntn ?? "",
+        bankName: e.bankName ?? "",
+        bankIban: e.bankIban ?? "",
+      }))
       .sort((a, b) => a.fullName.localeCompare(b.fullName));
   }
 
@@ -1053,9 +1072,9 @@ export const isRemote = (): boolean => supabase !== null;
 
 export const toCsv = (employees: Employee[]): string => {
   const headers = [
-    "Employee ID", "Full name", "Role", "Department", "Reports to", "Email", "Phone",
-    "CNIC", "Date of birth", "Address", "Status", "Employment type", "Work mode",
-    "Joined", "Exit date", "Salary", "Currency", "Last raise",
+    "Employee ID", "Full name", "Father name", "Role", "Department", "Reports to", "Email", "Phone",
+    "CNIC", "NTN", "Blood group", "Date of birth", "Address", "Status", "Employment type", "Work mode",
+    "Joined", "Exit date", "Salary", "Currency", "Last raise", "Bank", "IBAN",
     "Emergency contact", "Relationship", "Emergency phone", "On website", "Notes",
   ];
 
@@ -1064,9 +1083,9 @@ export const toCsv = (employees: Employee[]): string => {
 
   const rows = employees.map((e) =>
     [
-      e.employeeId, e.fullName, e.role, e.department, e.manager, e.email, e.phone,
-      e.cnic, e.dateOfBirth, e.address, e.status, e.employmentType, e.workMode,
-      e.joinedAt, e.exitDate, e.salaryAmount, e.salaryCurrency, e.lastRaiseAt,
+      e.employeeId, e.fullName, e.fatherName, e.role, e.department, e.manager, e.email, e.phone,
+      e.cnic, e.ntn, e.bloodGroup, e.dateOfBirth, e.address, e.status, e.employmentType, e.workMode,
+      e.joinedAt, e.exitDate, e.salaryAmount, e.salaryCurrency, e.lastRaiseAt, e.bankName, e.bankIban,
       e.emergencyContact.name, e.emergencyContact.relationship, e.emergencyContact.phone,
       e.showOnWebsite, e.notes,
     ]

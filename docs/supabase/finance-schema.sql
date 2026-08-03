@@ -21,6 +21,15 @@ alter table employees add column if not exists staff_type text not null default 
 -- increased in the app; editable in the employee form.
 alter table employees add column if not exists last_raise_at date;
 
+-- Tier-1 HR record fields (2026-08): identity + payment details. Bank fields
+-- feed the salary slips; blood group feeds the ID card; NTN feeds the salary
+-- certificates. All fillable by the employee through a self-service link.
+alter table employees add column if not exists father_name text default '';
+alter table employees add column if not exists blood_group text default '';
+alter table employees add column if not exists ntn        text default '';
+alter table employees add column if not exists bank_name  text default '';
+alter table employees add column if not exists bank_iban  text default '';
+
 do $$ begin
   alter table employees
     add constraint employees_staff_type_check check (staff_type in ('internal','outsource'));

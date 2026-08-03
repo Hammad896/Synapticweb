@@ -115,6 +115,12 @@ const IdCard = ({ employee }: { employee: Employee }) => {
                 </span>
                 <span className="text-white/25">|</span>
                 <span className="capitalize">{employee.employmentType}</span>
+                {employee.bloodGroup && (
+                  <>
+                    <span className="text-white/25">|</span>
+                    <span className="font-semibold text-[#FF5A5A]">{employee.bloodGroup}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>

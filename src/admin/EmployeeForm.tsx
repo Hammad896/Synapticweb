@@ -3,6 +3,7 @@ import { Globe, Loader2, Upload, User } from "lucide-react";
 import { Button, Field, inputClass } from "@/components/kit";
 import { getRepository } from "./repository";
 import {
+  BLOOD_GROUPS,
   CURRENCIES,
   EMPLOYMENT_TYPES,
   EMPTY_DRAFT,
@@ -157,6 +158,38 @@ const EmployeeForm = ({ employee, allEmployees, onSave, onCancel }: Props) => {
               value={draft.cnic}
               onChange={(e) => set("cnic", e.target.value)}
               placeholder="61101-1234567-1"
+              className={inputClass()}
+            />
+          </Field>
+
+          <Field id="fatherName" label="Father / guardian name">
+            <input
+              id="fatherName"
+              value={draft.fatherName}
+              onChange={(e) => set("fatherName", e.target.value)}
+              className={inputClass()}
+            />
+          </Field>
+
+          <Field id="bloodGroup" label="Blood group" hint="Shown on the ID card.">
+            <select
+              id="bloodGroup"
+              value={draft.bloodGroup}
+              onChange={(e) => set("bloodGroup", e.target.value)}
+              className={inputClass()}
+            >
+              <option value="">Not recorded</option>
+              {BLOOD_GROUPS.map((group) => (
+                <option key={group} value={group}>{group}</option>
+              ))}
+            </select>
+          </Field>
+
+          <Field id="ntn" label="NTN" hint="For FBR filers — appears on salary certificates.">
+            <input
+              id="ntn"
+              value={draft.ntn}
+              onChange={(e) => set("ntn", e.target.value)}
               className={inputClass()}
             />
           </Field>
@@ -365,6 +398,26 @@ const EmployeeForm = ({ employee, allEmployees, onSave, onCancel }: Props) => {
                 </option>
               ))}
             </select>
+          </Field>
+
+          <Field id="bankName" label="Bank">
+            <input
+              id="bankName"
+              value={draft.bankName}
+              onChange={(e) => set("bankName", e.target.value)}
+              placeholder="Meezan Bank"
+              className={inputClass()}
+            />
+          </Field>
+
+          <Field id="bankIban" label="IBAN / account no." hint="Printed on salary slips when set.">
+            <input
+              id="bankIban"
+              value={draft.bankIban}
+              onChange={(e) => set("bankIban", e.target.value)}
+              placeholder="PK00XXXX0000000000000000"
+              className={inputClass("tabular-nums")}
+            />
           </Field>
 
           <Field

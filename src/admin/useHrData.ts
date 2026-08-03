@@ -17,7 +17,13 @@ import {
 } from "./repository";
 import { monthsSince } from "./format";
 import { DEFAULT_CONTENT, type SiteContent } from "@/data/content";
-import type { Employee, EmployeeDraft, EmployeeStatus } from "./types";
+import {
+  EMPTY_DRAFT,
+  nextEmployeeId,
+  type Employee,
+  type EmployeeDraft,
+  type EmployeeStatus,
+} from "./types";
 
 /**
  * Every read and write the admin panel performs, in one place.
@@ -215,6 +221,32 @@ export const useHrData = () => {
     [repository, actor, refresh],
   );
 
+  /**
+   * The onboarding flow: create the person with just a name, hand back a
+   * 24h link — they fill in their own CNIC, bank, contacts; the admin
+   * approves and the record completes itself.
+   */
+  const addEmployeeViaLink = useCallback(
+    async (fullName: string): Promise<string> => {
+      const today = new Date().toISOString().slice(0, 10);
+      const created = await repository.createEmployee({
+        ...EMPTY_DRAFT,
+        fullName,
+        employeeId: nextEmployeeId(employees, today),
+        joinedAt: today,
+      });
+      await repository.audit(actor, "employee.create", fullName, { via: "onboarding link" });
+      const request = await repository.createUpdateRequest(created.id);
+      await repository.audit(actor, "employee.update-link.create", fullName, {
+        expiresAt: request.expiresAt,
+        onboarding: true,
+      });
+      await refresh();
+      return `${window.location.origin}/update-info?t=${request.token}`;
+    },
+    [repository, actor, employees, refresh],
+  );
+
   /** Applies the submitted fields to the employee record. */
   const approveUpdateRequest = useCallback(
     async (request: UpdateRequest) => {
@@ -224,11 +256,17 @@ export const useHrData = () => {
       const { id, ...draft } = employee;
       await repository.updateEmployee(id, {
         ...draft,
+        fullName: s.full_name ?? draft.fullName,
         phone: s.phone ?? draft.phone,
         cnic: s.cnic ?? draft.cnic,
         dateOfBirth: s.date_of_birth ?? draft.dateOfBirth,
         address: s.address ?? draft.address,
         email: s.email ?? draft.email,
+        fatherName: s.father_name ?? draft.fatherName,
+        bloodGroup: s.blood_group ?? draft.bloodGroup,
+        ntn: s.ntn ?? draft.ntn,
+        bankName: s.bank_name ?? draft.bankName,
+        bankIban: s.bank_iban ?? draft.bankIban,
         emergencyContact: {
           name: s.emergency_name ?? draft.emergencyContact.name,
           relationship: s.emergency_relationship ?? draft.emergencyContact.relationship,
@@ -464,6 +502,7 @@ export const useHrData = () => {
     setEmployeeStatus,
     updateRequests,
     requestUpdateLink,
+    addEmployeeViaLink,
     approveUpdateRequest,
     rejectUpdateRequest,
     importEmployees,

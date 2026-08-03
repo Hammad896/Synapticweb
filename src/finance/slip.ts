@@ -107,6 +107,9 @@ const drawSlipBody = (
     ["CNIC", item.cnic || employee?.cnic || "—"],
     ["Payment Mode", item.paymentMode || "Bank Transfer"],
   ];
+  if (employee?.bankName || employee?.bankIban) {
+    details.push(["Bank Account", `${employee.bankName} ${employee.bankIban}`.trim()]);
+  }
   for (const [label, value] of details) {
     page.drawText(label, { x: left, y, size: 9, font, color: muted });
     page.drawText(value, { x: left + 130, y, size: 9, font, color: ink });

@@ -40,12 +40,19 @@ interface Props {
   onExportCsv: () => void;
   updateRequests: UpdateRequest[];
   onRequestLink: (employee: Employee) => Promise<string>;
+  onAddViaLink: (fullName: string) => Promise<string>;
   onApproveUpdate: (request: UpdateRequest) => Promise<void>;
   onRejectUpdate: (request: UpdateRequest) => Promise<void>;
 }
 
 /** submitted-json key → what the reviewer reads. */
 const FIELD_LABELS: Record<string, string> = {
+  full_name: "Full name",
+  father_name: "Father name",
+  blood_group: "Blood group",
+  ntn: "NTN",
+  bank_name: "Bank",
+  bank_iban: "IBAN",
   phone: "Phone",
   cnic: "CNIC",
   date_of_birth: "Date of birth",
@@ -59,6 +66,12 @@ const FIELD_LABELS: Record<string, string> = {
 const currentValueOf = (employee: Employee | undefined, key: string): string => {
   if (!employee) return "";
   switch (key) {
+    case "full_name": return employee.fullName;
+    case "father_name": return employee.fatherName;
+    case "blood_group": return employee.bloodGroup;
+    case "ntn": return employee.ntn;
+    case "bank_name": return employee.bankName;
+    case "bank_iban": return employee.bankIban;
     case "phone": return employee.phone;
     case "cnic": return employee.cnic;
     case "date_of_birth": return employee.dateOfBirth;
@@ -92,6 +105,7 @@ const EmployeesTab = ({
   onExportCsv,
   updateRequests,
   onRequestLink,
+  onAddViaLink,
   onApproveUpdate,
   onRejectUpdate,
 }: Props) => {
@@ -147,6 +161,22 @@ const EmployeesTab = ({
 
   const submittedRequests = updateRequests.filter((r) => r.status === "submitted");
   const awaitingCount = updateRequests.filter((r) => r.status === "pending").length;
+
+  const addViaLink = async () => {
+    const name = window.prompt(
+      "New employee's full name?\n\nThey'll fill in everything else themselves (CNIC, bank, contacts…) through the link — you just approve it.",
+    )?.trim();
+    if (!name) return;
+    try {
+      const url = await onAddViaLink(name);
+      await navigator.clipboard.writeText(url).catch(() => {});
+      window.alert(
+        `${name} added to the roster.\n\nOnboarding link copied — valid 24 hours:\n\n${url}\n\nSend it to them; their details arrive here for your approval.`,
+      );
+    } catch (caught) {
+      window.alert(errorMessage(caught, "Could not create the onboarding link."));
+    }
+  };
 
   const close = () => {
     setEditing(null);
@@ -208,6 +238,14 @@ const EmployeesTab = ({
               >
                 <Download size={15} aria-hidden="true" />
                 CSV
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => void addViaLink()}
+                title="Create the person with just a name and send them a link to fill in the rest"
+              >
+                <Link2 size={15} aria-hidden="true" />
+                Add via link
               </Button>
               <Button onClick={() => setIsCreating(true)}>
                 <Plus size={15} aria-hidden="true" />
