@@ -24,6 +24,7 @@ const AdminPage = lazy(() => import("@/admin/AdminPage"));
 const LoginPage = lazy(() => import("@/auth/LoginPage"));
 const Verify = lazy(() => import("@/pages/Verify"));
 const UpdateInfo = lazy(() => import("@/pages/UpdateInfo"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 
 const Loading = () => (
   <div className="flex min-h-screen items-center justify-center bg-background">
@@ -56,6 +57,8 @@ const App = () => (
             <Route path="/update-info" element={<UpdateInfo />} />
 
             <Route path="/staff-login" element={<LoginPage />} />
+            {/* Where the password-recovery email lands. */}
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Guarded. With Supabase configured the guard is backed by real auth
                 and RLS: employee data is never sent to an unauthenticated

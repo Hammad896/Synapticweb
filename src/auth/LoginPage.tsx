@@ -3,7 +3,8 @@ import { Link, Navigate } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Lock, TriangleAlert } from "lucide-react";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { errorMessage } from "@/lib/utils";
 import { useAuth } from "./auth";
 
 const FIELD =
@@ -27,6 +28,26 @@ const LoginPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attempts, setAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
+  const [resetSent, setResetSent] = useState(false);
+
+  const forgotPassword = async () => {
+    if (!supabase) return;
+    const target = email.trim();
+    if (!target) {
+      setError("Type your email above first, then press Forgot password.");
+      return;
+    }
+    try {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(target, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (resetError) throw resetError;
+      setResetSent(true);
+      setError(null);
+    } catch (caught) {
+      setError(errorMessage(caught, "Could not send the reset email."));
+    }
+  };
 
   if (isReady && user) return <Navigate to="/admin" replace />;
 
@@ -149,6 +170,24 @@ const LoginPage = () => {
               )}
               {isSubmitting ? "Signing in…" : "Sign in"}
             </button>
+
+            {isSupabaseConfigured && (
+              <div className="text-center">
+                {resetSent ? (
+                  <p className="text-xs text-emerald-600">
+                    Reset email sent — check the inbox (and spam) for {email.trim()}.
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void forgotPassword()}
+                    className="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-accent hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
+            )}
           </form>
 
           {/* Shown ONLY when running without Supabase (the local dev gate). With
