@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ArrowDownRight, ArrowUpRight, PiggyBank, ReceiptText } from "lucide-react";
 import { Stat, inputClass } from "@/components/kit";
-import { breakdown, monthLabel, monthlyClosings, pkr, round2, totalsOf } from "../calc";
+import { breakdown, monthLabel, monthlyClosings, pkr, round2, totalsOf, yearsOf } from "../calc";
 import type { FinanceSettings, Transaction } from "../types";
 
 /**
@@ -18,10 +18,7 @@ interface Props {
 }
 
 const DashboardPanel = ({ transactions, settings }: Props) => {
-  const years = useMemo(
-    () => [...new Set(transactions.map((t) => t.date.slice(0, 4)))].sort().reverse(),
-    [transactions],
-  );
+  const years = useMemo(() => yearsOf(transactions), [transactions]);
   const [year, setYear] = useState<string>("");
   const [hover, setHover] = useState<number | null>(null);
 

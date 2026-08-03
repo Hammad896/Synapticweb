@@ -2,10 +2,17 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, Download, FileDown, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Badge, Button, EmptyState, Field, inputClass } from "@/components/kit";
 import type { Employee } from "@/admin/types";
+import { openPdf } from "@/hr/pdf";
 import { monthLabel, pkr } from "../calc";
 import { downloadCsv, payrollToCsv } from "../csv";
-import { netPay, type FinanceSettings, type PayrollItem } from "../types";
-import { downloadSlip, renderSalarySlip } from "../slip";
+import {
+  isPayrollEligible,
+  netPay,
+  suggestedPayMonth,
+  type FinanceSettings,
+  type PayrollItem,
+} from "../types";
+import { renderSalarySlip } from "../slip";
 
 interface Props {
   payroll: PayrollItem[];
@@ -17,14 +24,6 @@ interface Props {
   onDeleteItem: (item: PayrollItem) => Promise<void>;
 }
 
-/** "2026-08" for the month whose salaries are most likely being run now: the
- *  previous calendar month (July's salaries are paid on 5 August). */
-const suggestedMonth = () => {
-  const now = new Date();
-  now.setMonth(now.getMonth() - 1);
-  return now.toISOString().slice(0, 7);
-};
-
 const PayrollPanel = ({
   payroll,
   employees,
@@ -34,15 +33,14 @@ const PayrollPanel = ({
   onSaveItem,
   onDeleteItem,
 }: Props) => {
-  const [month, setMonth] = useState(suggestedMonth);
+  const [month, setMonth] = useState(suggestedPayMonth);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<PayrollItem | null>(null);
   const [patch, setPatch] = useState<Partial<PayrollItem>>({});
 
-  const eligible = useMemo(
-    () => employees.filter((e) => e.status === "active" && e.staffType === "internal"),
-    [employees],
-  );
+  // The same predicate generateRun uses — the caption can never lie about
+  // who a run will include.
+  const eligible = useMemo(() => employees.filter(isPayrollEligible), [employees]);
 
   /** Newest month first, rows grouped. */
   const byMonth = useMemo(() => {
@@ -117,7 +115,7 @@ const PayrollPanel = ({
           (e) => e.fullName.trim().toLowerCase() === item.employeeName.trim().toLowerCase(),
         ) ??
         null;
-      downloadSlip(await renderSalarySlip(item, employee, settings.slipNote), item.slipNo);
+      openPdf(await renderSalarySlip(item, employee, settings.slipNote), `${item.slipNo}.pdf`);
     } catch (caught) {
       // A silent failure reads as "the button does nothing" — say what broke.
       window.alert(

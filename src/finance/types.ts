@@ -22,7 +22,9 @@ export type TransactionDraft = Omit<Transaction, "id" | "createdAt">;
 export const EMPTY_TRANSACTION: TransactionDraft = {
   legacyId: "",
   txnNo: "",
-  date: new Date().toISOString().slice(0, 10),
+  // Stamped with today's date by the form when it opens — a module-load
+  // default would go stale after midnight.
+  date: "",
   type: "expense",
   category: "",
   description: "",
@@ -109,9 +111,25 @@ export const nextTransactionNo = (
   return `${String(highest + 1).padStart(3, "0")}${suffix}`;
 };
 
+/** The one payroll-eligibility rule: Active AND Internal. Everything that
+ *  generates or previews a run must use this, never re-derive it. */
+export const isPayrollEligible = (employee: {
+  status: string;
+  staffType: string;
+}): boolean => employee.status === "active" && employee.staffType === "internal";
+
+/* The pay cycle, in one place: month M's salaries are handled during M+1. */
+
 /** Salaries are normally paid on the 5th of the FOLLOWING month. */
 export const defaultPayDate = (payMonth: string): string => {
   const [year, month] = payMonth.split("-").map(Number);
   const next = month === 12 ? `${year + 1}-01` : `${year}-${String(month + 1).padStart(2, "0")}`;
   return `${next}-05`;
+};
+
+/** The month whose salaries are most likely being run now: the previous one. */
+export const suggestedPayMonth = (): string => {
+  const now = new Date();
+  now.setMonth(now.getMonth() - 1);
+  return now.toISOString().slice(0, 7);
 };

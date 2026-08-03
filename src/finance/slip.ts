@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { Employee } from "@/admin/types";
 import { loadLayout } from "@/hr/layout";
+import { wrap } from "@/hr/pdf";
 import { pkr } from "./calc";
 import { DEFAULT_SLIP_NOTE, netPay, type PayrollItem } from "./types";
 
@@ -37,26 +38,7 @@ interface Frame {
   left: number;
   right: number;
   y: number;
-  pageWidth: number;
 }
-
-const wrapText = (text: string, font: PDFFont, size: number, maxWidth: number): string[] => {
-  const lines: string[] = [];
-  for (const paragraph of text.split("\n")) {
-    let current = "";
-    for (const word of paragraph.split(" ")) {
-      const candidate = current ? `${current} ${word}` : word;
-      if (font.widthOfTextAtSize(candidate, size) > maxWidth && current) {
-        lines.push(current);
-        current = word;
-      } else {
-        current = candidate;
-      }
-    }
-    lines.push(current);
-  }
-  return lines;
-};
 
 /** Draws the slip body inside the frame; returns the y it finished at. */
 const drawSlipBody = (
@@ -85,10 +67,11 @@ const drawSlipBody = (
   rule(10);
 
   /* Meta */
-  const monthNames = ["January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"];
   const [py, pm] = item.payMonth.split("-").map(Number);
-  const period = monthNames[pm - 1] ? `${monthNames[pm - 1]} ${py}` : item.payMonth.slice(0, 7);
+  const period =
+    pm >= 1 && pm <= 12
+      ? new Date(py, pm - 1).toLocaleDateString("en", { month: "long", year: "numeric" })
+      : item.payMonth.slice(0, 7);
   const issueDate = new Date().toISOString().slice(0, 10);
 
   const metaLeft = (label: string, value: string) => {
@@ -169,7 +152,7 @@ const drawSlipBody = (
   y -= 30;
 
   /* The editable note — policy text, printed verbatim */
-  for (const noteLine of wrapText(noteText || DEFAULT_SLIP_NOTE, font, 8, width)) {
+  for (const noteLine of wrap(noteText || DEFAULT_SLIP_NOTE, font, 8, width)) {
     page.drawText(noteLine, { x: left, y, size: 8, font, color: muted });
     y -= 10.5;
   }
@@ -207,7 +190,7 @@ const renderPlain = async (
   page.drawText(COMPANY.address, { x: center(COMPANY.address, font, 9), y, size: 9, font, color: muted });
   y -= 34;
 
-  y = drawSlipBody({ page, font, bold, left, right, y, pageWidth: 595.28 }, item, employee, noteText);
+  y = drawSlipBody({ page, font, bold, left, right, y }, item, employee, noteText);
 
   /* Signature block — the plain version has no artwork to lean on */
   y -= 46;
@@ -253,7 +236,6 @@ export const renderSalarySlip = async (
       left: layout.marginLeft,
       right: width - layout.marginRight,
       y: page.getSize().height - layout.marginTop,
-      pageWidth: width,
     },
     item,
     employee,
@@ -261,15 +243,4 @@ export const renderSalarySlip = async (
   );
 
   return pdf.save();
-};
-
-/** Same download behaviour as the letters module. */
-export const downloadSlip = (bytes: Uint8Array, slipNo: string) => {
-  const blob = new Blob([bytes as BlobPart], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `${slipNo}.pdf`;
-  link.click();
-  window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
 };

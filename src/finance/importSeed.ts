@@ -1,7 +1,7 @@
 import type { HrRepository } from "@/admin/repository";
 import { nextEmployeeId, type Employee, type EmployeeDraft } from "@/admin/types";
 import type { FinanceRepository } from "./repository";
-import type { PayrollDraft, TransactionDraft } from "./types";
+import { nextTransactionNo, type PayrollDraft, type TransactionDraft } from "./types";
 import { totalsOf } from "./calc";
 
 /**
@@ -150,18 +150,17 @@ export const importFinanceSeed = async (
   }
 
   /* 3 — the ledger, verbatim, deduped on export ID. System numbers (NNN-YYYY)
-         are assigned chronologically so the history reads in order. */
-  const counters = new Map<string, number>();
-  const numberFor = (date: string) => {
-    const year = date.slice(0, 4);
-    const n = (counters.get(year) ?? 0) + 1;
-    counters.set(year, n);
-    return `${String(n).padStart(3, "0")}-${year}`;
-  };
-  const chronological = [...seed.transactions].sort(
-    (a, b) => a.date.localeCompare(b.date) || a.legacyId.localeCompare(b.legacyId),
+         are assigned chronologically by the ONE generator the app uses. */
+  const pool: Array<{ txnNo: string }> = [];
+  const numbers = new Map(
+    [...seed.transactions]
+      .sort((a, b) => a.date.localeCompare(b.date) || a.legacyId.localeCompare(b.legacyId))
+      .map((t) => {
+        const txnNo = nextTransactionNo(pool, t.date);
+        pool.push({ txnNo });
+        return [t.legacyId, txnNo] as const;
+      }),
   );
-  const numbers = new Map(chronological.map((t) => [t.legacyId, numberFor(t.date)]));
 
   const transactionsAdded = await finance.insertTransactions(
     seed.transactions.map((t) => ({

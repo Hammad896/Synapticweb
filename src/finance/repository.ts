@@ -1,4 +1,5 @@
 import { supabase } from "@/lib/supabase";
+import { bool, num, str } from "@/admin/repository";
 import {
   DEFAULT_SLIP_NOTE,
   type CategoryKind,
@@ -18,9 +19,10 @@ import {
 export interface FinanceRepository {
   listTransactions(): Promise<Transaction[]>;
   createTransaction(draft: TransactionDraft): Promise<Transaction>;
-  updateTransaction(id: string, draft: TransactionDraft): Promise<void>;
-  removeTransaction(id: string): Promise<void>;
-  /** Bulk delete for the multi-select action. */
+  /** Patch semantics: only the fields present are written — a caller can sync
+   *  amount/date without ever touching (or clobbering) notes or numbers. */
+  updateTransaction(id: string, patch: Partial<TransactionDraft>): Promise<void>;
+  /** Bulk delete; a single delete is just a one-element call. */
   removeTransactions(ids: string[]): Promise<void>;
   /** Bulk import. Rows whose legacyId already exists are skipped — idempotent. */
   insertTransactions(drafts: TransactionDraft[]): Promise<number>;
@@ -45,18 +47,9 @@ export interface FinanceRepository {
   saveSettings(settings: FinanceSettings): Promise<void>;
 }
 
-/* ── Row coercion, same discipline as the HR adapter ──────────────────────── */
+/* ── Row coercion — the HR adapter's shared helpers ───────────────────────── */
 
 type Row = Record<string, unknown>;
-
-const str = (value: unknown, fallback = ""): string =>
-  typeof value === "string" ? value : fallback;
-
-const num = (value: unknown, fallback = 0): number =>
-  typeof value === "number" ? value : Number(value ?? fallback) || fallback;
-
-const bool = (value: unknown, fallback = false): boolean =>
-  typeof value === "boolean" ? value : fallback;
 
 const toTransaction = (row: Row): Transaction => ({
   id: str(row.id),
@@ -81,6 +74,20 @@ const toTransactionRow = (draft: TransactionDraft) => ({
   notes: draft.notes,
   amount: draft.amount,
 });
+
+/** Patch shape: undefined keys are simply absent, so they stay untouched. */
+const toTransactionPatch = (patch: Partial<TransactionDraft>) => {
+  const row: Record<string, unknown> = {};
+  if (patch.legacyId !== undefined) row.legacy_id = patch.legacyId || null;
+  if (patch.txnNo !== undefined) row.txn_no = patch.txnNo || null;
+  if (patch.date !== undefined) row.date = patch.date;
+  if (patch.type !== undefined) row.type = patch.type;
+  if (patch.category !== undefined) row.category = patch.category;
+  if (patch.description !== undefined) row.description = patch.description;
+  if (patch.notes !== undefined) row.notes = patch.notes;
+  if (patch.amount !== undefined) row.amount = patch.amount;
+  return row;
+};
 
 const toPayrollItem = (row: Row): PayrollItem => ({
   id: str(row.id),
@@ -147,16 +154,11 @@ class SupabaseFinanceRepository implements FinanceRepository {
     return toTransaction(data);
   }
 
-  async updateTransaction(id: string, draft: TransactionDraft): Promise<void> {
+  async updateTransaction(id: string, patch: Partial<TransactionDraft>): Promise<void> {
     const { error } = await this.db
       .from("transactions")
-      .update({ ...toTransactionRow(draft), updated_at: new Date().toISOString() })
+      .update({ ...toTransactionPatch(patch), updated_at: new Date().toISOString() })
       .eq("id", id);
-    if (error) throw error;
-  }
-
-  async removeTransaction(id: string): Promise<void> {
-    const { error } = await this.db.from("transactions").delete().eq("id", id);
     if (error) throw error;
   }
 
@@ -179,19 +181,11 @@ class SupabaseFinanceRepository implements FinanceRepository {
 
     const seen = new Set((existing ?? []).map((r: Row) => str(r.legacy_id)));
     const fresh = drafts.filter((d) => d.legacyId && !seen.has(d.legacyId));
-    if (fresh.length === 0) return 0;
-
-    // Chunked so one giant statement can't hit a payload limit mid-import.
-    for (let i = 0; i < fresh.length; i += 200) {
-      const { error } = await this.db
-        .from("transactions")
-        .insert(fresh.slice(i, i + 200).map(toTransactionRow));
-      if (error) throw error;
-    }
-    return fresh.length;
+    return fresh.length ? this.createTransactions(fresh) : 0;
   }
 
   async createTransactions(drafts: TransactionDraft[]): Promise<number> {
+    // Chunked so one giant statement can't hit a payload limit mid-import.
     for (let i = 0; i < drafts.length; i += 200) {
       const { error } = await this.db
         .from("transactions")
@@ -373,19 +367,12 @@ class LocalFinanceRepository implements FinanceRepository {
     return saved;
   }
 
-  async updateTransaction(id: string, draft: TransactionDraft) {
+  async updateTransaction(id: string, patch: Partial<TransactionDraft>) {
     write(
       KEY.transactions,
       read<Transaction>(KEY.transactions).map((t) =>
-        t.id === id ? { ...t, ...draft } : t,
+        t.id === id ? { ...t, ...patch } : t,
       ),
-    );
-  }
-
-  async removeTransaction(id: string) {
-    write(
-      KEY.transactions,
-      read<Transaction>(KEY.transactions).filter((t) => t.id !== id),
     );
   }
 
@@ -398,17 +385,11 @@ class LocalFinanceRepository implements FinanceRepository {
   }
 
   async insertTransactions(drafts: TransactionDraft[]) {
-    const existing = read<Transaction>(KEY.transactions);
-    const seen = new Set(existing.map((t) => t.legacyId).filter(Boolean));
-    const fresh = drafts
-      .filter((d) => d.legacyId && !seen.has(d.legacyId))
-      .map((d) => ({
-        ...d,
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-      }));
-    write(KEY.transactions, [...existing, ...fresh]);
-    return fresh.length;
+    const seen = new Set(
+      read<Transaction>(KEY.transactions).map((t) => t.legacyId).filter(Boolean),
+    );
+    const fresh = drafts.filter((d) => d.legacyId && !seen.has(d.legacyId));
+    return fresh.length ? this.createTransactions(fresh) : 0;
   }
 
   async createTransactions(drafts: TransactionDraft[]) {

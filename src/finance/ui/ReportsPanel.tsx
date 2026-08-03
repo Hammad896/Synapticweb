@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Download } from "lucide-react";
 import { Button, EmptyState, inputClass } from "@/components/kit";
-import { monthLabel, monthlyClosings, pkr, yearlyClosings, type PeriodClosing } from "../calc";
+import { monthLabel, monthlyClosings, pkr, yearlyClosings, yearsOf, type PeriodClosing } from "../calc";
 import { closingsToCsv, downloadCsv, financialReportToCsv, transactionsToCsv } from "../csv";
 import type { FinanceCategory, Transaction } from "../types";
 
@@ -70,10 +70,7 @@ const ClosingTable = ({
 );
 
 const ReportsPanel = ({ transactions, categories }: Props) => {
-  const years = useMemo(
-    () => [...new Set(transactions.map((t) => t.date.slice(0, 4)))].sort().reverse(),
-    [transactions],
-  );
+  const years = useMemo(() => yearsOf(transactions), [transactions]);
   const [year, setYear] = useState<string>("");
 
   const scoped = useMemo(

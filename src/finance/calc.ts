@@ -16,7 +16,9 @@ export interface Totals {
   count: number;
 }
 
-export const totalsOf = (transactions: Transaction[]): Totals => {
+export const totalsOf = (
+  transactions: Array<Pick<Transaction, "type" | "amount">>,
+): Totals => {
   let income = 0;
   let expenses = 0;
   for (const t of transactions) {
@@ -168,8 +170,14 @@ export const pkr = (amount: number): string =>
   }).format(round2(amount));
 
 export const monthLabel = (period: string): string => {
-  const [year, month] = period.split("-");
-  if (!month) return period;
-  const names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${names[Number(month) - 1]} ${year}`;
+  const [year, month] = period.split("-").map(Number);
+  if (!month || month < 1 || month > 12) return period;
+  return new Date(year, month - 1).toLocaleDateString("en", {
+    month: "short",
+    year: "numeric",
+  });
 };
+
+/** Distinct years present in the ledger, newest first. */
+export const yearsOf = (transactions: Array<Pick<Transaction, "date">>): string[] =>
+  [...new Set(transactions.map((t) => t.date.slice(0, 4)))].sort().reverse();

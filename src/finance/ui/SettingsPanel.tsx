@@ -42,9 +42,8 @@ const CategoryList = ({
 }) => {
   const [newName, setNewName] = useState("");
   const [newCode, setNewCode] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editName, setEditName] = useState("");
-  const [editCode, setEditCode] = useState("");
+  // One object = one open editor; no way for name/code/id to fall out of sync.
+  const [editing, setEditing] = useState<{ id: string; name: string; code: string } | null>(null);
 
   const rows = categories.filter((c) => c.kind === kind);
   const meta = KIND_META[kind];
@@ -58,12 +57,13 @@ const CategoryList = ({
   };
 
   const rename = async (category: FinanceCategory) => {
-    const name = editName.trim();
-    const code = editCode.trim();
+    if (!editing) return;
+    const name = editing.name.trim();
+    const code = editing.code.trim();
     if (name && (name !== category.name || code !== category.accountCode)) {
       await onSave(kind, name, code, category.id);
     }
-    setEditingId(null);
+    setEditing(null);
   };
 
   const remove = async (category: FinanceCategory) => {
@@ -87,7 +87,7 @@ const CategoryList = ({
             key={category.id}
             className="flex items-center gap-2 rounded-xl border border-border px-3 py-2"
           >
-            {editingId === category.id ? (
+            {editing?.id === category.id ? (
               <form
                 className="flex flex-1 items-center gap-2"
                 onSubmit={(e) => {
@@ -99,20 +99,20 @@ const CategoryList = ({
                   aria-label={`Account code for ${category.name}`}
                   placeholder="Code"
                   className={inputClass("w-20 py-1.5 text-sm tabular-nums")}
-                  value={editCode}
-                  onChange={(e) => setEditCode(e.target.value)}
+                  value={editing.code}
+                  onChange={(e) => setEditing({ ...editing, code: e.target.value })}
                 />
                 <input
                   aria-label={`Rename ${category.name}`}
                   className={inputClass("py-1.5 text-sm")}
-                  value={editName}
+                  value={editing.name}
                   autoFocus
-                  onChange={(e) => setEditName(e.target.value)}
+                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
                 />
                 <Button type="submit" className="px-3 py-1.5 text-xs">Save</Button>
                 <Button
                   type="button" variant="ghost" className="px-2 py-1.5 text-xs"
-                  onClick={() => setEditingId(null)}
+                  onClick={() => setEditing(null)}
                 >
                   Cancel
                 </Button>
@@ -134,11 +134,13 @@ const CategoryList = ({
                   variant="ghost"
                   aria-label={`Rename ${category.name}`}
                   className="px-2 py-1 text-xs"
-                  onClick={() => {
-                    setEditingId(category.id);
-                    setEditName(category.name);
-                    setEditCode(category.accountCode);
-                  }}
+                  onClick={() =>
+                    setEditing({
+                      id: category.id,
+                      name: category.name,
+                      code: category.accountCode,
+                    })
+                  }
                 >
                   <Pencil size={13} aria-hidden="true" />
                 </Button>

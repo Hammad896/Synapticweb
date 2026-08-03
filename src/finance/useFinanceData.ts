@@ -8,6 +8,7 @@ import { monthLabel } from "./calc";
 import {
   DEFAULT_SLIP_NOTE,
   defaultPayDate,
+  isPayrollEligible,
   netPay,
   nextSlipNo,
   nextTransactionNo,
@@ -117,32 +118,31 @@ export const useFinanceData = () => {
     [finance, hr, actor, payroll],
   );
 
-  const deleteTransaction = useCallback(
-    async (transaction: Transaction) => {
-      await finance.removeTransaction(transaction.id);
-      await hr.audit(actor, "finance.transaction.delete", transaction.description, {
-        amount: transaction.amount,
-        date: transaction.date,
-      });
-      const reverted = await revertPayrollLinkedTo(new Set([transaction.id]));
+  /** One delete path for one row or many — same audit, same payroll revert. */
+  const deleteTransactions = useCallback(
+    async (selected: Transaction[]) => {
+      await finance.removeTransactions(selected.map((t) => t.id));
+      await hr.audit(
+        actor,
+        selected.length === 1 ? "finance.transaction.delete" : "finance.transaction.bulk-delete",
+        selected.length === 1
+          ? selected[0].description || selected[0].category
+          : `${selected.length} rows`,
+        {
+          total: selected.reduce((sum, t) => sum + t.amount, 0),
+          ids: selected.map((t) => t.txnNo || t.legacyId || t.id),
+        },
+      );
+      const reverted = await revertPayrollLinkedTo(new Set(selected.map((t) => t.id)));
       await refresh();
       return reverted;
     },
     [finance, hr, actor, refresh, revertPayrollLinkedTo],
   );
 
-  const deleteTransactions = useCallback(
-    async (selected: Transaction[]) => {
-      await finance.removeTransactions(selected.map((t) => t.id));
-      await hr.audit(actor, "finance.transaction.bulk-delete", `${selected.length} rows`, {
-        total: selected.reduce((sum, t) => sum + t.amount, 0),
-        ids: selected.map((t) => t.legacyId || t.id),
-      });
-      const reverted = await revertPayrollLinkedTo(new Set(selected.map((t) => t.id)));
-      await refresh();
-      return reverted;
-    },
-    [finance, hr, actor, refresh, revertPayrollLinkedTo],
+  const deleteTransaction = useCallback(
+    (transaction: Transaction) => deleteTransactions([transaction]),
+    [deleteTransactions],
   );
 
   /* ── Categories ────────────────────────────────────────────────────────── */
@@ -189,9 +189,7 @@ export const useFinanceData = () => {
    */
   const generateRun = useCallback(
     async (payMonth: string, employees: Employee[]) => {
-      const eligible = employees.filter(
-        (e) => e.status === "active" && e.staffType === "internal",
-      );
+      const eligible = employees.filter(isPayrollEligible);
       const already = new Set(
         payroll
           .filter((p) => p.payMonth.slice(0, 7) === payMonth.slice(0, 7))
@@ -238,19 +236,14 @@ export const useFinanceData = () => {
     async (item: PayrollItem, patch: Partial<PayrollItem>) => {
       await finance.updatePayrollItem(item.id, patch);
 
-      // A confirmed row already wrote a Salary expense — keep it true. Any note
-      // the owner added to that ledger entry survives the sync.
+      // A confirmed row already wrote a Salary expense — keep it true. The
+      // patch touches only what the row controls; the entry's number and any
+      // note the owner added stay untouched by construction.
       const next = { ...item, ...patch };
       if (item.status === "confirmed" && item.transactionId) {
-        const linked = transactions.find((t) => t.id === item.transactionId);
         await finance.updateTransaction(item.transactionId, {
-          legacyId: linked?.legacyId ?? "",
-          txnNo: linked?.txnNo ?? "",
           date: next.payDate || next.payMonth,
-          type: "expense",
-          category: "Salary",
           description: salaryDescription(next),
-          notes: linked?.notes ?? "",
           amount: netPay(next),
         });
       }
@@ -258,7 +251,7 @@ export const useFinanceData = () => {
       await hr.audit(actor, "finance.payroll.update", next.slipNo, { net: netPay(next) });
       await refresh();
     },
-    [finance, hr, actor, transactions, refresh],
+    [finance, hr, actor, refresh],
   );
 
   /** Confirming writes one Salary expense per row and links it. */
@@ -300,7 +293,7 @@ export const useFinanceData = () => {
       // The ledger follows the register: removing a confirmed row removes the
       // Salary expense it created. The caller confirms this with the user.
       if (item.status === "confirmed" && item.transactionId) {
-        await finance.removeTransaction(item.transactionId);
+        await finance.removeTransactions([item.transactionId]);
       }
       await finance.removePayrollItem(item.id);
       await hr.audit(actor, "finance.payroll.delete", item.slipNo, {
@@ -321,18 +314,19 @@ export const useFinanceData = () => {
   const importTransactionsCsv = useCallback(
     async (drafts: TransactionDraft[]) => {
       const known = new Set(categories.map((c) => `${c.kind}:${c.name.toLowerCase()}`));
-      const newIncome = [...new Set(
-        drafts
-          .filter((d) => d.type === "income" && !known.has(`income_source:${d.category.toLowerCase()}`))
-          .map((d) => d.category),
-      )];
-      const newExpense = [...new Set(
-        drafts
-          .filter((d) => d.type === "expense" && !known.has(`expense_category:${d.category.toLowerCase()}`))
-          .map((d) => d.category),
-      )];
-      if (newIncome.length) await finance.ensureCategories("income_source", newIncome);
-      if (newExpense.length) await finance.ensureCategories("expense_category", newExpense);
+      const newCategories: string[] = [];
+      for (const [type, kind] of [
+        ["income", "income_source"],
+        ["expense", "expense_category"],
+      ] as const) {
+        const fresh = [...new Set(
+          drafts
+            .filter((d) => d.type === type && !known.has(`${kind}:${d.category.toLowerCase()}`))
+            .map((d) => d.category),
+        )];
+        if (fresh.length) await finance.ensureCategories(kind, fresh);
+        newCategories.push(...fresh);
+      }
 
       // Assign system numbers up front, continuing each year's sequence. A
       // number from the file is honoured only on rows that also carry a backup
@@ -355,13 +349,13 @@ export const useFinanceData = () => {
       await hr.audit(actor, "finance.transactions.csv-import", `${drafts.length} rows`, {
         added: addedWithKey + addedPlain,
         skippedAsDuplicates: withKey.length - addedWithKey,
-        newCategories: [...newIncome, ...newExpense],
+        newCategories,
       });
       await refresh();
       return {
         added: addedWithKey + addedPlain,
         skipped: withKey.length - addedWithKey,
-        newCategories: [...newIncome, ...newExpense],
+        newCategories,
       };
     },
     [finance, hr, actor, categories, transactions, refresh],
@@ -421,5 +415,3 @@ export const useFinanceData = () => {
     runImport,
   };
 };
-
-export type FinanceData = ReturnType<typeof useFinanceData>;

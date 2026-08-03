@@ -43,7 +43,7 @@ export interface LetterInput {
 }
 
 /** Greedy wrap. Preserves the blank lines the templates rely on. */
-const wrap = (text: string, font: PDFFont, size: number, maxWidth: number): string[] => {
+export const wrap = (text: string, font: PDFFont, size: number, maxWidth: number): string[] => {
   const lines: string[] = [];
 
   for (const paragraph of text.split("\n")) {

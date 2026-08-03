@@ -177,13 +177,14 @@ export interface HrRepository {
  */
 type Row = Record<string, unknown>;
 
-const str = (value: unknown, fallback = ""): string =>
+/** Shared with the finance adapter — one set of coercers, one discipline. */
+export const str = (value: unknown, fallback = ""): string =>
   typeof value === "string" ? value : fallback;
 
-const num = (value: unknown, fallback = 0): number =>
+export const num = (value: unknown, fallback = 0): number =>
   typeof value === "number" ? value : Number(value ?? fallback) || fallback;
 
-const bool = (value: unknown, fallback = false): boolean =>
+export const bool = (value: unknown, fallback = false): boolean =>
   typeof value === "boolean" ? value : fallback;
 
 /** DB rows are snake_case; the app is camelCase. This is the only place they meet. */

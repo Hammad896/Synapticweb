@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from "react";
 import { Download, Pencil, Plus, StickyNote, Trash2, Upload, X } from "lucide-react";
 import { Badge, Button, EmptyState, Field, inputClass } from "@/components/kit";
 import { shortDate } from "@/admin/format";
-import { applyFilter, EMPTY_FILTER, pkr, round2, totalsOf, type TransactionFilter } from "../calc";
+import { applyFilter, EMPTY_FILTER, pkr, totalsOf, yearsOf, type TransactionFilter } from "../calc";
 import { downloadCsv, parseTransactionsCsv, transactionsToCsv } from "../csv";
 import {
   EMPTY_TRANSACTION,
@@ -11,11 +11,10 @@ import {
   type TransactionDraft,
 } from "../types";
 
-const MONTHS = [
-  ["01", "Jan"], ["02", "Feb"], ["03", "Mar"], ["04", "Apr"],
-  ["05", "May"], ["06", "Jun"], ["07", "Jul"], ["08", "Aug"],
-  ["09", "Sep"], ["10", "Oct"], ["11", "Nov"], ["12", "Dec"],
-] as const;
+const MONTHS = Array.from({ length: 12 }, (_, i) => [
+  String(i + 1).padStart(2, "0"),
+  new Date(2000, i).toLocaleDateString("en", { month: "short" }),
+]);
 
 interface Props {
   transactions: Transaction[];
@@ -43,17 +42,14 @@ const TransactionsPanel = ({
 }: Props) => {
   const [filter, setFilter] = useState<TransactionFilter>(EMPTY_FILTER);
   const [editing, setEditing] = useState<Transaction | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [draft, setDraft] = useState<TransactionDraft>(EMPTY_TRANSACTION);
+  // A non-null draft IS the open form — no separate boolean to fall out of sync.
+  const [draft, setDraft] = useState<TransactionDraft | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const years = useMemo(
-    () => [...new Set(transactions.map((t) => t.date.slice(0, 4)))].sort().reverse(),
-    [transactions],
-  );
+  const years = useMemo(() => yearsOf(transactions), [transactions]);
 
   const filtered = useMemo(
     () => applyFilter(transactions, filter),
@@ -61,8 +57,13 @@ const TransactionsPanel = ({
   );
   const totals = useMemo(() => totalsOf(filtered), [filtered]);
 
+  /** The type→category coupling, in one place — form and filter both use it. */
   const categoriesFor = (type: string) =>
-    type === "income" ? incomeSources : expenseCategories;
+    type === "income"
+      ? incomeSources
+      : type === "expense"
+        ? expenseCategories
+        : [...incomeSources, ...expenseCategories];
 
   const startCreate = () => {
     setEditing(null);
@@ -71,32 +72,22 @@ const TransactionsPanel = ({
       date: new Date().toISOString().slice(0, 10),
       category: expenseCategories[0]?.name ?? "",
     });
-    setIsCreating(true);
   };
 
   const startEdit = (transaction: Transaction) => {
+    const { id: _id, createdAt: _createdAt, ...rest } = transaction;
     setEditing(transaction);
-    setDraft({
-      legacyId: transaction.legacyId,
-      txnNo: transaction.txnNo,
-      date: transaction.date,
-      type: transaction.type,
-      category: transaction.category,
-      description: transaction.description,
-      notes: transaction.notes,
-      amount: transaction.amount,
-    });
-    setIsCreating(true);
+    setDraft(rest);
   };
 
   const close = () => {
-    setIsCreating(false);
+    setDraft(null);
     setEditing(null);
   };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!draft.date || !draft.category || draft.amount < 0) return;
+    if (!draft || !draft.date || !draft.category || draft.amount < 0) return;
     setSaving(true);
     try {
       await onSave(draft, editing);
@@ -204,11 +195,11 @@ const TransactionsPanel = ({
           return;
       }
 
-      const income = round2(drafts.filter((d) => d.type === "income").reduce((s, d) => s + d.amount, 0));
-      const expense = round2(drafts.filter((d) => d.type === "expense").reduce((s, d) => s + d.amount, 0));
+      // The same summing the app uses everywhere — the preview can't disagree.
+      const preview = totalsOf(drafts);
       if (
         !window.confirm(
-          `Import ${drafts.length} transactions?\n\nIncome ${pkr(income)} · Expenses ${pkr(expense)}\n\nRows with an id that already exists are skipped automatically.`,
+          `Import ${drafts.length} transactions?\n\nIncome ${pkr(preview.income)} · Expenses ${pkr(preview.expenses)}\n\nRows with an id that already exists are skipped automatically.`,
         )
       )
         return;
@@ -273,12 +264,7 @@ const TransactionsPanel = ({
             onChange={(e) => set({ category: e.target.value })}
           >
             <option value="">All categories</option>
-            {(filter.type === "income"
-              ? incomeSources
-              : filter.type === "expense"
-                ? expenseCategories
-                : [...incomeSources, ...expenseCategories]
-            ).map((c) => (
+            {categoriesFor(filter.type).map((c) => (
               <option key={c.id} value={c.name}>{c.name}</option>
             ))}
           </select>
@@ -350,7 +336,7 @@ const TransactionsPanel = ({
       </div>
 
       {/* ── Add / edit form ───────────────────────────────────────────────── */}
-      {isCreating && (
+      {draft && (
         <form onSubmit={submit} className="surface mt-4 p-4 sm:p-5">
           <p className="text-sm font-medium text-foreground">
             {editing ? `Edit ${editing.legacyId || "transaction"}` : "New transaction"}

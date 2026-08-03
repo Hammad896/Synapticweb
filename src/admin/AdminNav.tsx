@@ -46,7 +46,7 @@ const PRIMARY_TABS: Tab[] = ["overview", "finance", "employees", "letters"];
 const MORE_TABS: Tab[] = ["documents", "reports", "careers", "announcements", "content", "audit"];
 
 /** The desktop sidebar: one subject per group, headed, in workload order. */
-export const NAV_GROUPS: Array<{ heading: string; ids: Tab[] }> = [
+const NAV_GROUPS: Array<{ heading: string; ids: Tab[] }> = [
   { heading: "Dashboard", ids: ["overview"] },
   { heading: "Money", ids: ["finance"] },
   { heading: "People", ids: ["employees", "letters", "documents"] },
