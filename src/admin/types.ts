@@ -1,6 +1,9 @@
 export type EmployeeStatus = "active" | "inactive";
 export type EmploymentType = "full-time" | "part-time" | "contract" | "intern";
 export type WorkMode = "onsite" | "remote" | "hybrid";
+/** Internal people are on monthly payroll; outsource people are paid per
+ *  project through the ledger's Outsource category. */
+export type StaffType = "internal" | "outsource";
 
 export interface EmergencyContact {
   name: string;
@@ -34,6 +37,7 @@ export interface Employee {
   status: EmployeeStatus;
   employmentType: EmploymentType;
   workMode: WorkMode;
+  staffType: StaffType;
 
   joinedAt: string;
   /** Probation length in months. Drives the confirmation-due automation. */
@@ -71,6 +75,7 @@ export const EMPTY_DRAFT: EmployeeDraft = {
   status: "active",
   employmentType: "full-time",
   workMode: "onsite",
+  staffType: "internal",
   joinedAt: "",
   probationMonths: 3,
   exitDate: "",

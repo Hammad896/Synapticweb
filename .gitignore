@@ -44,3 +44,10 @@ graphify-out/
 # Employee PII — MUST NEVER be committed (public repo)
 seed-employees.local.json
 *.local.json
+
+# Financial history + employee PII (CNICs, phones, salaries). The repo is
+# PUBLIC, so the Excel export and the seed generated from it stay local; the
+# data lives only in Supabase behind RLS. Regenerate the seed any time with
+# `node scripts/build-finance-seed.mjs`.
+finance-data-for-import/
+src/finance/seed/finance-seed.json

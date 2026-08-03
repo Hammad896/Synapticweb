@@ -5,6 +5,7 @@ import {
   Download,
   FileText,
   History,
+  Landmark,
   LayoutDashboard,
   LayoutGrid,
   Megaphone,
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
 
 export type Tab =
   | "overview"
+  | "finance"
   | "employees"
   | "letters"
   | "documents"
@@ -28,6 +30,7 @@ export type Tab =
 
 export const TABS: Array<{ id: Tab; label: string; icon: typeof Users }> = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
+  { id: "finance", label: "Finance", icon: Landmark },
   { id: "employees", label: "Employees", icon: Users },
   { id: "letters", label: "Letters", icon: FileText },
   { id: "documents", label: "Register", icon: BadgeCheck },
@@ -39,8 +42,8 @@ export const TABS: Array<{ id: Tab; label: string; icon: typeof Users }> = [
 ];
 
 /** The four that earn a permanent slot on a phone. The rest live behind "More". */
-const PRIMARY_TABS: Tab[] = ["overview", "employees", "letters", "documents"];
-const MORE_TABS: Tab[] = ["reports", "careers", "announcements", "content", "audit"];
+const PRIMARY_TABS: Tab[] = ["overview", "finance", "employees", "letters"];
+const MORE_TABS: Tab[] = ["documents", "reports", "careers", "announcements", "content", "audit"];
 
 interface Props {
   tab: Tab;

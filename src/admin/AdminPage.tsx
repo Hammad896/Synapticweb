@@ -11,6 +11,7 @@ import { DesktopTabs, MobileNav, type Tab } from "./AdminNav";
 import { useHrData } from "./useHrData";
 import { isRemote, toCsv, type IssuedDocument } from "./repository";
 import Reports from "./Reports";
+import FinanceTab from "./tabs/FinanceTab";
 import OverviewTab from "./tabs/OverviewTab";
 import EmployeesTab from "./tabs/EmployeesTab";
 import LettersTab from "./tabs/LettersTab";
@@ -163,6 +164,13 @@ const AdminPage = () => {
                   setEditing(employee);
                   setTab("employees");
                 }}
+              />
+            )}
+
+            {tab === "finance" && (
+              <FinanceTab
+                employees={data.employees}
+                onEmployeesChanged={data.refresh}
               />
             )}
 

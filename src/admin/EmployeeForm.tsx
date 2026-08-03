@@ -280,7 +280,23 @@ const EmployeeForm = ({ employee, allEmployees, onSave, onCancel }: Props) => {
               className={inputClass()}
             >
               <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="inactive">Former</option>
+            </select>
+          </Field>
+
+          <Field
+            id="staffType"
+            label="Payroll type"
+            hint="Internal = monthly payroll runs. Outsource = paid per project through the ledger."
+          >
+            <select
+              id="staffType"
+              value={draft.staffType}
+              onChange={(e) => set("staffType", e.target.value as EmployeeDraft["staffType"])}
+              className={inputClass("capitalize")}
+            >
+              <option value="internal">Internal</option>
+              <option value="outsource">Outsource</option>
             </select>
           </Field>
         </div>

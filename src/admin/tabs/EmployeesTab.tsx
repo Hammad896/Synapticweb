@@ -52,7 +52,8 @@ const EmployeesTab = ({
   onExportCsv,
 }: Props) => {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  // Active by default: Former employees are history, revealed on demand.
+  const [filter, setFilter] = useState<Filter>("active");
   const [cardFor, setCardFor] = useState<Employee | null>(null);
   const [sheetFor, setSheetFor] = useState<Employee | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
@@ -161,20 +162,26 @@ const EmployeesTab = ({
             </div>
 
             <div className="flex gap-2">
-              {(["all", "active", "inactive"] as const).map((option) => (
+              {(
+                [
+                  ["active", "Active"],
+                  ["inactive", "Former"],
+                  ["all", "All"],
+                ] as const
+              ).map(([option, label]) => (
                 <button
                   key={option}
                   type="button"
                   onClick={() => setFilter(option)}
                   aria-pressed={filter === option}
                   className={cn(
-                    "flex-1 rounded-full border px-4 py-2 text-xs capitalize transition-transform active:scale-95 sm:flex-none",
+                    "flex-1 rounded-full border px-4 py-2 text-xs transition-transform active:scale-95 sm:flex-none",
                     filter === option
                       ? "border-accent bg-accent/10 text-accent"
                       : "border-border text-muted-foreground",
                   )}
                 >
-                  {option}
+                  {label}
                 </button>
               ))}
             </div>
@@ -219,8 +226,11 @@ const EmployeesTab = ({
                             tone={employee.status === "active" ? "success" : "neutral"}
                             dot
                           >
-                            {employee.status}
+                            {employee.status === "active" ? "active" : "former"}
                           </Badge>
+                          {employee.staffType === "outsource" && (
+                            <Badge tone="accent">Outsource</Badge>
+                          )}
                           {employee.employeeId && (
                             <span className="text-[10px] tabular-nums text-accent">
                               {employee.employeeId}
@@ -289,12 +299,17 @@ const EmployeesTab = ({
                           {employee.department || "—"}
                         </td>
                         <td className="px-5 py-4">
-                          <Badge
-                            tone={employee.status === "active" ? "success" : "neutral"}
-                            dot
-                          >
-                            {employee.status}
-                          </Badge>
+                          <div className="flex items-center gap-1.5">
+                            <Badge
+                              tone={employee.status === "active" ? "success" : "neutral"}
+                              dot
+                            >
+                              {employee.status === "active" ? "active" : "former"}
+                            </Badge>
+                            {employee.staffType === "outsource" && (
+                              <Badge tone="accent">Outsource</Badge>
+                            )}
+                          </div>
                         </td>
                         <td className="px-5 py-4 text-sm text-muted-foreground">
                           {shortDate(employee.joinedAt)}

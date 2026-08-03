@@ -41,6 +41,7 @@ const SAMPLE: Employee = {
   status: "active",
   employmentType: "full-time",
   workMode: "onsite",
+  staffType: "internal",
   joinedAt: "2024-01-15",
   probationMonths: 3,
   exitDate: "",

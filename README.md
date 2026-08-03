@@ -41,6 +41,7 @@ npm run dev              # → http://localhost:8080
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | **Start here** if you are new. File tree, the rules that matter, common tasks. |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Deploying to Vercel, environment variables, admin access. |
 | [`docs/HR_MODULE.md`](docs/HR_MODULE.md) | The admin panel: letters, ID cards, verification, automations. |
+| [`docs/FINANCE.md`](docs/FINANCE.md) | Ledger, payroll, salary slips, closings — and importing the Excel history. |
 | [`docs/CONTENT.md`](docs/CONTENT.md) | Editing the website's words without touching code. |
 | [`docs/STYLE_GUIDE.md`](docs/STYLE_GUIDE.md) | Tokens, type, spacing, motion, accessibility. |
 | [`docs/supabase/schema.sql`](docs/supabase/schema.sql) | The database, and the security model. |

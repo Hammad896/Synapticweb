@@ -6,9 +6,11 @@
  * to disk or committed:
  *
  *   SUPABASE_DB_URL="postgresql://postgres:PASSWORD@db.<ref>.supabase.co:5432/postgres" \
- *     node scripts/apply-schema.mjs
+ *     node scripts/apply-schema.mjs [path/to/schema.sql]
  *
- * The schema is idempotent, so re-running it is safe.
+ * With no argument it applies docs/supabase/schema.sql. Pass
+ * docs/supabase/finance-schema.sql to apply the finance module.
+ * Both schemas are idempotent, so re-running is safe.
  */
 import { readFileSync } from "node:fs";
 import pg from "pg";
@@ -19,7 +21,8 @@ if (!url) {
   process.exit(1);
 }
 
-const sql = readFileSync("docs/supabase/schema.sql", "utf8");
+const file = process.argv[2] ?? "docs/supabase/schema.sql";
+const sql = readFileSync(file, "utf8");
 
 const client = new pg.Client({
   connectionString: url,

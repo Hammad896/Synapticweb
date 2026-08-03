@@ -203,6 +203,7 @@ const toEmployee = (row: Row): Employee => ({
   status: str(row.status, "active") as Employee["status"],
   employmentType: str(row.employment_type, "full-time") as Employee["employmentType"],
   workMode: str(row.work_mode, "onsite") as Employee["workMode"],
+  staffType: str(row.staff_type, "internal") as Employee["staffType"],
   joinedAt: str(row.joined_at),
   probationMonths: num(row.probation_months, 3),
   exitDate: str(row.exit_date),
@@ -235,6 +236,7 @@ const toRow = (draft: EmployeeDraft) => ({
   status: draft.status,
   employment_type: draft.employmentType,
   work_mode: draft.workMode,
+  staff_type: draft.staffType,
   joined_at: draft.joinedAt || null,
   probation_months: draft.probationMonths,
   exit_date: draft.exitDate || null,
@@ -713,9 +715,10 @@ const write = <T,>(key: string, value: T[]) =>
 
 class LocalRepository implements HrRepository {
   async listEmployees() {
-    return read<Employee>(KEY.employees).sort((a, b) =>
-      a.fullName.localeCompare(b.fullName),
-    );
+    // Older local records predate staffType; treat them as internal.
+    return read<Employee>(KEY.employees)
+      .map((e) => ({ ...e, staffType: e.staffType ?? "internal" }))
+      .sort((a, b) => a.fullName.localeCompare(b.fullName));
   }
 
   async createEmployee(draft: EmployeeDraft) {
