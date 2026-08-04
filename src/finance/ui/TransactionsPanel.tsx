@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { CheckCircle2, ChevronLeft, ChevronRight, Download, Pencil, Plus, RefreshCw, StickyNote, Trash2, Upload, X } from "lucide-react";
 import { Badge, Button, EmptyState, Field, inputClass } from "@/components/kit";
+import { errorMessage } from "@/lib/utils";
 import { SortTh, useSort } from "@/lib/useSort";
 import { shortDate } from "@/admin/format";
 import { applyFilter, EMPTY_FILTER, pkr, totalsOf, yearsOf, type TransactionFilter } from "../calc";
@@ -52,6 +53,7 @@ const TransactionsPanel = ({
   // A non-null draft IS the open form — no separate boolean to fall out of sync.
   const [draft, setDraft] = useState<TransactionDraft | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const fileInput = useRef<HTMLInputElement>(null);
@@ -156,15 +158,31 @@ const TransactionsPanel = ({
   const close = () => {
     setDraft(null);
     setEditing(null);
+    setFormError(null);
   };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!draft || !draft.date || !draft.category || draft.amount < 0) return;
+    if (!draft) return;
+    /* Say why, never just refuse. A dead Save button with no message is the
+       worst outcome — and it is reachable: retire every category in Settings
+       and the dropdown is empty with nothing to pick. */
+    if (!draft.date) return setFormError("Pick a date.");
+    if (!draft.category)
+      return setFormError(
+        categoriesFor(draft.type).length === 0
+          ? `No ${draft.type === "income" ? "income sources" : "expense categories"} exist yet — add one in Finance → Settings first.`
+          : "Pick a category.",
+      );
+    if (!(draft.amount >= 0)) return setFormError("Enter an amount of 0 or more.");
+
+    setFormError(null);
     setSaving(true);
     try {
       await onSave(draft, editing);
       close();
+    } catch (caught) {
+      setFormError(errorMessage(caught, "Could not save the transaction."));
     } finally {
       setSaving(false);
     }
@@ -458,6 +476,16 @@ const TransactionsPanel = ({
             {editing ? `Edit ${editing.legacyId || "transaction"}` : "New transaction"}
           </p>
 
+          {/* An empty dropdown makes an empty `required` select: the browser
+              blocks the submit before any handler runs, so the button looks
+              dead. Say it up front rather than letting them click into it. */}
+          {categoriesFor(draft.type).length === 0 && (
+            <p role="alert" className="mt-3 text-sm text-amber-500">
+              No {draft.type === "income" ? "income sources" : "expense categories"} exist
+              yet — add one in Finance → Settings before saving this.
+            </p>
+          )}
+
           <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-5">
             <Field id="tx-date" label="Date">
               <input
@@ -550,6 +578,12 @@ const TransactionsPanel = ({
               />
             </Field>
           </div>
+
+          {formError && (
+            <p role="alert" className="mt-4 text-sm text-red-500">
+              {formError}
+            </p>
+          )}
 
           <div className="mt-4 flex gap-3">
             <Button type="submit" disabled={saving} className="px-4 py-2 text-xs">

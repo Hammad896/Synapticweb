@@ -52,6 +52,7 @@ const InvoicesPanel = ({
   // A non-null draft IS the open form.
   const [draft, setDraft] = useState<InvoiceDraft | null>(null);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   // The invoice a payment is being recorded against, and the payment fields.
   const [paying, setPaying] = useState<Invoice | null>(null);
   const [payment, setPayment] = useState({ date: "", amountPkr: 0, incomeSource: "" });
@@ -126,6 +127,7 @@ const InvoicesPanel = ({
   const close = () => {
     setDraft(null);
     setEditing(null);
+    setFormError(null);
   };
 
   const pickClient = (id: string) => {
@@ -156,15 +158,26 @@ const InvoicesPanel = ({
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!draft || !draft.clientName.trim() || !draft.date) return;
+    if (!draft) return;
+    // Say why, never just refuse — a dead Save button explains nothing.
+    if (!draft.clientName.trim())
+      return setFormError(
+        clients.length === 0
+          ? "No customers yet — add one in the Customers tab first."
+          : "Pick a customer.",
+      );
+    if (!draft.date) return setFormError("Pick an invoice date.");
     const lines = draft.lines.filter((l) => l.description.trim() || l.rate > 0);
-    if (lines.length === 0) return;
+    if (lines.length === 0)
+      return setFormError("Add at least one item with a description or a rate.");
+
+    setFormError(null);
     setSaving(true);
     try {
       await onSave({ ...draft, lines }, editing);
       close();
     } catch (caught) {
-      window.alert(errorMessage(caught, "Could not save the invoice."));
+      setFormError(errorMessage(caught, "Could not save the invoice."));
     } finally {
       setSaving(false);
     }
@@ -409,6 +422,12 @@ const InvoicesPanel = ({
               />
             </Field>
           </div>
+
+          {formError && (
+            <p role="alert" className="mt-4 text-sm text-red-500">
+              {formError}
+            </p>
+          )}
 
           <div className="mt-4 flex gap-3">
             <Button type="submit" disabled={saving} className="px-4 py-2 text-xs">

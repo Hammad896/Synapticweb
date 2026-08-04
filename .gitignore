@@ -51,3 +51,6 @@ seed-employees.local.json
 # `node scripts/build-finance-seed.mjs`.
 finance-data-for-import/
 src/finance/seed/finance-seed.json
+
+# QA sandbox env (local adapters, dummy credentials)
+.env.qa
