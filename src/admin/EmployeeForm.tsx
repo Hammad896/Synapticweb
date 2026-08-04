@@ -118,17 +118,35 @@ const EmployeeForm = ({
   const changes = pendingUpdate ? submissionChanges(pendingUpdate.submitted, draft) : [];
   const missing = missingFields(draft);
 
-  /* Provenance: which current values are the employee's own words. A field
-     drops off this list the moment the admin overwrites it — equality with
-     the applied submission IS the definition of "still theirs". */
-  const fromEmployee = appliedUpdate
-    ? SELF_SERVICE_FIELDS.filter(
-        (f) =>
-          appliedUpdate.submitted[f.key] !== undefined &&
-          appliedUpdate.submitted[f.key] === f.get(draft) &&
-          f.get(draft).trim() !== "",
-      ).map((f) => f.label)
-    : [];
+  /* Provenance and gaps live ON the fields: green = the employee's own words
+     (equality with their applied submission IS the definition — overwrite it
+     and the color leaves with it), amber = still needs a value. */
+  const GREEN = "border-emerald-500/70 bg-emerald-500/[0.06]";
+  const AMBER = "border-amber-500/70 bg-amber-500/[0.06]";
+
+  const selfTone = (key: string, value: string): string => {
+    if (
+      appliedUpdate &&
+      appliedUpdate.submitted[key] !== undefined &&
+      appliedUpdate.submitted[key] === value &&
+      value.trim() !== ""
+    )
+      return GREEN;
+    const meta = SELF_SERVICE_FIELDS.find((f) => f.key === key);
+    if (meta?.required && !value.trim()) return AMBER;
+    return "";
+  };
+
+  const adminTone = (filled: boolean): string => (filled ? "" : AMBER);
+
+  const anyFromEmployee =
+    !!appliedUpdate &&
+    SELF_SERVICE_FIELDS.some(
+      (f) =>
+        appliedUpdate.submitted[f.key] !== undefined &&
+        appliedUpdate.submitted[f.key] === f.get(draft) &&
+        f.get(draft).trim() !== "",
+    );
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-9">
@@ -216,53 +234,36 @@ const EmployeeForm = ({
         </div>
       )}
 
-      {/* ── Provenance: the employee's own words, and since when ─────────── */}
-      {fromEmployee.length > 0 && appliedUpdate && (
-        <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-4 text-xs leading-relaxed">
-          <p>
-            <span className="font-medium text-foreground">
-              Filled by {draft.fullName.split(" ")[0] || "the employee"} via update link
-              {appliedUpdate.submittedAt ? ` (${new Date(appliedUpdate.submittedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })})` : ""}:
-            </span>{" "}
-            {fromEmployee.map((label) => (
+      {/* ── Legend: the story is told by the field colors themselves ─────── */}
+      {(anyFromEmployee || missing.employee.length > 0 || missing.admin.length > 0) && (
+        <div className="-mb-3 flex flex-wrap items-center gap-x-6 gap-y-1.5 text-xs text-muted-foreground">
+          {anyFromEmployee && appliedUpdate && (
+            <span className="flex items-center gap-2">
               <span
-                key={label}
-                className="mr-1.5 inline-block rounded-full border border-emerald-500/40 px-2 py-0.5 text-emerald-600"
-              >
-                {label}
-              </span>
-            ))}
-          </p>
-          <p className="mt-1.5 text-muted-foreground">
-            Editing one of these makes it yours — it leaves this list.
-          </p>
-        </div>
-      )}
-
-      {/* ── What still needs filling, and by whom ─────────────────────────── */}
-      {(missing.employee.length > 0 || missing.admin.length > 0) && (
-        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 text-xs leading-relaxed">
-          {missing.admin.length > 0 && (
-            <p>
-              <span className="font-medium text-foreground">You still need to set:</span>{" "}
-              {missing.admin.map((label) => (
-                <span key={label} className="mr-1.5 inline-block rounded-full border border-amber-500/50 px-2 py-0.5 text-amber-600">
-                  {label}
-                </span>
-              ))}
-            </p>
+                aria-hidden="true"
+                className="h-3 w-3 shrink-0 rounded border border-emerald-500/70 bg-emerald-500/20"
+              />
+              Filled by {draft.fullName.split(" ")[0] || "the employee"} via update link
+              {appliedUpdate.submittedAt
+                ? ` (${new Date(appliedUpdate.submittedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })})`
+                : ""}{" "}
+              — editing a green field makes it yours
+            </span>
           )}
-          {missing.employee.length > 0 && (
-            <p className={missing.admin.length > 0 ? "mt-2" : ""}>
-              <span className="font-medium text-foreground">
-                The employee can fill these via an update link:
-              </span>{" "}
-              {missing.employee.map((label) => (
-                <span key={label} className="mr-1.5 inline-block rounded-full border border-border px-2 py-0.5 text-muted-foreground">
-                  {label}
-                </span>
-              ))}
-            </p>
+          {(missing.employee.length > 0 || missing.admin.length > 0) && (
+            <span className="flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className="h-3 w-3 shrink-0 rounded border border-amber-500/70 bg-amber-500/20"
+              />
+              Still needs a value
+              {missing.admin.length > 0
+                ? ` — ${missing.admin.join(", ")} ${missing.admin.length === 1 ? "is" : "are"} yours to set`
+                : ""}
+              {missing.employee.length > 0
+                ? `${missing.admin.length > 0 ? ";" : " —"} the employee can fill the rest via an update link`
+                : ""}
+            </span>
           )}
         </div>
       )}
@@ -314,7 +315,7 @@ const EmployeeForm = ({
               value={draft.fullName}
               onChange={(e) => set("fullName", e.target.value)}
               placeholder="Abdul Wahab"
-              className={inputClass()}
+              className={inputClass(selfTone("full_name", draft.fullName))}
             />
           </Field>
 
@@ -334,7 +335,7 @@ const EmployeeForm = ({
               value={draft.cnic}
               onChange={(e) => set("cnic", e.target.value)}
               placeholder="61101-1234567-1"
-              className={inputClass()}
+              className={inputClass(selfTone("cnic", draft.cnic))}
             />
           </Field>
 
@@ -343,7 +344,7 @@ const EmployeeForm = ({
               id="fatherName"
               value={draft.fatherName}
               onChange={(e) => set("fatherName", e.target.value)}
-              className={inputClass()}
+              className={inputClass(selfTone("father_name", draft.fatherName))}
             />
           </Field>
 
@@ -352,7 +353,7 @@ const EmployeeForm = ({
               id="bloodGroup"
               value={draft.bloodGroup}
               onChange={(e) => set("bloodGroup", e.target.value)}
-              className={inputClass()}
+              className={inputClass(selfTone("blood_group", draft.bloodGroup))}
             >
               <option value="">Not recorded</option>
               {BLOOD_GROUPS.map((group) => (
@@ -366,7 +367,7 @@ const EmployeeForm = ({
               id="ntn"
               value={draft.ntn}
               onChange={(e) => set("ntn", e.target.value)}
-              className={inputClass()}
+              className={inputClass(selfTone("ntn", draft.ntn))}
             />
           </Field>
 
@@ -377,7 +378,7 @@ const EmployeeForm = ({
               value={draft.email}
               onChange={(e) => set("email", e.target.value)}
               placeholder="name@synapticlab.com"
-              className={inputClass()}
+              className={inputClass(selfTone("email", draft.email))}
             />
           </Field>
 
@@ -387,7 +388,7 @@ const EmployeeForm = ({
               value={draft.phone}
               onChange={(e) => set("phone", e.target.value)}
               placeholder="+92 300 0000000"
-              className={inputClass()}
+              className={inputClass(selfTone("phone", draft.phone))}
             />
           </Field>
 
@@ -397,7 +398,7 @@ const EmployeeForm = ({
               type="date"
               value={draft.dateOfBirth}
               onChange={(e) => set("dateOfBirth", e.target.value)}
-              className={inputClass()}
+              className={inputClass(selfTone("date_of_birth", draft.dateOfBirth))}
             />
           </Field>
 
@@ -407,7 +408,7 @@ const EmployeeForm = ({
                 id="address"
                 value={draft.address}
                 onChange={(e) => set("address", e.target.value)}
-                className={inputClass()}
+                className={inputClass(selfTone("address", draft.address))}
               />
             </Field>
           </div>
@@ -425,7 +426,7 @@ const EmployeeForm = ({
               value={draft.role}
               onChange={(e) => set("role", e.target.value)}
               placeholder="Software Engineer"
-              className={inputClass()}
+              className={inputClass(adminTone(!!draft.role.trim()))}
             />
           </Field>
 
@@ -538,7 +539,7 @@ const EmployeeForm = ({
               required
               value={draft.joinedAt}
               onChange={(e) => set("joinedAt", e.target.value)}
-              className={inputClass()}
+              className={inputClass(adminTone(!!draft.joinedAt))}
             />
           </Field>
 
@@ -571,7 +572,7 @@ const EmployeeForm = ({
               min="0"
               value={draft.salaryAmount}
               onChange={(e) => set("salaryAmount", Number(e.target.value))}
-              className={inputClass("tabular-nums")}
+              className={inputClass(`tabular-nums ${adminTone(draft.salaryAmount > 0)}`)}
             />
           </Field>
 
@@ -610,7 +611,7 @@ const EmployeeForm = ({
               value={draft.bankName}
               onChange={(e) => set("bankName", e.target.value)}
               placeholder="Meezan Bank"
-              className={inputClass()}
+              className={inputClass(selfTone("bank_name", draft.bankName))}
             />
           </Field>
 
@@ -620,7 +621,7 @@ const EmployeeForm = ({
               value={draft.bankIban}
               onChange={(e) => set("bankIban", e.target.value)}
               placeholder="PK00XXXX0000000000000000"
-              className={inputClass("tabular-nums")}
+              className={inputClass(`tabular-nums ${selfTone("bank_iban", draft.bankIban)}`)}
             />
           </Field>
         </div>
@@ -642,7 +643,7 @@ const EmployeeForm = ({
                   name: e.target.value,
                 })
               }
-              className={inputClass()}
+              className={inputClass(selfTone("emergency_name", draft.emergencyContact.name))}
             />
           </Field>
 
@@ -657,7 +658,9 @@ const EmployeeForm = ({
                 })
               }
               placeholder="Brother"
-              className={inputClass()}
+              className={inputClass(
+                selfTone("emergency_relationship", draft.emergencyContact.relationship),
+              )}
             />
           </Field>
 
@@ -671,7 +674,7 @@ const EmployeeForm = ({
                   phone: e.target.value,
                 })
               }
-              className={inputClass()}
+              className={inputClass(selfTone("emergency_phone", draft.emergencyContact.phone))}
             />
           </Field>
         </div>
