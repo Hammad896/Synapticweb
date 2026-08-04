@@ -77,7 +77,11 @@ you.** A log you can rewrite is not a log.
   `/update-info`, and the submission lands as an old→new diff awaiting
   Approve/Reject. "Add via link" onboards a new hire from just a name the same
   way. Anonymous users touch nothing but two SECURITY DEFINER functions with a
-  database-side field whitelist.
+  database-side field whitelist. **Whenever a field is added to
+  `SELF_SERVICE_FIELDS`, re-run `self-service.sql` in the Supabase SQL
+  editor** — the deployed whitelist silently strips fields it doesn't know.
+  In the edit form, values that came from the employee's own submission show
+  with a green border; fields still needing a value show amber.
 - **Delete protection**: an employee with payroll rows, salary transactions,
   or issued letters cannot be deleted — the app blocks with the exact counts
   and points at Former; the database enforces the same rule with ON DELETE

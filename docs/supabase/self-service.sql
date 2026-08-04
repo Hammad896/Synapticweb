@@ -4,6 +4,12 @@
 -- Run in the Supabase SQL Editor AFTER schema.sql (reuses is_admin()).
 -- Idempotent; safe to re-run.
 --
+-- ⚠ RE-RUN THIS FILE whenever SELF_SERVICE_FIELDS (src/admin/selfService.ts)
+-- gains a field. The deployed function keeps its OLD whitelist until you do,
+-- and silently strips the new fields from every submission — no error, the
+-- data just never arrives. (This happened on 04 Aug 2026: father name, blood
+-- group and bank details were lost from a submission.)
+--
 -- SECURITY MODEL — the same shape as QR verification:
 --   * The link token is an unguessable uuid4 with a 24-hour expiry.
 --   * Anonymous users can NEVER select or write the table. They interact only

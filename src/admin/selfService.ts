@@ -9,6 +9,11 @@ import { BLOOD_GROUPS, type Employee, type EmployeeDraft } from "./types";
  * hand-synced copies — adding a field meant editing all four or silently
  * losing data. Now: add a row here (and to the database whitelist in
  * docs/supabase/self-service.sql) and every surface follows.
+ *
+ * ⚠ Adding a field is NOT done until self-service.sql has been RE-RUN in the
+ * Supabase SQL editor. The deployed submit function keeps its old whitelist
+ * and silently strips unknown keys — the form collects the value, the
+ * database drops it, nobody sees an error. Cost us real data on 04 Aug 2026.
  */
 
 export interface SelfServiceField {
