@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Check, Globe, Inbox, Loader2, Upload, User, X } from "lucide-react";
 import { Button, Field, inputClass } from "@/components/kit";
 import { getRepository, type UpdateRequest } from "./repository";
-import { missingFields, submissionChanges } from "./selfService";
+import { SELF_SERVICE_FIELDS, missingFields, submissionChanges } from "./selfService";
 import {
   BLOOD_GROUPS,
   CURRENCIES,
@@ -102,6 +102,16 @@ const EmployeeForm = ({
     .join("")
     .toUpperCase();
 
+  /* The incoming submission, editable before applying: the admin can fix a
+     typo'd CNIC or tidy an address without rejecting the whole thing. */
+  const [incoming, setIncoming] = useState<Record<string, string>>({});
+  useEffect(() => {
+    setIncoming(pendingUpdate?.submitted ?? {});
+    // Re-seed only when a different request arrives.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingUpdate?.id]);
+
+  // Row set fixed by what the employee CHANGED; values bound to the edits.
   const changes = pendingUpdate ? submissionChanges(pendingUpdate.submitted, draft) : [];
   const missing = missingFields(draft);
 
@@ -120,24 +130,63 @@ const EmployeeForm = ({
               Everything they sent already matches this record.
             </p>
           ) : (
-            <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
-              {changes.map((change) => (
-                <li key={change.key} className="text-xs">
-                  <span className="text-muted-foreground">{change.label}: </span>
-                  <span className="text-muted-foreground line-through">{change.from || "—"}</span>{" "}
-                  <span className="font-medium text-emerald-600">{change.to || "—"}</span>
-                </li>
-              ))}
-            </ul>
+            <>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Correct anything below before applying — what you see is what
+                gets saved.
+              </p>
+              <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+                {changes.map((change) => {
+                  const meta = SELF_SERVICE_FIELDS.find((f) => f.key === change.key);
+                  return (
+                    <li key={change.key}>
+                      <label htmlFor={`in-${change.key}`} className="text-xs text-muted-foreground">
+                        {change.label}
+                        {change.from && (
+                          <span className="ml-2 line-through opacity-70">{change.from}</span>
+                        )}
+                      </label>
+                      {meta?.options ? (
+                        <select
+                          id={`in-${change.key}`}
+                          className={inputClass("mt-1 py-1.5 text-sm")}
+                          value={incoming[change.key] ?? ""}
+                          onChange={(e) =>
+                            setIncoming((v) => ({ ...v, [change.key]: e.target.value }))
+                          }
+                        >
+                          <option value="">—</option>
+                          {meta.options.map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          id={`in-${change.key}`}
+                          type={meta?.type ?? "text"}
+                          className={inputClass("mt-1 py-1.5 text-sm")}
+                          value={incoming[change.key] ?? ""}
+                          onChange={(e) =>
+                            setIncoming((v) => ({ ...v, [change.key]: e.target.value }))
+                          }
+                        />
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
           )}
           <div className="mt-4 flex gap-3">
             <Button
               type="button"
               className="px-4 py-2 text-xs"
-              onClick={() => void onApplyUpdate(pendingUpdate)}
+              onClick={() =>
+                void onApplyUpdate({ ...pendingUpdate, submitted: incoming })
+              }
             >
               <Check size={13} aria-hidden="true" />
-              Apply their details
+              Apply {changes.length > 0 ? "these details" : "their details"}
             </Button>
             <Button
               type="button"
