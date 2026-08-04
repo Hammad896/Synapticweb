@@ -195,13 +195,18 @@ export const useFinanceData = () => {
   const generateRun = useCallback(
     async (payMonth: string, employees: Employee[]) => {
       const eligible = employees.filter(isPayrollEligible);
-      // Dedupe by person id AND name: a renamed employee ("Hammad" → "Hammad
-      // Sohail") must not get a second row in a month that already has one.
+      // Dedupe by person id; the name check applies ONLY to legacy rows that
+      // carry no id (else a renamed employee gets a second row) — never to
+      // id-linked rows, so two people who share a name each get their own.
       const monthRows = payroll.filter(
         (p) => p.payMonth.slice(0, 7) === payMonth.slice(0, 7),
       );
       const alreadyIds = new Set(monthRows.map((p) => p.employeeId).filter(Boolean));
-      const alreadyNames = new Set(monthRows.map((p) => p.employeeName.trim().toLowerCase()));
+      const alreadyNames = new Set(
+        monthRows
+          .filter((p) => !p.employeeId)
+          .map((p) => p.employeeName.trim().toLowerCase()),
+      );
 
       const existing = [...payroll];
       let created = 0;

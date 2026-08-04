@@ -154,43 +154,56 @@ export const useHrData = () => {
   );
 
   const deleteEmployee = useCallback(
-    async (id: string) => {
+    async (id: string, force = false) => {
       const employee = employees.find((e) => e.id === id);
 
-      /* A person with financial or document history is never deletable —
-         deleting them would orphan payroll rows, unlink letters, and detach
-         salary evidence from its subject. The block message says exactly what
-         is linked; Former is the correct exit. */
+      /* Identity is the ID, never the name — two people can share a name and
+         must not inherit each other's history.
+
+         HARD block: records tied to THIS person by id (payroll, letters).
+         SOFT warn: the ledger only stores names, so same-name salary rows
+         MIGHT be this person — surfaced as a confirmable warning, because for
+         a brand-new duplicate-name hire they are somebody else's. */
       if (employee) {
         const finance = getFinanceRepository();
         const [payrollRows, transactions] = await Promise.all([
           finance.listPayroll().catch(() => []),
           finance.listTransactions().catch(() => []),
         ]);
-        // The same matching rule the certificate and reconciliation use.
-        const needle = nameNeedle(employee.fullName);
 
-        const linkedPayroll = payrollRows.filter(
-          (p) => p.employeeId === id || p.employeeName.toLowerCase().includes(needle),
-        ).length;
-        const linkedSalaries = transactions.filter(
-          (t) =>
-            t.type === "expense" &&
-            t.category === "Salary" &&
-            t.description.toLowerCase().includes(needle),
-        ).length;
+        const linkedPayroll = payrollRows.filter((p) => p.employeeId === id).length;
         const linkedLetters = documents.filter((d) => d.employeeId === id).length;
-
-        if (linkedPayroll + linkedSalaries + linkedLetters > 0) {
+        if (linkedPayroll + linkedLetters > 0) {
           const parts = [
             linkedPayroll && `${linkedPayroll} payroll row${linkedPayroll === 1 ? "" : "s"}`,
-            linkedSalaries && `${linkedSalaries} salary transaction${linkedSalaries === 1 ? "" : "s"}`,
             linkedLetters && `${linkedLetters} issued letter${linkedLetters === 1 ? "" : "s"}`,
           ].filter(Boolean);
           throw new Error(
-            `${employee.fullName} cannot be deleted — linked records exist: ${parts.join(", ")}. ` +
+            `${employee.fullName} cannot be deleted — this person's records exist: ${parts.join(", ")}. ` +
               `Mark them as Former instead; that keeps the history and removes them from payroll and default views.`,
           );
+        }
+
+        if (!force) {
+          const needle = nameNeedle(employee.fullName);
+          const nameOnlyPayroll = payrollRows.filter(
+            (p) => !p.employeeId && p.employeeName.toLowerCase().includes(needle),
+          ).length;
+          const namedSalaries = transactions.filter(
+            (t) =>
+              t.type === "expense" &&
+              t.category === "Salary" &&
+              t.description.toLowerCase().includes(needle),
+          ).length;
+          if (nameOnlyPayroll + namedSalaries > 0) {
+            const warning = new Error(
+              `Nothing is linked to this record itself, but the books mention the name "${employee.fullName.split(" ")[0]}" in ` +
+                `${namedSalaries} salary transaction${namedSalaries === 1 ? "" : "s"}${nameOnlyPayroll ? ` and ${nameOnlyPayroll} unlinked payroll row(s)` : ""}. ` +
+                `If those belong to THIS person, mark them Former instead. If this is a different person who just shares the name, deleting is safe.`,
+            );
+            warning.name = "NameMatchWarning";
+            throw warning;
+          }
         }
       }
 

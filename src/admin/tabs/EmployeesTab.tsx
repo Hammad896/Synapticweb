@@ -35,7 +35,7 @@ interface Props {
   isCreating: boolean;
   setIsCreating: (creating: boolean) => void;
   onSave: (draft: EmployeeDraft, photo: File | null) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  onDelete: (id: string, force?: boolean) => Promise<void>;
   onSetStatus: (employee: Employee, status: Employee["status"]) => Promise<void>;
   onImport: (drafts: EmployeeDraft[]) => Promise<void>;
   onExportCsv: () => void;
@@ -159,6 +159,25 @@ const EmployeesTab = ({
           ? "The self-service table isn't in the database yet — run docs/supabase/self-service.sql in the Supabase SQL editor first."
           : `Could not create the link: ${message}`,
       );
+    }
+  };
+
+  /** One delete path: hard blocks alert, same-name warnings ask, then force. */
+  const deleteWithChecks = async (id: string) => {
+    try {
+      await onDelete(id);
+    } catch (caught) {
+      if (caught instanceof Error && caught.name === "NameMatchWarning") {
+        if (window.confirm(`${caught.message}\n\nDelete anyway?`)) {
+          try {
+            await onDelete(id, true);
+          } catch (forced) {
+            window.alert(errorMessage(forced, "Could not delete."));
+          }
+        }
+        return;
+      }
+      window.alert(errorMessage(caught, "Could not delete."));
     }
   };
 
@@ -584,11 +603,7 @@ const EmployeesTab = ({
                                 variant="danger"
                                 className="px-3 py-1 text-xs"
                                 onClick={async () => {
-                                  try {
-                                    await onDelete(employee.id);
-                                  } catch (caught) {
-                                    window.alert(errorMessage(caught, "Could not delete."));
-                                  }
+                                  await deleteWithChecks(employee.id);
                                   setConfirmDelete(null);
                                 }}
                               >
@@ -670,11 +685,7 @@ const EmployeesTab = ({
                 `Delete ${sheetFor.fullName}?\n\nIf they just left the company, use "Mark as Former" instead — it keeps all their history. You can Undo a delete for a short while.`,
               )
             ) {
-              try {
-                await onDelete(sheetFor.id);
-              } catch (caught) {
-                window.alert(errorMessage(caught, "Could not delete."));
-              }
+              await deleteWithChecks(sheetFor.id);
             }
             setSheetFor(null);
           }}

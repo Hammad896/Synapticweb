@@ -35,9 +35,11 @@ export const monthlySalaries = (
   for (const row of payroll) {
     const month = row.payMonth.slice(0, 7);
     if (row.payMonth < from || row.payMonth > to) continue;
-    const isTheirs =
-      row.employeeId === employee.id ||
-      row.employeeName.toLowerCase().includes(needle);
+    // Identity is the id; the name is only trusted on legacy rows that have
+    // no id — otherwise two people sharing a name would pool their pay.
+    const isTheirs = row.employeeId
+      ? row.employeeId === employee.id
+      : row.employeeName.toLowerCase().includes(needle);
     if (!isTheirs) continue;
     byMonth.set(month, (byMonth.get(month) ?? 0) + netPay(row));
   }
