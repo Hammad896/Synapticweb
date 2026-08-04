@@ -8,13 +8,14 @@ import { errorMessage } from "@/lib/utils";
 import { pkr } from "../calc";
 import { renderInvoicePdf } from "../invoice-pdf";
 import {
-  DEFAULT_INVOICE_NOTE,
+  INVOICE_CURRENCIES,
   dueDateFor,
   invoiceTotal,
   isOverdue,
   nextInvoiceNo,
   type Client,
   type FinanceCategory,
+  type FinanceSettings,
   type Invoice,
   type InvoiceDraft,
 } from "../types";
@@ -23,6 +24,8 @@ interface Props {
   invoices: Invoice[];
   clients: Client[];
   incomeSources: FinanceCategory[];
+  /** Supplies the "Bill From" block and the default notes. */
+  settings: FinanceSettings;
   onSave: (draft: InvoiceDraft, editing: Invoice | null) => Promise<void>;
   onDelete: (invoice: Invoice) => Promise<void>;
   onMarkSent: (invoice: Invoice) => Promise<void>;
@@ -43,6 +46,7 @@ const InvoicesPanel = ({
   invoices,
   clients,
   incomeSources,
+  settings,
   onSave,
   onDelete,
   onMarkSent,
@@ -110,7 +114,7 @@ const InvoicesPanel = ({
       dueDate: dueDateFor(date, "Net 30") ?? "",
       currency: client?.currency ?? "PKR",
       lines: [{ description: "IT Support Services", qty: 1, rate: 0 }],
-      notes: DEFAULT_INVOICE_NOTE,
+      notes: settings.invoiceNote,
       status: "draft",
       transactionId: null,
       paidAmount: 0,
@@ -187,7 +191,10 @@ const InvoicesPanel = ({
 
   const downloadPdf = async (invoice: Invoice) => {
     try {
-      openPdf(await renderInvoicePdf(invoice), `${invoice.invoiceNo}.pdf`);
+      openPdf(
+        await renderInvoicePdf(invoice, settings.invoiceFrom),
+        `${invoice.invoiceNo}.pdf`,
+      );
     } catch (caught) {
       window.alert(errorMessage(caught, "Could not render the PDF."));
     }
@@ -327,17 +334,22 @@ const InvoicesPanel = ({
               />
             </Field>
 
-            <Field id="inv-currency" label="Currency">
-              <input
+            <Field id="inv-currency" label="Currency" hint="Prefilled from the customer.">
+              <select
                 id="inv-currency"
                 required
-                maxLength={3}
-                className={inputClass("uppercase tabular-nums")}
+                className={inputClass("tabular-nums")}
                 value={draft.currency}
-                onChange={(e) =>
-                  setDraft({ ...draft, currency: e.target.value.toUpperCase() })
-                }
-              />
+                onChange={(e) => setDraft({ ...draft, currency: e.target.value })}
+              >
+                {INVOICE_CURRENCIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+                {/* A currency typed before this list existed stays selectable. */}
+                {draft.currency && !INVOICE_CURRENCIES.includes(draft.currency) && (
+                  <option value={draft.currency}>{draft.currency}</option>
+                )}
+              </select>
             </Field>
           </div>
 

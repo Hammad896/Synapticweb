@@ -382,7 +382,10 @@ const SettingsPanel = ({
 }: Props) => {
   const [reserve, setReserve] = useState(String(settings.reserve));
   const [slipNote, setSlipNote] = useState(settings.slipNote);
+  const [invoiceFrom, setInvoiceFrom] = useState(settings.invoiceFrom);
+  const [invoiceNote, setInvoiceNote] = useState(settings.invoiceNote);
   const [noteSaved, setNoteSaved] = useState(false);
+  const [invoiceSaved, setInvoiceSaved] = useState(false);
   const [importing, setImporting] = useState(false);
   const [report, setReport] = useState<ImportReport | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -398,6 +401,16 @@ const SettingsPanel = ({
     await onSaveSettings({ ...settings, slipNote: slipNote.trim() });
     setNoteSaved(true);
     window.setTimeout(() => setNoteSaved(false), 2500);
+  };
+
+  const saveInvoiceBlocks = async () => {
+    await onSaveSettings({
+      ...settings,
+      invoiceFrom: invoiceFrom.trim(),
+      invoiceNote: invoiceNote.trim(),
+    });
+    setInvoiceSaved(true);
+    window.setTimeout(() => setInvoiceSaved(false), 2500);
   };
 
   const runImport = async () => {
@@ -516,6 +529,48 @@ const SettingsPanel = ({
             Save note
           </Button>
           {noteSaved && <span className="text-xs text-emerald-600">Saved ✓</span>}
+        </div>
+      </div>
+
+      {/* ── What every invoice says ───────────────────────────────────────── */}
+      <div className="surface mt-4 grid gap-5 p-4 sm:p-5 lg:grid-cols-2">
+        <div>
+          <Label>Invoice “Bill From”</Label>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Printed under the logo on every invoice. First line is the company
+            name (bold); the rest is the address block, one line each.
+          </p>
+          <textarea
+            aria-label="Invoice bill-from block"
+            rows={7}
+            className={inputClass("mt-3 resize-y text-sm")}
+            value={invoiceFrom}
+            onChange={(e) => setInvoiceFrom(e.target.value)}
+          />
+        </div>
+        <div>
+          <Label>Invoice notes (bank details)</Label>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            Prefilled into every new invoice's notes — where the customer sends
+            the money. Editable per invoice.
+          </p>
+          <textarea
+            aria-label="Invoice default notes"
+            rows={7}
+            className={inputClass("mt-3 resize-y text-sm")}
+            value={invoiceNote}
+            onChange={(e) => setInvoiceNote(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-3 lg:col-span-2">
+          <Button
+            variant="secondary"
+            className="px-4 py-2 text-xs"
+            onClick={() => void saveInvoiceBlocks()}
+          >
+            Save invoice details
+          </Button>
+          {invoiceSaved && <span className="text-xs text-emerald-600">Saved ✓</span>}
         </div>
       </div>
 

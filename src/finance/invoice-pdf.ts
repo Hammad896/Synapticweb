@@ -1,64 +1,91 @@
+import { rgb } from "pdf-lib";
 import { ink, line, muted, openLetterhead } from "@/hr/letterhead";
 import { wrap } from "@/hr/pdf";
-import { pkr } from "./calc";
+import { money2 } from "./calc";
 import { invoiceTotal, type Invoice } from "./types";
 
 /**
- * The customer invoice, on the real letterhead. The layout mirrors the last
- * invoice issued from the old tool (INV-00216): Bill To on the left, the
- * date/terms/due block on the right, an item table, totals, and the bank
- * details in the notes. Amounts are in the INVOICE currency.
+ * The customer invoice, on the real letterhead — laid out to match the
+ * invoices Synaptic Lab has always sent (INV-00216 and before):
+ *
+ *   [logo]                                   INVOICE
+ *   Bill From block                          # INV-00217
+ *                                            Balance Due  NOK 12,780.00
+ *   Bill To block                            Invoice Date / Terms / Due Date
+ *   ── dark item table ──
+ *                                            Sub Total / Total / Balance Due
+ *   Notes (bank details)
+ *
+ * Amounts print in the INVOICE currency; the "from" block comes from Finance
+ * → Settings so an address change never needs a code change.
  */
 
-const money = (invoice: Pick<Invoice, "currency">, amount: number): string =>
-  `${invoice.currency} ${pkr(amount)}`;
+const HEADER_BG = rgb(0.22, 0.22, 0.24);
+const HEADER_TEXT = rgb(1, 1, 1);
+const BAND_BG = rgb(0.94, 0.94, 0.95);
 
-export const renderInvoicePdf = async (invoice: Invoice): Promise<Uint8Array> => {
+export const renderInvoicePdf = async (
+  invoice: Invoice,
+  billFrom: string,
+): Promise<Uint8Array> => {
   const { pdf, page, font, bold, left, right, top } = await openLetterhead(90);
   const total = invoiceTotal(invoice);
-  let y = top;
+  const money = (amount: number) => `${invoice.currency} ${money2(amount)}`;
+  const outstanding = invoice.status === "paid" ? 0 : total;
 
-  /* Title row: INVOICE + number right, Bill To left below. */
+  /* ── Right column: title, number, balance due ──────────────────────────── */
+  let rightY = top;
   const title = "INVOICE";
   page.drawText(title, {
-    x: right - bold.widthOfTextAtSize(title, 20),
-    y, size: 20, font: bold, color: ink,
+    x: right - bold.widthOfTextAtSize(title, 24),
+    y: rightY, size: 24, font: bold, color: ink,
   });
-  y -= 16;
+  rightY -= 18;
   const number = `# ${invoice.invoiceNo}`;
   page.drawText(number, {
-    x: right - font.widthOfTextAtSize(number, 10.5),
-    y, size: 10.5, font, color: muted,
+    x: right - bold.widthOfTextAtSize(number, 11),
+    y: rightY, size: 11, font: bold, color: ink,
   });
 
-  /* Balance due, top right — the number the reader is looking for. */
-  y -= 26;
-  const dueLabel = invoice.status === "paid" ? "PAID" : "Balance Due";
-  const dueValue =
-    invoice.status === "paid" ? money(invoice, 0) : money(invoice, total);
+  rightY -= 30;
+  const dueLabel = invoice.status === "paid" ? "Paid in Full" : "Balance Due";
   page.drawText(dueLabel, {
-    x: right - font.widthOfTextAtSize(dueLabel, 9),
-    y, size: 9, font: bold, color: muted,
+    x: right - bold.widthOfTextAtSize(dueLabel, 9),
+    y: rightY, size: 9, font: bold, color: muted,
   });
-  y -= 15;
+  rightY -= 16;
+  const dueValue = money(outstanding);
   page.drawText(dueValue, {
     x: right - bold.widthOfTextAtSize(dueValue, 13),
-    y, size: 13, font: bold, color: ink,
+    y: rightY, size: 13, font: bold, color: ink,
   });
 
-  /* Bill To (left) and the date block (right), side by side. */
-  let leftY = top - 26;
-  page.drawText("BILL TO", { x: left, y: leftY, size: 9, font: bold, color: muted });
-  leftY -= 15;
-  page.drawText(invoice.clientName, { x: left, y: leftY, size: 11, font: bold, color: ink });
-  leftY -= 14;
-  for (const addressLine of invoice.clientAddress.split("\n").filter(Boolean)) {
-    page.drawText(addressLine, { x: left, y: leftY, size: 9.5, font, color: ink });
-    leftY -= 12.5;
+  /* ── Left column: who this is from ─────────────────────────────────────── */
+  let leftY = top;
+  const fromLines = billFrom.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (fromLines.length) {
+    page.drawText(fromLines[0], { x: left, y: leftY, size: 11, font: bold, color: ink });
+    leftY -= 14;
+    for (const fromLine of fromLines.slice(1)) {
+      page.drawText(fromLine, { x: left, y: leftY, size: 9, font, color: muted });
+      leftY -= 11.5;
+    }
   }
 
-  let rightY = y - 30;
-  const detailRows: Array<[string, string]> = [
+  /* ── Bill To (left) and the date block (right) ─────────────────────────── */
+  leftY = Math.min(leftY, rightY) - 26;
+  const billToTop = leftY;
+  page.drawText("Bill To", { x: left, y: leftY, size: 9, font, color: muted });
+  leftY -= 15;
+  page.drawText(invoice.clientName, { x: left, y: leftY, size: 10.5, font: bold, color: ink });
+  leftY -= 13;
+  for (const addressLine of invoice.clientAddress.split("\n").map((l) => l.trim()).filter(Boolean)) {
+    page.drawText(addressLine, { x: left, y: leftY, size: 9, font, color: muted });
+    leftY -= 11.5;
+  }
+
+  rightY = billToTop;
+  const details: Array<[string, string]> = [
     ["Invoice Date :", formatDate(invoice.date)],
     ["Terms :", invoice.terms || "—"],
     ["Due Date :", invoice.dueDate ? formatDate(invoice.dueDate) : "—"],
@@ -66,96 +93,92 @@ export const renderInvoicePdf = async (invoice: Invoice): Promise<Uint8Array> =>
       ? ([["Paid On :", formatDate(invoice.paidDate)]] as Array<[string, string]>)
       : []),
   ];
-  const labelX = right - 180;
-  for (const [label, value] of detailRows) {
-    page.drawText(label, { x: labelX, y: rightY, size: 9.5, font, color: muted });
-    page.drawText(value, {
-      x: right - font.widthOfTextAtSize(value, 9.5),
-      y: rightY, size: 9.5, font, color: ink,
+  for (const [label, value] of details) {
+    const valueWidth = font.widthOfTextAtSize(value, 9.5);
+    page.drawText(label, {
+      x: right - valueWidth - 12 - font.widthOfTextAtSize(label, 9.5),
+      y: rightY, size: 9.5, font, color: muted,
     });
-    rightY -= 15;
+    page.drawText(value, { x: right - valueWidth, y: rightY, size: 9.5, font, color: ink });
+    rightY -= 16;
   }
 
-  y = Math.min(leftY, rightY) - 24;
-
-  /* Item table. */
-  const colQty = right - 170;
+  /* ── Item table with the dark header band ──────────────────────────────── */
+  let y = Math.min(leftY, rightY) - 24;
+  const colQty = right - 175;
   const colRate = right - 95;
-  const rule = (at: number) =>
-    page.drawLine({
-      start: { x: left, y: at }, end: { x: right, y: at },
-      thickness: 0.75, color: line,
+  const rowHeight = 22;
+
+  page.drawRectangle({
+    x: left, y: y - 6, width: right - left, height: rowHeight, color: HEADER_BG,
+  });
+  const headerBaseline = y + 1;
+  page.drawText("#", { x: left + 10, y: headerBaseline, size: 8.5, font: bold, color: HEADER_TEXT });
+  page.drawText("Item & Description", {
+    x: left + 32, y: headerBaseline, size: 8.5, font: bold, color: HEADER_TEXT,
+  });
+  for (const [text, edge] of [["Qty", colQty], ["Rate", colRate], ["Amount", right - 10]] as const) {
+    page.drawText(text, {
+      x: edge - bold.widthOfTextAtSize(text, 8.5), y: headerBaseline, size: 8.5,
+      font: bold, color: HEADER_TEXT,
     });
+  }
+  y -= rowHeight + 8;
 
-  page.drawText("#", { x: left, y, size: 9, font: bold, color: muted });
-  page.drawText("ITEM & DESCRIPTION", { x: left + 22, y, size: 9, font: bold, color: muted });
-  page.drawText("QTY", {
-    x: colQty - bold.widthOfTextAtSize("QTY", 9), y, size: 9, font: bold, color: muted,
-  });
-  page.drawText("RATE", {
-    x: colRate - bold.widthOfTextAtSize("RATE", 9), y, size: 9, font: bold, color: muted,
-  });
-  page.drawText("AMOUNT", {
-    x: right - bold.widthOfTextAtSize("AMOUNT", 9), y, size: 9, font: bold, color: muted,
-  });
-  y -= 8;
-  rule(y);
-  y -= 16;
-
-  invoice.lines.forEach((item, index) => {
-    const descriptionLines = wrap(item.description, font, 10, colQty - left - 60);
-    page.drawText(String(index + 1), { x: left, y, size: 10, font, color: muted });
+  for (const [index, item] of invoice.lines.entries()) {
+    const descriptionLines = wrap(item.description, font, 9.5, colQty - left - 80);
+    page.drawText(String(index + 1), { x: left + 10, y, size: 9.5, font, color: muted });
     for (const [i, text] of descriptionLines.entries()) {
-      page.drawText(text, { x: left + 22, y: y - i * 13, size: 10, font, color: ink });
+      page.drawText(text, { x: left + 32, y: y - i * 12, size: 9.5, font, color: ink });
     }
-    const qty = item.qty.toFixed(2);
-    const rate = pkr(item.rate);
-    const amount = pkr(Math.round(item.qty * item.rate * 100) / 100);
-    page.drawText(qty, {
-      x: colQty - font.widthOfTextAtSize(qty, 10), y, size: 10, font, color: ink,
-    });
-    page.drawText(rate, {
-      x: colRate - font.widthOfTextAtSize(rate, 10), y, size: 10, font, color: ink,
-    });
-    page.drawText(amount, {
-      x: right - font.widthOfTextAtSize(amount, 10), y, size: 10, font, color: ink,
-    });
-    y -= 13 * descriptionLines.length + 5;
+    const cells: Array<[string, number]> = [
+      [item.qty.toFixed(2), colQty],
+      [money2(item.rate), colRate],
+      [money2(Math.round(item.qty * item.rate * 100) / 100), right - 10],
+    ];
+    for (const [text, edge] of cells) {
+      page.drawText(text, {
+        x: edge - font.widthOfTextAtSize(text, 9.5), y, size: 9.5, font, color: ink,
+      });
+    }
+    y -= 12 * descriptionLines.length + 10;
+  }
+
+  page.drawLine({
+    start: { x: left, y: y + 6 }, end: { x: right, y: y + 6 },
+    thickness: 0.75, color: line,
   });
+  y -= 14;
 
-  y += 1;
-  rule(y);
-  y -= 18;
-
-  /* Totals, right-aligned like the sample. */
-  const totalsLabelX = right - 180;
+  /* ── Totals, right-aligned; the balance sits in a shaded band ──────────── */
+  const totalsLeft = right - 230;
+  const totalsRight = right - 10;
   const totalRow = (label: string, value: string, emphasize = false) => {
     const face = emphasize ? bold : font;
-    const size = emphasize ? 10.5 : 10;
-    page.drawText(label, {
-      x: totalsLabelX, y, size, font: face, color: emphasize ? ink : muted,
-    });
+    const size = emphasize ? 10 : 9.5;
+    page.drawText(label, { x: totalsLeft, y, size, font: face, color: emphasize ? ink : muted });
     page.drawText(value, {
-      x: right - face.widthOfTextAtSize(value, size), y, size, font: face, color: ink,
+      x: totalsRight - face.widthOfTextAtSize(value, size), y, size, font: face, color: ink,
     });
-    y -= 17;
+    y -= 20;
   };
-  totalRow("Sub Total", pkr(total));
-  totalRow("Total", money(invoice, total), true);
-  totalRow(
-    invoice.status === "paid" ? "Paid" : "Balance Due",
-    money(invoice, invoice.status === "paid" ? total : total),
-    true,
-  );
-  y -= 16;
+  totalRow("Sub Total", money2(total));
+  totalRow("Total", money(total), true);
 
-  /* Notes — the bank block. */
+  page.drawRectangle({
+    x: totalsLeft - 12, y: y - 6, width: right - totalsLeft + 12, height: 26, color: BAND_BG,
+  });
+  y += 1;
+  totalRow(dueLabel, money(outstanding), true);
+  y -= 12;
+
+  /* ── Notes — the bank block ────────────────────────────────────────────── */
   if (invoice.notes.trim()) {
     page.drawText("Notes", { x: left, y, size: 9, font: bold, color: muted });
-    y -= 14;
+    y -= 15;
     for (const noteLine of invoice.notes.split("\n")) {
       if (!noteLine.trim()) {
-        y -= 6;
+        y -= 7;
         continue;
       }
       for (const text of wrap(noteLine, font, 9, right - left)) {

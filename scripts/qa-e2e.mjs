@@ -211,7 +211,7 @@ await step("customer must exist before invoicing (empty dropdown is honest)", as
   await page.getByRole("button", { name: /add customer/i }).first().click();
   await settle(500);
   await page.fill("#cl-name", "QA Sandbox Client");
-  await page.fill("#cl-currency", "NOK");
+  await page.selectOption("#cl-currency", "NOK");
   await page.fill("#cl-address", "Østre Aker vei 17\n0581 Oslo\nNorway");
   await page.locator("form").getByRole("button", { name: /^add customer$/i }).click();
   await settle(1200);

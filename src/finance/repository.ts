@@ -1,6 +1,8 @@
 import { supabase } from "@/lib/supabase";
 import { bool, num, str } from "@/admin/repository";
 import {
+  DEFAULT_INVOICE_FROM,
+  DEFAULT_INVOICE_NOTE,
   DEFAULT_SLIP_NOTE,
   type CategoryKind,
   type Client,
@@ -405,6 +407,8 @@ class SupabaseFinanceRepository implements FinanceRepository {
     return {
       reserve: num(data?.reserve, 100000),
       slipNote: str(data?.slip_note) || DEFAULT_SLIP_NOTE,
+      invoiceFrom: str(data?.invoice_from) || DEFAULT_INVOICE_FROM,
+      invoiceNote: str(data?.invoice_note) || DEFAULT_INVOICE_NOTE,
     };
   }
 
@@ -413,6 +417,8 @@ class SupabaseFinanceRepository implements FinanceRepository {
       id: "main",
       reserve: settings.reserve,
       slip_note: settings.slipNote,
+      invoice_from: settings.invoiceFrom,
+      invoice_note: settings.invoiceNote,
       updated_at: new Date().toISOString(),
     });
     if (error) throw error;
@@ -692,9 +698,16 @@ class LocalFinanceRepository implements FinanceRepository {
       return {
         reserve: parsed?.reserve ?? 100000,
         slipNote: parsed?.slipNote || DEFAULT_SLIP_NOTE,
+        invoiceFrom: parsed?.invoiceFrom || DEFAULT_INVOICE_FROM,
+        invoiceNote: parsed?.invoiceNote || DEFAULT_INVOICE_NOTE,
       };
     } catch {
-      return { reserve: 100000, slipNote: DEFAULT_SLIP_NOTE };
+      return {
+        reserve: 100000,
+        slipNote: DEFAULT_SLIP_NOTE,
+        invoiceFrom: DEFAULT_INVOICE_FROM,
+        invoiceNote: DEFAULT_INVOICE_NOTE,
+      };
     }
   }
 

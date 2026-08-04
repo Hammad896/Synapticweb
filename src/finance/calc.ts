@@ -271,6 +271,14 @@ export const pkr = (amount: number): string =>
     maximumFractionDigits: Number.isInteger(round2(amount)) ? 0 : 2,
   }).format(round2(amount));
 
+/** Money on a document: ALWAYS two decimals. 12,780 is a dashboard figure;
+ *  12,780.00 is what an invoice or a bank statement says. */
+export const money2 = (amount: number): string =>
+  new Intl.NumberFormat("en-PK", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(round2(amount));
+
 export const monthLabel = (period: string): string => {
   const [year, month] = period.split("-").map(Number);
   if (!month || month < 1 || month > 12) return period;

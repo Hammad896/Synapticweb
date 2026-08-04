@@ -5,6 +5,7 @@ import { errorMessage } from "@/lib/utils";
 import { pkr } from "../calc";
 import {
   EMPTY_CLIENT,
+  INVOICE_CURRENCIES,
   invoiceTotal,
   type Client,
   type ClientDraft,
@@ -122,17 +123,20 @@ const CustomersPanel = ({ clients, invoices, incomeSources, onSave, onDelete }: 
             </Field>
 
             <Field id="cl-currency" label="Invoice currency" hint="What they pay in.">
-              <input
+              <select
                 id="cl-currency"
                 required
-                maxLength={3}
-                className={inputClass("uppercase tabular-nums")}
-                placeholder="NOK"
+                className={inputClass("tabular-nums")}
                 value={draft.currency}
-                onChange={(e) =>
-                  setDraft({ ...draft, currency: e.target.value.toUpperCase() })
-                }
-              />
+                onChange={(e) => setDraft({ ...draft, currency: e.target.value })}
+              >
+                {INVOICE_CURRENCIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+                {draft.currency && !INVOICE_CURRENCIES.includes(draft.currency) && (
+                  <option value={draft.currency}>{draft.currency}</option>
+                )}
+              </select>
             </Field>
 
             <Field

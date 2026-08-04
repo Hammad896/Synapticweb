@@ -80,6 +80,13 @@ drop policy if exists "admins manage invoices" on invoices;
 create policy "admins manage invoices" on invoices
   for all to authenticated using (is_admin()) with check (is_admin());
 
+-- ── What every invoice says about US ────────────────────────────────────────
+-- The "Bill From" block printed under the letterhead logo, and the default
+-- notes (bank details) prefilled into each new invoice. Both editable in
+-- Finance → Settings, because an address change must not need a code change.
+alter table finance_settings add column if not exists invoice_from text;
+alter table finance_settings add column if not exists invoice_note text;
+
 -- ── Seed the first customer — the remittance sender ─────────────────────────
 insert into clients (name, address, currency, income_source) values (
   'Superlogics AS',

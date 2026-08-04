@@ -133,6 +133,7 @@ const FinanceTab = ({
                 invoices={data.invoices}
                 clients={data.clients}
                 incomeSources={data.incomeSources}
+                settings={data.settings}
                 onSave={data.saveInvoice}
                 onDelete={data.deleteInvoice}
                 onMarkSent={data.markInvoiceSent}

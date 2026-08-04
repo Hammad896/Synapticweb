@@ -179,6 +179,20 @@ export const isOverdue = (
   today: string,
 ): boolean => invoice.status === "sent" && Boolean(invoice.dueDate) && invoice.dueDate < today;
 
+/** The currencies invoices are raised in. NOK and PKR are the standards. */
+export const INVOICE_CURRENCIES = ["NOK", "PKR", "USD", "EUR", "GBP", "AED"];
+
+/** Who the invoice is FROM — printed under the letterhead logo. Editable in
+ *  Finance → Settings, because a company moves and a phone number changes. */
+export const DEFAULT_INVOICE_FROM =
+  "Synaptic Lab\n" +
+  "Company ID : C629245-1\n" +
+  "Office#1, Executive Centre, I-8 Markaz\n" +
+  "Islamabad Punjab 46000\n" +
+  "Pakistan\n" +
+  "+92 313 9676896\n" +
+  "qhammad286@gmail.com";
+
 export const DEFAULT_INVOICE_NOTE =
   "Acc Title: SYNAPTIC LAB\n" +
   "A/c: 301800940720001\n" +
@@ -196,6 +210,10 @@ export interface FinanceSettings {
   reserve: number;
   /** The standard note printed on every salary slip. Editable in Settings. */
   slipNote: string;
+  /** The company block printed at the top of every invoice ("Bill From"). */
+  invoiceFrom: string;
+  /** The default notes block on a new invoice — bank details. */
+  invoiceNote: string;
 }
 
 export const netPay = (item: Pick<PayrollItem, "basic" | "bonus" | "deduction">): number =>
