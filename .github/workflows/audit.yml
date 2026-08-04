@@ -1,0 +1,36 @@
+# Twice-weekly end-to-end self-check of the live system.
+#
+# Runs scripts/audit-live.mjs: anonymous-access lockdown, ledger integrity,
+# payroll<->ledger contract, the anonymous self-service round trip, the
+# invoice lifecycle, delete protections, append-only audit log. Uses
+# throwaway PROBE records only and cleans up after itself. A red run means
+# something real broke — open the run log to see the exact FAIL line.
+#
+# Offset from backup.yml (Mon+Thu) so the free-tier keep-alive touch happens
+# four days a week instead of two. Same secrets: SB_EMAIL, SB_PASS.
+name: audit
+
+on:
+  schedule:
+    - cron: "0 3 * * 2,5" # Tue + Fri, 03:00 UTC (08:00 PKT)
+  workflow_dispatch: {}
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install supabase client
+        run: npm install --no-save @supabase/supabase-js
+
+      - name: Run live audit
+        env:
+          SB_EMAIL: ${{ secrets.SB_EMAIL }}
+          SB_PASS: ${{ secrets.SB_PASS }}
+        run: node scripts/audit-live.mjs
