@@ -744,11 +744,14 @@ class SupabaseRepository implements HrRepository {
   }
 
   async listUpdateRequests(): Promise<UpdateRequest[]> {
+    // Approved ones ride along as provenance: the edit form shows which of a
+    // record's current values came from the employee's own submission.
     const { data, error } = await this.db
       .from("employee_update_requests")
       .select("*, employees(full_name)")
-      .in("status", ["pending", "submitted"])
-      .order("created_at", { ascending: false });
+      .in("status", ["pending", "submitted", "approved"])
+      .order("created_at", { ascending: false })
+      .limit(200);
     if (error) throw error;
     return (data ?? []).map(this.toUpdateRequest);
   }

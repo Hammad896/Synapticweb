@@ -22,6 +22,8 @@ interface Props {
   onCancel: () => void;
   /** A submitted self-service update waiting on this person, if any. */
   pendingUpdate?: UpdateRequest | null;
+  /** The last APPLIED submission — provenance for who filled which field. */
+  appliedUpdate?: UpdateRequest | null;
   onApplyUpdate?: (request: UpdateRequest) => Promise<void>;
   onRejectUpdate?: (request: UpdateRequest) => Promise<void>;
 }
@@ -34,6 +36,7 @@ const EmployeeForm = ({
   onSave,
   onCancel,
   pendingUpdate,
+  appliedUpdate,
   onApplyUpdate,
   onRejectUpdate,
 }: Props) => {
@@ -114,6 +117,18 @@ const EmployeeForm = ({
   // Row set fixed by what the employee CHANGED; values bound to the edits.
   const changes = pendingUpdate ? submissionChanges(pendingUpdate.submitted, draft) : [];
   const missing = missingFields(draft);
+
+  /* Provenance: which current values are the employee's own words. A field
+     drops off this list the moment the admin overwrites it — equality with
+     the applied submission IS the definition of "still theirs". */
+  const fromEmployee = appliedUpdate
+    ? SELF_SERVICE_FIELDS.filter(
+        (f) =>
+          appliedUpdate.submitted[f.key] !== undefined &&
+          appliedUpdate.submitted[f.key] === f.get(draft) &&
+          f.get(draft).trim() !== "",
+      ).map((f) => f.label)
+    : [];
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-9">
@@ -198,6 +213,29 @@ const EmployeeForm = ({
               Reject
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* ── Provenance: the employee's own words, and since when ─────────── */}
+      {fromEmployee.length > 0 && appliedUpdate && (
+        <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-4 text-xs leading-relaxed">
+          <p>
+            <span className="font-medium text-foreground">
+              Filled by {draft.fullName.split(" ")[0] || "the employee"} via update link
+              {appliedUpdate.submittedAt ? ` (${new Date(appliedUpdate.submittedAt).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })})` : ""}:
+            </span>{" "}
+            {fromEmployee.map((label) => (
+              <span
+                key={label}
+                className="mr-1.5 inline-block rounded-full border border-emerald-500/40 px-2 py-0.5 text-emerald-600"
+              >
+                {label}
+              </span>
+            ))}
+          </p>
+          <p className="mt-1.5 text-muted-foreground">
+            Editing one of these makes it yours — it leaves this list.
+          </p>
         </div>
       )}
 
@@ -402,13 +440,27 @@ const EmployeeForm = ({
           </Field>
 
           <Field id="manager" label="Reports to">
-            <input
+            <select
               id="manager"
               value={draft.manager}
               onChange={(e) => set("manager", e.target.value)}
-              placeholder="Muhammad Umer"
               className={inputClass()}
-            />
+            >
+              <option value="">Nobody / top of the chain</option>
+              {allEmployees
+                .filter((e) => e.id !== employee?.id && e.status === "active")
+                .map((e) => (
+                  <option key={e.id} value={e.fullName}>
+                    {e.fullName} — {e.role || "no role"}
+                  </option>
+                ))}
+              {/* A legacy value that no longer matches anyone stays selectable
+                  rather than being silently wiped on save. */}
+              {draft.manager &&
+                !allEmployees.some(
+                  (e) => e.fullName === draft.manager && e.status === "active",
+                ) && <option value={draft.manager}>{draft.manager} (not on roster)</option>}
+            </select>
           </Field>
 
           <Field id="employmentType" label="Employment type">
@@ -538,6 +590,20 @@ const EmployeeForm = ({
             </select>
           </Field>
 
+          <Field
+            id="lastRaiseAt"
+            label="Last raise on"
+            hint="Stamps itself with today's date whenever you increase the salary."
+          >
+            <input
+              id="lastRaiseAt"
+              type="date"
+              value={draft.lastRaiseAt}
+              onChange={(e) => set("lastRaiseAt", e.target.value)}
+              className={inputClass()}
+            />
+          </Field>
+
           <Field id="bankName" label="Bank">
             <input
               id="bankName"
@@ -555,20 +621,6 @@ const EmployeeForm = ({
               onChange={(e) => set("bankIban", e.target.value)}
               placeholder="PK00XXXX0000000000000000"
               className={inputClass("tabular-nums")}
-            />
-          </Field>
-
-          <Field
-            id="lastRaiseAt"
-            label="Last raise on"
-            hint="Stamps itself with today's date whenever you increase the salary."
-          >
-            <input
-              id="lastRaiseAt"
-              type="date"
-              value={draft.lastRaiseAt}
-              onChange={(e) => set("lastRaiseAt", e.target.value)}
-              className={inputClass()}
             />
           </Field>
         </div>

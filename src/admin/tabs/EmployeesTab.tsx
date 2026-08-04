@@ -110,6 +110,11 @@ const EmployeesTab = ({
     ? updateRequests.find((r) => r.status === "submitted" && r.employeeId === editing.id) ?? null
     : null;
 
+  /** The latest APPLIED submission — provenance for "who filled this field". */
+  const editingApplied = editing
+    ? updateRequests.find((r) => r.status === "approved" && r.employeeId === editing.id) ?? null
+    : null;
+
   const approveWithFeedback = async (request: UpdateRequest) => {
     try {
       await onApproveUpdate(request);
@@ -223,6 +228,7 @@ const EmployeesTab = ({
       onSave={onSave}
       onCancel={close}
       pendingUpdate={editingSubmission}
+      appliedUpdate={editingApplied}
       onApplyUpdate={approveWithFeedback}
       onRejectUpdate={rejectWithFeedback}
     />
