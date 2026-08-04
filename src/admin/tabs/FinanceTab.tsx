@@ -5,16 +5,27 @@ import { useFinanceData } from "@/finance/useFinanceData";
 import DashboardPanel from "@/finance/ui/DashboardPanel";
 import TransactionsPanel from "@/finance/ui/TransactionsPanel";
 import PayrollPanel from "@/finance/ui/PayrollPanel";
+import InvoicesPanel from "@/finance/ui/InvoicesPanel";
+import CustomersPanel from "@/finance/ui/CustomersPanel";
 import ReportsPanel from "@/finance/ui/ReportsPanel";
 import SettingsPanel from "@/finance/ui/SettingsPanel";
 import type { Employee } from "../types";
 
-type Panel = "dashboard" | "transactions" | "payroll" | "reports" | "settings";
+type Panel =
+  | "dashboard"
+  | "transactions"
+  | "payroll"
+  | "invoices"
+  | "customers"
+  | "reports"
+  | "settings";
 
 const PANELS: Array<{ id: Panel; label: string }> = [
   { id: "dashboard", label: "Dashboard" },
   { id: "transactions", label: "Transactions" },
   { id: "payroll", label: "Payroll" },
+  { id: "invoices", label: "Invoices" },
+  { id: "customers", label: "Customers" },
   { id: "reports", label: "Reports" },
   { id: "settings", label: "Settings" },
 ];
@@ -114,6 +125,28 @@ const FinanceTab = ({
                 onSaveItem={data.savePayrollItem}
                 onDeleteItem={data.deletePayrollItem}
                 onDeleteItems={data.deletePayrollItems}
+              />
+            )}
+
+            {panel === "invoices" && (
+              <InvoicesPanel
+                invoices={data.invoices}
+                clients={data.clients}
+                incomeSources={data.incomeSources}
+                onSave={data.saveInvoice}
+                onDelete={data.deleteInvoice}
+                onMarkSent={data.markInvoiceSent}
+                onRecordPayment={data.recordInvoicePayment}
+              />
+            )}
+
+            {panel === "customers" && (
+              <CustomersPanel
+                clients={data.clients}
+                invoices={data.invoices}
+                incomeSources={data.incomeSources}
+                onSave={data.saveClient}
+                onDelete={data.deleteClient}
               />
             )}
 

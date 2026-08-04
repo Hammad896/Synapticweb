@@ -81,6 +81,111 @@ export interface RecurringTemplate {
 
 export type RecurringDraft = Omit<RecurringTemplate, "id">;
 
+/* ── Customers & invoices ─────────────────────────────────────────────────── */
+
+export interface Client {
+  id: string;
+  name: string;
+  /** Billing block printed under the name — one address line per text line. */
+  address: string;
+  email: string;
+  /** Default currency for this customer's invoices (NOK, USD, PKR…). */
+  currency: string;
+  /** The ledger income source their payments post to. */
+  incomeSource: string;
+  notes: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+export type ClientDraft = Omit<Client, "id" | "createdAt">;
+
+export const EMPTY_CLIENT: ClientDraft = {
+  name: "",
+  address: "",
+  email: "",
+  currency: "PKR",
+  incomeSource: "",
+  notes: "",
+  isActive: true,
+};
+
+export type InvoiceStatus = "draft" | "sent" | "paid";
+
+export interface InvoiceLine {
+  description: string;
+  qty: number;
+  rate: number;
+}
+
+export interface Invoice {
+  id: string;
+  /** INV-00217… — suggested by the system, editable before saving, unique. */
+  invoiceNo: string;
+  clientId: string | null;
+  /** Denormalised snapshot: the invoice reads as issued even if the customer
+   *  record is later edited. */
+  clientName: string;
+  clientAddress: string;
+  date: string; // YYYY-MM-DD
+  terms: string; // "Net 30", "Due on receipt", …
+  dueDate: string;
+  /** The INVOICE currency (what the customer pays in), not the books'. */
+  currency: string;
+  lines: InvoiceLine[];
+  /** Printed under the table — bank details by default. */
+  notes: string;
+  status: InvoiceStatus;
+  /** The income ledger entry created when payment was recorded. */
+  transactionId: string | null;
+  /** What actually landed in the bank, in PKR — that is what the books hold. */
+  paidAmount: number;
+  paidDate: string;
+  createdAt: string;
+}
+
+export type InvoiceDraft = Omit<Invoice, "id" | "createdAt">;
+
+export const invoiceTotal = (invoice: Pick<Invoice, "lines">): number =>
+  Math.round(invoice.lines.reduce((sum, l) => sum + l.qty * l.rate, 0) * 100) / 100;
+
+/** The last invoice issued from the old tool — the sequence continues from it. */
+export const LAST_LEGACY_INVOICE_NO = 216;
+
+/** INV-NNNNN, continuing the old sequence. Editable on the form; unique. */
+export const nextInvoiceNo = (existing: Array<Pick<Invoice, "invoiceNo">>): string => {
+  const highest = existing
+    .map((i) => /^INV-(\d+)$/.exec(i.invoiceNo.trim())?.[1])
+    .filter((n): n is string => Boolean(n))
+    .map(Number)
+    .reduce((max, n) => Math.max(max, n), LAST_LEGACY_INVOICE_NO);
+  return `INV-${String(highest + 1).padStart(5, "0")}`;
+};
+
+/** "Net 30" → date + 30 days; "Due on receipt" → the date; else manual. */
+export const dueDateFor = (date: string, terms: string): string | null => {
+  if (!date) return null;
+  if (/^due on receipt$/i.test(terms.trim())) return date;
+  const net = /^net\s*(\d+)$/i.exec(terms.trim());
+  if (!net) return null;
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + Number(net[1]));
+  return d.toISOString().slice(0, 10);
+};
+
+/** Overdue is derived, never stored: sent, unpaid, past due. */
+export const isOverdue = (
+  invoice: Pick<Invoice, "status" | "dueDate">,
+  today: string,
+): boolean => invoice.status === "sent" && Boolean(invoice.dueDate) && invoice.dueDate < today;
+
+export const DEFAULT_INVOICE_NOTE =
+  "Acc Title: SYNAPTIC LAB\n" +
+  "A/c: 301800940720001\n" +
+  "IBAN: PK27BKIP0301800940720001\n" +
+  "\n" +
+  "Thanks for your business.";
+
 export const DEFAULT_SLIP_NOTE =
   "Note: Synaptic Lab does not withhold or deduct any income tax from salaries. " +
   "Each employee is responsible for calculating, declaring and paying their own " +

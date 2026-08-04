@@ -4,17 +4,23 @@ import { getRepository } from "@/admin/repository";
 import type { Employee } from "@/admin/types";
 import { getFinanceRepository } from "./repository";
 import { importFinanceSeed, type ImportReport } from "./importSeed";
-import { monthLabel } from "./calc";
+import { monthLabel, pkr } from "./calc";
 import {
   DEFAULT_SLIP_NOTE,
   defaultPayDate,
+  invoiceTotal,
   isPayrollEligible,
   netPay,
+  nextInvoiceNo,
   nextSlipNo,
   nextTransactionNo,
   type CategoryKind,
+  type Client,
+  type ClientDraft,
   type FinanceCategory,
   type FinanceSettings,
+  type Invoice,
+  type InvoiceDraft,
   type PayrollItem,
   type RecurringDraft,
   type RecurringTemplate,
@@ -39,6 +45,8 @@ export const useFinanceData = () => {
   const [categories, setCategories] = useState<FinanceCategory[]>([]);
   const [payroll, setPayroll] = useState<PayrollItem[]>([]);
   const [recurring, setRecurring] = useState<RecurringTemplate[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [settings, setSettings] = useState<FinanceSettings>({
     reserve: 100000,
     slipNote: DEFAULT_SLIP_NOTE,
@@ -48,18 +56,24 @@ export const useFinanceData = () => {
 
   const refresh = useCallback(async () => {
     try {
-      const [t, c, p, s, r] = await Promise.all([
+      const [t, c, p, s, r, cl, inv] = await Promise.all([
         finance.listTransactions(),
         finance.listCategories(),
         finance.listPayroll(),
         finance.getSettings(),
         finance.listRecurring(),
+        // Older databases predate the invoices schema — the rest of finance
+        // must keep working while docs/supabase/invoices-schema.sql is pending.
+        finance.listClients().catch(() => []),
+        finance.listInvoices().catch(() => []),
       ]);
       setTransactions(t);
       setCategories(c);
       setPayroll(p);
       setSettings(s);
       setRecurring(r);
+      setClients(cl);
+      setInvoices(inv);
       setError(null);
     } catch (caught) {
       setError(
@@ -123,6 +137,29 @@ export const useFinanceData = () => {
     [finance, hr, actor, payroll],
   );
 
+  /** The same stranding rule for invoices: deleting the income entry a
+   *  payment created reverts the invoice to "sent" — still owed, in truth. */
+  const revertInvoicesLinkedTo = useCallback(
+    async (transactionIds: Set<string>): Promise<number> => {
+      const linked = invoices.filter(
+        (i) => i.transactionId && transactionIds.has(i.transactionId),
+      );
+      for (const invoice of linked) {
+        await finance.updateInvoice(invoice.id, {
+          status: "sent",
+          transactionId: null,
+          paidAmount: 0,
+          paidDate: "",
+        });
+        await hr.audit(actor, "finance.invoice.revert-to-sent", invoice.invoiceNo, {
+          reason: "linked payment transaction deleted",
+        });
+      }
+      return linked.length;
+    },
+    [finance, hr, actor, invoices],
+  );
+
   /** One delete path for one row or many — same audit, same payroll revert. */
   const deleteTransactions = useCallback(
     async (selected: Transaction[]) => {
@@ -138,11 +175,13 @@ export const useFinanceData = () => {
           ids: selected.map((t) => t.txnNo || t.legacyId || t.id),
         },
       );
-      const reverted = await revertPayrollLinkedTo(new Set(selected.map((t) => t.id)));
+      const ids = new Set(selected.map((t) => t.id));
+      const reverted = await revertPayrollLinkedTo(ids);
+      await revertInvoicesLinkedTo(ids);
       await refresh();
       return reverted;
     },
-    [finance, hr, actor, refresh, revertPayrollLinkedTo],
+    [finance, hr, actor, refresh, revertPayrollLinkedTo, revertInvoicesLinkedTo],
   );
 
   const deleteTransaction = useCallback(
@@ -389,6 +428,129 @@ export const useFinanceData = () => {
     [finance, hr, actor, categories, transactions, refresh],
   );
 
+  /* ── Customers & invoices ──────────────────────────────────────────────── */
+
+  const saveClient = useCallback(
+    async (draft: ClientDraft, id?: string) => {
+      await finance.saveClient(draft, id);
+      await hr.audit(actor, id ? "finance.client.update" : "finance.client.create", draft.name, {
+        currency: draft.currency,
+      });
+      await refresh();
+    },
+    [finance, hr, actor, refresh],
+  );
+
+  /** Same protection rule as employees: history makes a record permanent. */
+  const deleteClient = useCallback(
+    async (client: Client) => {
+      const linked = invoices.filter((i) => i.clientId === client.id).length;
+      if (linked > 0) {
+        throw new Error(
+          `${client.name} has ${linked} invoice${linked === 1 ? "" : "s"} — customers with invoices cannot be deleted. Mark them inactive instead.`,
+        );
+      }
+      await finance.removeClient(client.id);
+      await hr.audit(actor, "finance.client.delete", client.name);
+      await refresh();
+    },
+    [finance, hr, actor, invoices, refresh],
+  );
+
+  const saveInvoice = useCallback(
+    async (draft: InvoiceDraft, editing: Invoice | null) => {
+      const invoiceNo = draft.invoiceNo.trim() || nextInvoiceNo(invoices);
+      const taken = invoices.some(
+        (i) => i.invoiceNo === invoiceNo && i.id !== editing?.id,
+      );
+      if (taken) throw new Error(`Invoice number ${invoiceNo} is already used.`);
+
+      if (editing) {
+        await finance.updateInvoice(editing.id, { ...draft, invoiceNo });
+      } else {
+        await finance.createInvoice({ ...draft, invoiceNo });
+      }
+      await hr.audit(
+        actor,
+        editing ? "finance.invoice.update" : "finance.invoice.create",
+        `${invoiceNo} — ${draft.clientName}`,
+        { total: invoiceTotal(draft), currency: draft.currency },
+      );
+      await refresh();
+    },
+    [finance, hr, actor, invoices, refresh],
+  );
+
+  const markInvoiceSent = useCallback(
+    async (invoice: Invoice) => {
+      await finance.updateInvoice(invoice.id, { status: "sent" });
+      await hr.audit(actor, "finance.invoice.send", invoice.invoiceNo, {
+        client: invoice.clientName,
+      });
+      await refresh();
+    },
+    [finance, hr, actor, refresh],
+  );
+
+  /**
+   * The invoice↔ledger contract, mirroring payroll's: recording a payment
+   * writes ONE income entry — in PKR, because that is what actually landed in
+   * the bank after remittance — and links it. Deleting that entry later
+   * reverts the invoice to "sent".
+   */
+  const recordInvoicePayment = useCallback(
+    async (
+      invoice: Invoice,
+      payment: { date: string; amountPkr: number; incomeSource: string },
+    ) => {
+      const transaction = await finance.createTransaction({
+        legacyId: "",
+        txnNo: nextTransactionNo(transactions, payment.date),
+        date: payment.date,
+        type: "income",
+        category: payment.incomeSource,
+        description: `Invoice ${invoice.invoiceNo} — ${invoice.clientName}`,
+        notes:
+          invoice.currency === "PKR"
+            ? ""
+            : `Remittance against ${invoice.currency} ${pkr(invoiceTotal(invoice))}`,
+        amount: payment.amountPkr,
+      });
+      await finance.updateInvoice(invoice.id, {
+        status: "paid",
+        transactionId: transaction.id,
+        paidAmount: payment.amountPkr,
+        paidDate: payment.date,
+      });
+      await hr.audit(actor, "finance.invoice.payment", invoice.invoiceNo, {
+        client: invoice.clientName,
+        receivedPkr: payment.amountPkr,
+        invoiced: `${invoice.currency} ${pkr(invoiceTotal(invoice))}`,
+        txnNo: transaction.txnNo,
+      });
+      await refresh();
+    },
+    [finance, hr, actor, transactions, refresh],
+  );
+
+  /** The ledger follows the invoice: deleting a paid one removes the income
+   *  entry its payment created. The caller confirms this with the user. */
+  const deleteInvoice = useCallback(
+    async (invoice: Invoice) => {
+      if (invoice.status === "paid" && invoice.transactionId) {
+        await finance.removeTransactions([invoice.transactionId]);
+      }
+      await finance.removeInvoice(invoice.id);
+      await hr.audit(actor, "finance.invoice.delete", invoice.invoiceNo, {
+        client: invoice.clientName,
+        status: invoice.status,
+        ledgerEntryRemoved: invoice.status === "paid" && Boolean(invoice.transactionId),
+      });
+      await refresh();
+    },
+    [finance, hr, actor, refresh],
+  );
+
   /* ── Recurring templates ───────────────────────────────────────────────── */
 
   const saveRecurringTemplate = useCallback(
@@ -490,5 +652,13 @@ export const useFinanceData = () => {
     saveRecurringTemplate,
     deleteRecurringTemplate,
     postRecurring,
+    clients,
+    invoices,
+    saveClient,
+    deleteClient,
+    saveInvoice,
+    markInvoiceSent,
+    recordInvoicePayment,
+    deleteInvoice,
   };
 };

@@ -3,8 +3,13 @@ import { bool, num, str } from "@/admin/repository";
 import {
   DEFAULT_SLIP_NOTE,
   type CategoryKind,
+  type Client,
+  type ClientDraft,
   type FinanceCategory,
   type FinanceSettings,
+  type Invoice,
+  type InvoiceDraft,
+  type InvoiceLine,
   type PayrollDraft,
   type PayrollItem,
   type RecurringDraft,
@@ -52,6 +57,16 @@ export interface FinanceRepository {
   listRecurring(): Promise<RecurringTemplate[]>;
   saveRecurring(draft: RecurringDraft, id?: string): Promise<void>;
   removeRecurring(id: string): Promise<void>;
+
+  listClients(): Promise<Client[]>;
+  saveClient(draft: ClientDraft, id?: string): Promise<void>;
+  removeClient(id: string): Promise<void>;
+
+  listInvoices(): Promise<Invoice[]>;
+  createInvoice(draft: InvoiceDraft): Promise<Invoice>;
+  /** Patch semantics, same as transactions: absent fields stay untouched. */
+  updateInvoice(id: string, patch: Partial<InvoiceDraft>): Promise<void>;
+  removeInvoice(id: string): Promise<void>;
 }
 
 /* ── Row coercion — the HR adapter's shared helpers ───────────────────────── */
@@ -129,6 +144,75 @@ const toPayrollRow = (draft: Partial<PayrollDraft>) => {
   if (draft.slipNo !== undefined) row.slip_no = draft.slipNo;
   if (draft.status !== undefined) row.status = draft.status;
   if (draft.transactionId !== undefined) row.transaction_id = draft.transactionId;
+  return row;
+};
+
+const toClient = (row: Row): Client => ({
+  id: str(row.id),
+  name: str(row.name),
+  address: str(row.address),
+  email: str(row.email),
+  currency: str(row.currency, "PKR"),
+  incomeSource: str(row.income_source),
+  notes: str(row.notes),
+  isActive: bool(row.is_active, true),
+  createdAt: str(row.created_at),
+});
+
+const toClientRow = (draft: ClientDraft) => ({
+  name: draft.name,
+  address: draft.address,
+  email: draft.email,
+  currency: draft.currency,
+  income_source: draft.incomeSource,
+  notes: draft.notes,
+  is_active: draft.isActive,
+});
+
+const toInvoiceLines = (value: unknown): InvoiceLine[] =>
+  Array.isArray(value)
+    ? value.map((l: Row) => ({
+        description: str(l.description),
+        qty: num(l.qty, 1),
+        rate: num(l.rate),
+      }))
+    : [];
+
+const toInvoice = (row: Row): Invoice => ({
+  id: str(row.id),
+  invoiceNo: str(row.invoice_no),
+  clientId: row.client_id ? str(row.client_id) : null,
+  clientName: str(row.client_name),
+  clientAddress: str(row.client_address),
+  date: str(row.date),
+  terms: str(row.terms, "Net 30"),
+  dueDate: str(row.due_date),
+  currency: str(row.currency, "PKR"),
+  lines: toInvoiceLines(row.lines),
+  notes: str(row.notes),
+  status: str(row.status, "draft") as Invoice["status"],
+  transactionId: row.transaction_id ? str(row.transaction_id) : null,
+  paidAmount: num(row.paid_amount),
+  paidDate: str(row.paid_date),
+  createdAt: str(row.created_at),
+});
+
+const toInvoiceRow = (patch: Partial<InvoiceDraft>) => {
+  const row: Record<string, unknown> = {};
+  if (patch.invoiceNo !== undefined) row.invoice_no = patch.invoiceNo;
+  if (patch.clientId !== undefined) row.client_id = patch.clientId;
+  if (patch.clientName !== undefined) row.client_name = patch.clientName;
+  if (patch.clientAddress !== undefined) row.client_address = patch.clientAddress;
+  if (patch.date !== undefined) row.date = patch.date;
+  if (patch.terms !== undefined) row.terms = patch.terms;
+  if (patch.dueDate !== undefined) row.due_date = patch.dueDate || null;
+  if (patch.currency !== undefined) row.currency = patch.currency;
+  if (patch.lines !== undefined) row.lines = patch.lines;
+  if (patch.notes !== undefined) row.notes = patch.notes;
+  if (patch.status !== undefined) row.status = patch.status;
+  if (patch.transactionId !== undefined) row.transaction_id = patch.transactionId;
+  if (patch.paidAmount !== undefined) row.paid_amount = patch.paidAmount;
+  if (patch.paidDate !== undefined) row.paid_date = patch.paidDate || null;
   return row;
 };
 
@@ -370,6 +454,58 @@ class SupabaseFinanceRepository implements FinanceRepository {
     const { error } = await this.db.from("finance_recurring").delete().eq("id", id);
     if (error) throw error;
   }
+
+  async listClients(): Promise<Client[]> {
+    const { data, error } = await this.db.from("clients").select("*").order("name");
+    if (error) throw error;
+    return (data ?? []).map(toClient);
+  }
+
+  async saveClient(draft: ClientDraft, id?: string): Promise<void> {
+    const { error } = id
+      ? await this.db.from("clients").update(toClientRow(draft)).eq("id", id)
+      : await this.db.from("clients").insert(toClientRow(draft));
+    if (error) throw error;
+  }
+
+  async removeClient(id: string): Promise<void> {
+    const { error } = await this.db.from("clients").delete().eq("id", id);
+    if (error) throw error;
+  }
+
+  async listInvoices(): Promise<Invoice[]> {
+    const { data, error } = await this.db
+      .from("invoices")
+      .select("*")
+      .order("date", { ascending: false })
+      .order("invoice_no", { ascending: false })
+      .limit(2000);
+    if (error) throw error;
+    return (data ?? []).map(toInvoice);
+  }
+
+  async createInvoice(draft: InvoiceDraft): Promise<Invoice> {
+    const { data, error } = await this.db
+      .from("invoices")
+      .insert(toInvoiceRow(draft))
+      .select()
+      .single();
+    if (error) throw error;
+    return toInvoice(data);
+  }
+
+  async updateInvoice(id: string, patch: Partial<InvoiceDraft>): Promise<void> {
+    const { error } = await this.db
+      .from("invoices")
+      .update({ ...toInvoiceRow(patch), updated_at: new Date().toISOString() })
+      .eq("id", id);
+    if (error) throw error;
+  }
+
+  async removeInvoice(id: string): Promise<void> {
+    const { error } = await this.db.from("invoices").delete().eq("id", id);
+    if (error) throw error;
+  }
 }
 
 /* ── Local adapter ────────────────────────────────────────────────────────── */
@@ -380,6 +516,8 @@ const KEY = {
   payroll: "synapticlab.finance.payroll",
   settings: "synapticlab.finance.settings",
   recurring: "synapticlab.finance.recurring",
+  clients: "synapticlab.finance.clients",
+  invoices: "synapticlab.finance.invoices",
 };
 
 const read = <T,>(key: string): T[] => {
@@ -584,6 +722,54 @@ class LocalFinanceRepository implements FinanceRepository {
       KEY.recurring,
       read<RecurringTemplate>(KEY.recurring).filter((r) => r.id !== id),
     );
+  }
+
+  async listClients() {
+    return read<Client>(KEY.clients).sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  async saveClient(draft: ClientDraft, id?: string) {
+    const all = read<Client>(KEY.clients);
+    if (id) {
+      write(KEY.clients, all.map((c) => (c.id === id ? { ...c, ...draft } : c)));
+    } else {
+      write(KEY.clients, [
+        ...all,
+        { ...draft, id: crypto.randomUUID(), createdAt: new Date().toISOString() },
+      ]);
+    }
+  }
+
+  async removeClient(id: string) {
+    write(KEY.clients, read<Client>(KEY.clients).filter((c) => c.id !== id));
+  }
+
+  async listInvoices() {
+    return read<Invoice>(KEY.invoices).sort(
+      (a, b) =>
+        b.date.localeCompare(a.date) || b.invoiceNo.localeCompare(a.invoiceNo),
+    );
+  }
+
+  async createInvoice(draft: InvoiceDraft) {
+    const saved: Invoice = {
+      ...draft,
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+    };
+    write(KEY.invoices, [saved, ...read<Invoice>(KEY.invoices)]);
+    return saved;
+  }
+
+  async updateInvoice(id: string, patch: Partial<InvoiceDraft>) {
+    write(
+      KEY.invoices,
+      read<Invoice>(KEY.invoices).map((i) => (i.id === id ? { ...i, ...patch } : i)),
+    );
+  }
+
+  async removeInvoice(id: string) {
+    write(KEY.invoices, read<Invoice>(KEY.invoices).filter((i) => i.id !== id));
   }
 }
 
