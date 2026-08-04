@@ -173,7 +173,11 @@ const EmployeesTab = ({
   };
 
   const submittedRequests = updateRequests.filter((r) => r.status === "submitted");
-  const awaitingCount = updateRequests.filter((r) => r.status === "pending").length;
+  // Dead links don't count: a pending request past its 24h expiry can never
+  // be submitted, so it isn't "awaiting" anything.
+  const awaitingCount = updateRequests.filter(
+    (r) => r.status === "pending" && new Date(r.expiresAt) > new Date(),
+  ).length;
 
   const addViaLink = async () => {
     const name = window.prompt(
