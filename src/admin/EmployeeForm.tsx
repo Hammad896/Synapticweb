@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Globe, Loader2, Upload, User } from "lucide-react";
+import { Check, Globe, Inbox, Loader2, Upload, User, X } from "lucide-react";
 import { Button, Field, inputClass } from "@/components/kit";
-import { getRepository } from "./repository";
+import { getRepository, type UpdateRequest } from "./repository";
+import { missingFields, submissionChanges } from "./selfService";
 import {
   BLOOD_GROUPS,
   CURRENCIES,
@@ -19,11 +20,23 @@ interface Props {
   allEmployees: Employee[];
   onSave: (draft: EmployeeDraft, photo: File | null) => Promise<void>;
   onCancel: () => void;
+  /** A submitted self-service update waiting on this person, if any. */
+  pendingUpdate?: UpdateRequest | null;
+  onApplyUpdate?: (request: UpdateRequest) => Promise<void>;
+  onRejectUpdate?: (request: UpdateRequest) => Promise<void>;
 }
 
 const MAX_PHOTO_MB = 5;
 
-const EmployeeForm = ({ employee, allEmployees, onSave, onCancel }: Props) => {
+const EmployeeForm = ({
+  employee,
+  allEmployees,
+  onSave,
+  onCancel,
+  pendingUpdate,
+  onApplyUpdate,
+  onRejectUpdate,
+}: Props) => {
   const [draft, setDraft] = useState<EmployeeDraft>(employee ?? EMPTY_DRAFT);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -89,8 +102,84 @@ const EmployeeForm = ({ employee, allEmployees, onSave, onCancel }: Props) => {
     .join("")
     .toUpperCase();
 
+  const changes = pendingUpdate ? submissionChanges(pendingUpdate.submitted, draft) : [];
+  const missing = missingFields(draft);
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-9">
+      {/* ── A submitted update, right where the admin edits ───────────────── */}
+      {pendingUpdate && onApplyUpdate && onRejectUpdate && (
+        <div className="rounded-2xl border border-accent/40 bg-accent/5 p-5">
+          <p className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <Inbox size={15} aria-hidden="true" className="text-accent" />
+            {draft.fullName.split(" ")[0] || "This employee"} sent their details via the
+            update link — apply them instead of typing.
+          </p>
+          {changes.length === 0 ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              Everything they sent already matches this record.
+            </p>
+          ) : (
+            <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
+              {changes.map((change) => (
+                <li key={change.key} className="text-xs">
+                  <span className="text-muted-foreground">{change.label}: </span>
+                  <span className="text-muted-foreground line-through">{change.from || "—"}</span>{" "}
+                  <span className="font-medium text-emerald-600">{change.to || "—"}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-4 flex gap-3">
+            <Button
+              type="button"
+              className="px-4 py-2 text-xs"
+              onClick={() => void onApplyUpdate(pendingUpdate)}
+            >
+              <Check size={13} aria-hidden="true" />
+              Apply their details
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              className="px-3 py-2 text-xs text-red-500"
+              onClick={() => void onRejectUpdate(pendingUpdate)}
+            >
+              <X size={13} aria-hidden="true" />
+              Reject
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── What still needs filling, and by whom ─────────────────────────── */}
+      {(missing.employee.length > 0 || missing.admin.length > 0) && (
+        <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-4 text-xs leading-relaxed">
+          {missing.admin.length > 0 && (
+            <p>
+              <span className="font-medium text-foreground">You still need to set:</span>{" "}
+              {missing.admin.map((label) => (
+                <span key={label} className="mr-1.5 inline-block rounded-full border border-amber-500/50 px-2 py-0.5 text-amber-600">
+                  {label}
+                </span>
+              ))}
+            </p>
+          )}
+          {missing.employee.length > 0 && (
+            <p className={missing.admin.length > 0 ? "mt-2" : ""}>
+              <span className="font-medium text-foreground">
+                The employee can fill these via an update link:
+              </span>{" "}
+              {missing.employee.map((label) => (
+                <span key={label} className="mr-1.5 inline-block rounded-full border border-border px-2 py-0.5 text-muted-foreground">
+                  {label}
+                </span>
+              ))}
+            </p>
+          )}
+        </div>
+      )}
+
       {/* ── Photo ─────────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-6">
         {photoPreview ? (

@@ -3,6 +3,7 @@ import { useAuth } from "@/auth/auth";
 import { joinerAnnouncement } from "@/hr/automations";
 import { getFinanceRepository } from "@/finance/repository";
 import { nameNeedle } from "@/finance/calc";
+import { applySubmission } from "./selfService";
 import {
   getRepository,
   type Announcement,
@@ -292,30 +293,11 @@ export const useHrData = () => {
     async (request: UpdateRequest) => {
       const employee = employees.find((e) => e.id === request.employeeId);
       if (!employee) throw new Error("The employee for this request no longer exists.");
-      const s = request.submitted;
-      const { id, ...draft } = employee;
-      await repository.updateEmployee(id, {
-        ...draft,
-        fullName: s.full_name ?? draft.fullName,
-        phone: s.phone ?? draft.phone,
-        cnic: s.cnic ?? draft.cnic,
-        dateOfBirth: s.date_of_birth ?? draft.dateOfBirth,
-        address: s.address ?? draft.address,
-        email: s.email ?? draft.email,
-        fatherName: s.father_name ?? draft.fatherName,
-        bloodGroup: s.blood_group ?? draft.bloodGroup,
-        ntn: s.ntn ?? draft.ntn,
-        bankName: s.bank_name ?? draft.bankName,
-        bankIban: s.bank_iban ?? draft.bankIban,
-        emergencyContact: {
-          name: s.emergency_name ?? draft.emergencyContact.name,
-          relationship: s.emergency_relationship ?? draft.emergencyContact.relationship,
-          phone: s.emergency_phone ?? draft.emergencyContact.phone,
-        },
-      });
+      // One shared definition decides how each submitted key lands.
+      await repository.updateEmployee(employee.id, applySubmission(employee, request.submitted));
       await repository.setUpdateRequestStatus(request.id, "approved");
       await repository.audit(actor, "employee.update-link.approve", employee.fullName, {
-        fields: Object.keys(s),
+        fields: Object.keys(request.submitted),
       });
       await refresh();
     },

@@ -22,6 +22,7 @@ import { ActionSheet, Drawer, SheetAction } from "../Sheet";
 import { initialsOf, money, shortDate } from "../format";
 import type { Employee, EmployeeDraft } from "../types";
 import type { UpdateRequest } from "../repository";
+import { submissionChanges } from "../selfService";
 import { cn, errorMessage } from "@/lib/utils";
 
 type Filter = "all" | "active" | "inactive";
@@ -45,44 +46,6 @@ interface Props {
   onRejectUpdate: (request: UpdateRequest) => Promise<void>;
 }
 
-/** submitted-json key → what the reviewer reads. */
-const FIELD_LABELS: Record<string, string> = {
-  full_name: "Full name",
-  father_name: "Father name",
-  blood_group: "Blood group",
-  ntn: "NTN",
-  bank_name: "Bank",
-  bank_iban: "IBAN",
-  phone: "Phone",
-  cnic: "CNIC",
-  date_of_birth: "Date of birth",
-  email: "Email",
-  address: "Address",
-  emergency_name: "Emergency name",
-  emergency_relationship: "Emergency relationship",
-  emergency_phone: "Emergency phone",
-};
-
-const currentValueOf = (employee: Employee | undefined, key: string): string => {
-  if (!employee) return "";
-  switch (key) {
-    case "full_name": return employee.fullName;
-    case "father_name": return employee.fatherName;
-    case "blood_group": return employee.bloodGroup;
-    case "ntn": return employee.ntn;
-    case "bank_name": return employee.bankName;
-    case "bank_iban": return employee.bankIban;
-    case "phone": return employee.phone;
-    case "cnic": return employee.cnic;
-    case "date_of_birth": return employee.dateOfBirth;
-    case "email": return employee.email;
-    case "address": return employee.address;
-    case "emergency_name": return employee.emergencyContact.name;
-    case "emergency_relationship": return employee.emergencyContact.relationship;
-    case "emergency_phone": return employee.emergencyContact.phone;
-    default: return "";
-  }
-};
 
 /**
  * The employee roster.
@@ -141,6 +104,33 @@ const EmployeesTab = ({
 
   const isEditorOpen = isCreating || editing !== null;
   const editorTitle = editing ? `Edit — ${editing.fullName}` : "New employee";
+
+  /** The submission waiting on the person being edited, surfaced IN the form. */
+  const editingSubmission = editing
+    ? updateRequests.find((r) => r.status === "submitted" && r.employeeId === editing.id) ?? null
+    : null;
+
+  const approveWithFeedback = async (request: UpdateRequest) => {
+    try {
+      await onApproveUpdate(request);
+      window.alert(
+        `Applied ${Object.keys(request.submitted).length} field${Object.keys(request.submitted).length === 1 ? "" : "s"} to ${request.employeeName || "the record"}. ✓`,
+      );
+      // The record just changed under the editor — close it so it reopens fresh.
+      setEditing(null);
+    } catch (caught) {
+      window.alert(`Could not apply the update: ${errorMessage(caught)}`);
+    }
+  };
+
+  const rejectWithFeedback = async (request: UpdateRequest) => {
+    if (!window.confirm("Reject this submission? Nothing will change on the record.")) return;
+    try {
+      await onRejectUpdate(request);
+    } catch (caught) {
+      window.alert(`Could not reject: ${errorMessage(caught)}`);
+    }
+  };
 
   /** Opens the owner's own mail client with a ready-to-send draft — the mail
    *  genuinely goes out from their account (qhammad286@gmail.com), free. */
@@ -213,6 +203,9 @@ const EmployeesTab = ({
       allEmployees={employees}
       onSave={onSave}
       onCancel={close}
+      pendingUpdate={editingSubmission}
+      onApplyUpdate={approveWithFeedback}
+      onRejectUpdate={rejectWithFeedback}
     />
   );
 
@@ -287,9 +280,7 @@ const EmployeesTab = ({
               <ul className="mt-3 flex flex-col gap-3">
                 {submittedRequests.map((request) => {
                   const employee = employees.find((e) => e.id === request.employeeId);
-                  const changes = Object.entries(request.submitted).filter(
-                    ([key, value]) => value !== currentValueOf(employee, key),
-                  );
+                  const changes = submissionChanges(request.submitted, employee);
                   return (
                     <li key={request.id} className="rounded-xl border border-border p-4">
                       <div className="flex flex-wrap items-center gap-3">
@@ -302,18 +293,14 @@ const EmployeesTab = ({
                         <span className="ml-auto flex gap-2">
                           <Button
                             className="px-3 py-1.5 text-xs"
-                            onClick={() => void onApproveUpdate(request)}
+                            onClick={() => void approveWithFeedback(request)}
                           >
                             <Check size={13} aria-hidden="true" /> Approve
                           </Button>
                           <Button
                             variant="ghost"
                             className="px-3 py-1.5 text-xs text-red-500"
-                            onClick={() => {
-                              if (window.confirm("Reject this submission? Nothing will change on the record.")) {
-                                void onRejectUpdate(request);
-                              }
-                            }}
+                            onClick={() => void rejectWithFeedback(request)}
                           >
                             <X size={13} aria-hidden="true" /> Reject
                           </Button>
@@ -325,13 +312,13 @@ const EmployeesTab = ({
                         </p>
                       ) : (
                         <ul className="mt-3 grid gap-1.5 sm:grid-cols-2">
-                          {changes.map(([key, value]) => (
-                            <li key={key} className="text-xs">
-                              <span className="text-muted-foreground">{FIELD_LABELS[key] ?? key}: </span>
+                          {changes.map((change) => (
+                            <li key={change.key} className="text-xs">
+                              <span className="text-muted-foreground">{change.label}: </span>
                               <span className="text-muted-foreground line-through">
-                                {currentValueOf(employee, key) || "—"}
+                                {change.from || "—"}
                               </span>{" "}
-                              <span className="font-medium text-emerald-600">{value || "—"}</span>
+                              <span className="font-medium text-emerald-600">{change.to || "—"}</span>
                             </li>
                           ))}
                         </ul>

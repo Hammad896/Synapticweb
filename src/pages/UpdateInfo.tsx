@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Clock, Loader2 } from "lucide-react";
 import Logo from "@/components/Logo";
 import { Button, Field, inputClass } from "@/components/kit";
-import { BLOOD_GROUPS } from "@/admin/types";
+import { SELF_SERVICE_FIELDS } from "@/admin/selfService";
 import { supabase } from "@/lib/supabase";
 
 /**
@@ -32,30 +32,8 @@ interface RequestInfo {
   bank_iban?: string;
 }
 
-/** Everything required except NTN — non-filers genuinely don't have one. */
-const FIELDS: Array<{
-  key: string;
-  label: string;
-  type?: string;
-  hint?: string;
-  required?: boolean;
-  options?: string[];
-}> = [
-  { key: "full_name", label: "Full name", hint: "As written on your CNIC", required: true },
-  { key: "phone", label: "Phone number", required: true },
-  { key: "cnic", label: "CNIC", hint: "e.g. 37405-1234567-1", required: true },
-  { key: "father_name", label: "Father / guardian name", required: true },
-  { key: "date_of_birth", label: "Date of birth", type: "date", required: true },
-  { key: "blood_group", label: "Blood group", required: true, options: BLOOD_GROUPS },
-  { key: "email", label: "Email", type: "email", required: true },
-  { key: "address", label: "City / address", required: true },
-  { key: "ntn", label: "NTN — only if you are an FBR filer", hint: "Leave empty if you don't have one" },
-  { key: "bank_name", label: "Bank name", hint: "Where your salary should go", required: true },
-  { key: "bank_iban", label: "IBAN / account number", required: true },
-  { key: "emergency_name", label: "Emergency contact — name", required: true },
-  { key: "emergency_relationship", label: "Emergency contact — relationship", required: true },
-  { key: "emergency_phone", label: "Emergency contact — phone", required: true },
-];
+/** One definition shared with the admin side — see admin/selfService.ts. */
+const FIELDS = SELF_SERVICE_FIELDS;
 
 const UpdateInfo = () => {
   const [searchParams] = useSearchParams();
